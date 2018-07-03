@@ -12,7 +12,7 @@ include_directories(
 ) 
 
 set(APP_SOURCES src/main.cpp)
-set(LIB_SOURCES src/World.cpp)
+set(LIB_SOURCES src/street.cpp)
 
 # creates ./build/bin/runner
 add_executable(${PROJECT_NAME} ${APP_SOURCES})

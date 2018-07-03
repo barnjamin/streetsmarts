@@ -1,9 +1,9 @@
 #ifndef PROJECT_WORLD_
 #define PROJECT_WORLD_
 
-namespace Project {
+namespace StreetSmarts {
 
-class World {
+class Street {
 public:
   void greet();
 };

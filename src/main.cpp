@@ -1,10 +1,10 @@
-#include "project/World.hpp"
+#include "street.hpp"
 
 #include <iostream>
 #include <cstdlib>
 
 int main() {
-  Project::World hello;
+  StreetSmarts::Street hello;
   hello.greet();
   return EXIT_SUCCESS;
 }
