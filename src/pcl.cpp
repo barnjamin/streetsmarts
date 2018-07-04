@@ -38,22 +38,6 @@ pcl_ptr points_to_pcl(const rs2::points& points)
     return cloud;
 }
 
-
-boost::shared_ptr<pcl::visualization::PCLVisualizer> normalsVis (pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud, pcl::PointCloud<pcl::Normal>::ConstPtr normals)
-{
-
-  boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-  viewer->setBackgroundColor (0, 0, 0);
-  viewer->addPointCloud<pcl::PointXYZ> (cloud, "sample cloud");
-  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
-  viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal> (cloud, normals, 10, 0.05, "normals");
-  viewer->addCoordinateSystem (1.0);
-  viewer->initCameraParameters ();
-
-  return (viewer);
-}
-
-
 int main(int argc, char * argv[]) try
 {
     // Declare pointcloud object, for calculating pointclouds and texture mappings
@@ -66,47 +50,66 @@ int main(int argc, char * argv[]) try
     // Start streaming with default recommended configuration
     pipe.start();
 
-    // Wait for the next set of frames from the camera
-    auto frames = pipe.wait_for_frames();
+    Eigen::Affine3f q;
+    q = Eigen::AngleAxis<float>(2, Eigen::Vector3f(0,0,1));
 
-    auto depth = frames.get_depth_frame();
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+    viewer->setBackgroundColor (0, 0, 0);
+    viewer->initCameraParameters ();
+    viewer->addCoordinateSystem(1.0, q);
+    viewer->removeOrientationMarkerWidgetAxes();
 
-    // Generate the pointcloud and texture mappings
-    points = pc.calculate(depth);
+    while (!viewer->wasStopped ())
+    {
 
-    auto pcl_points = points_to_pcl(points);
+      // Wait for the next set of frames from the camera
+      auto frames = pipe.wait_for_frames();
+  
+      auto depth = frames.get_depth_frame();
+  
+      // Generate the pointcloud and texture mappings
+      points = pc.calculate(depth);
+  
+      auto pcl_points = points_to_pcl(points);
+  
+      pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+      pcl_ptr cloud_vox_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+  
+      pcl::PassThrough<pcl::PointXYZ> pass;
+      pass.setInputCloud(pcl_points);
+      pass.setFilterFieldName("z");
+      pass.setFilterLimits(0.0, 1.5);
+      pass.filter(*cloud_filtered);
+  
+	  pcl::VoxelGrid<pcl::PointXYZ> sor;
+	  sor.setInputCloud (cloud_filtered);
+	  sor.setLeafSize (0.01f, 0.01f, 0.01f);
+	  sor.filter (*cloud_vox_filtered);
 
-    pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl_ptr cloud_vox_filtered(new pcl::PointCloud<pcl::PointXYZ>);
 
-    pcl::PassThrough<pcl::PointXYZ> pass;
-    pass.setInputCloud(pcl_points);
-    pass.setFilterFieldName("z");
-    pass.setFilterLimits(0.0, 1.5);
-    pass.filter(*cloud_filtered);
+	  pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
+	  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
 
-	pcl::VoxelGrid<pcl::PointXYZ> sor;
-	sor.setInputCloud (cloud_filtered);
-	sor.setLeafSize (0.001f, 0.001f, 0.001f);
-	sor.filter (*cloud_vox_filtered);
+	  pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+      ne.setInputCloud (cloud_vox_filtered);
+	  ne.setSearchMethod (tree);
+	  ne.setKSearch (10);
+	  ne.compute (*cloud_normals);
+
+      viewer->removeAllPointClouds();
+
+      //viewer->addPointCloud<pcl::PointXYZ> (cloud_vox_filtered, "sample cloud");
+      //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
+//
+      viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal> (cloud_vox_filtered, cloud_normals, 5, 0.15, "normals");
+
+      viewer->spinOnce (100);
+      boost::this_thread::sleep (boost::posix_time::microseconds (100000));
+    }
 
 
-	pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
-	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
 
-	pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
-    ne.setInputCloud (cloud_vox_filtered);
-	ne.setSearchMethod (tree);
-	ne.setKSearch (10);
-	ne.compute (*cloud_normals);
 
-    auto viewer = normalsVis(cloud_vox_filtered, cloud_normals);
-
-	while (!viewer->wasStopped ())
-	{
-	  viewer->spinOnce (100);
-	  boost::this_thread::sleep (boost::posix_time::microseconds (100000));
-	}
 
     return EXIT_SUCCESS;
 }
