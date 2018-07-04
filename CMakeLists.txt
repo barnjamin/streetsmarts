@@ -9,15 +9,18 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 
 find_package(OpenGL)
+find_package(PCL)
+set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} glfw)
 
-set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} glfw)
-
+message(STATUS "${PCL_LIBRARIES}")
 		
 include_directories(
   ${PROJECT_SOURCE_DIR}/include/
+  ${PCL_INCLUDE_DIRS}
 ) 
 
-set(APP_SOURCES src/main.cpp)
+set(APP_SOURCES src/pcl.cpp)
+
 set(LIB_SOURCES src/street.cpp)
 
 # creates ./build/bin/runner
