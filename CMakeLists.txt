@@ -21,7 +21,7 @@ include_directories(
 set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} glfw)
 
 
-set(APP_SOURCES src/opencv.cpp)
+set(APP_SOURCES src/pcl.cpp)
 
 set(LIB_SOURCES src/street.cpp)
 

@@ -4,21 +4,18 @@
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "/home/ben/librealsense/examples/example.hpp" // Include short list of convenience functions for rendering
 
+#include <boost/thread/thread.hpp>
+
+#include <pcl/common/common_headers.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
-// Struct for managing rotation of pointcloud view
-struct state {
-    state() : yaw(0.0), pitch(0.0), last_x(0.0), last_y(0.0),
-        ml(false), offset_x(0.0f), offset_y(0.0f) {}
-    double yaw, pitch, last_x, last_y; bool ml; float offset_x, offset_y; 
-};
+
 
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
-
-// Helper functions
-void register_glfw_callbacks(window& app, state& app_state);
-void draw_pointcloud(window& app, state& app_state, const std::vector<pcl_ptr>& points);
 
 pcl_ptr points_to_pcl(const rs2::points& points)
 {
@@ -41,19 +38,24 @@ pcl_ptr points_to_pcl(const rs2::points& points)
     return cloud;
 }
 
-float3 colors[] { { 0.8f, 0.1f, 0.3f }, 
-                  { 0.1f, 0.9f, 0.5f },
-                };
+
+boost::shared_ptr<pcl::visualization::PCLVisualizer> normalsVis (pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud, pcl::PointCloud<pcl::Normal>::ConstPtr normals)
+{
+
+  boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+  viewer->setBackgroundColor (0, 0, 0);
+  viewer->addPointCloud<pcl::PointXYZ> (cloud, "sample cloud");
+  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
+  viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal> (cloud, normals, 10, 0.05, "normals");
+  viewer->addCoordinateSystem (1.0);
+  viewer->initCameraParameters ();
+
+  return (viewer);
+}
+
 
 int main(int argc, char * argv[]) try
 {
-    // Create a simple OpenGL window for rendering:
-    window app(1280, 720, "RealSense PCL Pointcloud Example");
-    // Construct an object to manage view state
-    state app_state;
-    // register callbacks to allow manipulation of the pointcloud
-    register_glfw_callbacks(app, app_state);
-
     // Declare pointcloud object, for calculating pointclouds and texture mappings
     rs2::pointcloud pc;
     // We want the points object to be persistent so we can display the last cloud when a frame drops
@@ -75,20 +77,36 @@ int main(int argc, char * argv[]) try
     auto pcl_points = points_to_pcl(points);
 
     pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl_ptr cloud_vox_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+
     pcl::PassThrough<pcl::PointXYZ> pass;
     pass.setInputCloud(pcl_points);
     pass.setFilterFieldName("z");
-    pass.setFilterLimits(0.0, 1.0);
+    pass.setFilterLimits(0.0, 1.5);
     pass.filter(*cloud_filtered);
 
-    std::vector<pcl_ptr> layers;
-    layers.push_back(pcl_points);
-    layers.push_back(cloud_filtered);
+	pcl::VoxelGrid<pcl::PointXYZ> sor;
+	sor.setInputCloud (cloud_filtered);
+	sor.setLeafSize (0.001f, 0.001f, 0.001f);
+	sor.filter (*cloud_vox_filtered);
 
-    while (app) // Application still alive?
-    {
-        draw_pointcloud(app, app_state, layers);
-    }
+
+	pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
+	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
+
+	pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+    ne.setInputCloud (cloud_vox_filtered);
+	ne.setSearchMethod (tree);
+	ne.setKSearch (10);
+	ne.compute (*cloud_normals);
+
+    auto viewer = normalsVis(cloud_vox_filtered, cloud_normals);
+
+	while (!viewer->wasStopped ())
+	{
+	  viewer->spinOnce (100);
+	  boost::this_thread::sleep (boost::posix_time::microseconds (100000));
+	}
 
     return EXIT_SUCCESS;
 }
@@ -103,99 +121,4 @@ catch (const std::exception & e)
     return EXIT_FAILURE;
 }
 
-// Registers the state variable and callbacks to allow mouse control of the pointcloud
-void register_glfw_callbacks(window& app, state& app_state)
-{
-    app.on_left_mouse = [&](bool pressed)
-    {
-        app_state.ml = pressed;
-    };
 
-    app.on_mouse_scroll = [&](double xoffset, double yoffset)
-    {
-        app_state.offset_x += static_cast<float>(xoffset);
-        app_state.offset_y += static_cast<float>(yoffset);
-    };
-
-    app.on_mouse_move = [&](double x, double y)
-    {
-        if (app_state.ml)
-        {
-            app_state.yaw -= (x - app_state.last_x);
-            app_state.yaw = std::max(app_state.yaw, -120.0);
-            app_state.yaw = std::min(app_state.yaw, +120.0);
-            app_state.pitch += (y - app_state.last_y);
-            app_state.pitch = std::max(app_state.pitch, -80.0);
-            app_state.pitch = std::min(app_state.pitch, +80.0);
-        }
-        app_state.last_x = x;
-        app_state.last_y = y;
-    };
-
-    app.on_key_release = [&](int key)
-    {
-        if (key == 32) // Escape
-        {
-            app_state.yaw = app_state.pitch = 0; app_state.offset_x = app_state.offset_y = 0.0;
-        }
-    };
-}
-
-// Handles all the OpenGL calls needed to display the point cloud
-void draw_pointcloud(window& app, state& app_state, const std::vector<pcl_ptr>& points)
-{
-    // OpenGL commands that prep screen for the pointcloud
-    glPopMatrix();
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-
-    float width = app.width(), height = app.height();
-
-    glClearColor(153.f / 255, 153.f / 255, 153.f / 255, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    gluPerspective(60, width / height, 0.01f, 10.0f);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);
-
-    glTranslatef(0, 0, +0.5f + app_state.offset_y*0.05f);
-    glRotated(app_state.pitch, 1, 0, 0);
-    glRotated(app_state.yaw, 0, 1, 0);
-    glTranslatef(0, 0, -0.5f);
-
-    glPointSize(width / 640);
-    glEnable(GL_TEXTURE_2D);
-
-    int color = 0;
-
-    for (auto&& pc : points)
-    {
-        auto c = colors[(color++) % (sizeof(colors) / sizeof(float3))];
-
-        glBegin(GL_POINTS);
-        glColor3f(c.x, c.y, c.z);
-
-        /* this segment actually prints the pointcloud */
-        for (int i = 0; i < pc->points.size(); i++)
-        {
-            auto&& p = pc->points[i];
-            if (p.z)
-            {
-                // upload the point and texture coordinates only for points we have depth data for
-                glVertex3f(p.x, p.y, p.z);
-            }
-        }
-
-        glEnd();
-    }
-
-    // OpenGL cleanup
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glPopAttrib();
-    glPushMatrix();
-}
