@@ -8,18 +8,20 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 
+find_package(OpenCV REQUIRED)
 find_package(OpenGL)
 find_package(PCL)
-set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} glfw)
 
-message(STATUS "${PCL_LIBRARIES}")
-		
 include_directories(
   ${PROJECT_SOURCE_DIR}/include/
   ${PCL_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 ) 
 
-set(APP_SOURCES src/pcl.cpp)
+set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} glfw)
+
+
+set(APP_SOURCES src/opencv.cpp)
 
 set(LIB_SOURCES src/street.cpp)
 
