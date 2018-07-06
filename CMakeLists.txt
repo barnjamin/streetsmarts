@@ -12,10 +12,13 @@ find_package(OpenCV REQUIRED)
 find_package(OpenGL)
 find_package(PCL)
 
+set(IMGUI /home/ben/librealsense/third-party/imgui/)
+aux_source_directory(${IMGUI} IMGUI_SOURCES)
 include_directories(
   ${PROJECT_SOURCE_DIR}/include/
   ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${IMGUI}
 ) 
 
 set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} glfw)
@@ -24,6 +27,10 @@ set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} 
 set(APP_SOURCES src/main.cpp)
 add_executable(${PROJECT_NAME} ${APP_SOURCES})
 target_link_libraries(${PROJECT_NAME} ${DEPENDENCIES})
+
+set(POST_PROC src/rs-post-processing.cpp ${IMGUI_SOURCES})
+add_executable(postproc ${POST_PROC})
+target_link_libraries(postproc ${DEPENDENCIES})
 
 set(CANNY_SOURCES src/opencv.cpp)
 add_executable(canny ${CANNY_SOURCES})
