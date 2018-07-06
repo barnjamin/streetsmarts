@@ -13,8 +13,6 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-
-
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 
 pcl_ptr points_to_pcl(const rs2::points& points)
@@ -57,7 +55,6 @@ int main(int argc, char * argv[]) try
     viewer->setBackgroundColor (0, 0, 0);
     viewer->initCameraParameters ();
     viewer->addCoordinateSystem(1.0, q);
-    viewer->removeOrientationMarkerWidgetAxes();
 
     while (!viewer->wasStopped ())
     {
@@ -78,30 +75,28 @@ int main(int argc, char * argv[]) try
       pcl::PassThrough<pcl::PointXYZ> pass;
       pass.setInputCloud(pcl_points);
       pass.setFilterFieldName("z");
-      pass.setFilterLimits(0.0, 1.5);
+      pass.setFilterLimits(5.0, 10.0);
       pass.filter(*cloud_filtered);
   
 	  pcl::VoxelGrid<pcl::PointXYZ> sor;
 	  sor.setInputCloud (cloud_filtered);
-	  sor.setLeafSize (0.01f, 0.01f, 0.01f);
+	  sor.setLeafSize (0.03f, 0.03f, 0.03f);
 	  sor.filter (*cloud_vox_filtered);
 
+	  //pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
+	  //pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
 
-	  pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
-	  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
-
-	  pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
-      ne.setInputCloud (cloud_vox_filtered);
-	  ne.setSearchMethod (tree);
-	  ne.setKSearch (10);
-	  ne.compute (*cloud_normals);
+	  //pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+      //ne.setInputCloud (cloud_vox_filtered);
+	  //ne.setSearchMethod (tree);
+	  //ne.setKSearch (10);
+	  //ne.compute (*cloud_normals);
 
       viewer->removeAllPointClouds();
 
-      //viewer->addPointCloud<pcl::PointXYZ> (cloud_vox_filtered, "sample cloud");
+      viewer->addPointCloud<pcl::PointXYZ> (cloud_vox_filtered, "sample cloud");
       //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
-//
-      viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal> (cloud_vox_filtered, cloud_normals, 5, 0.15, "normals");
+      //viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal> (cloud_vox_filtered, cloud_normals, 5, 0.15, "normals");
 
       viewer->spinOnce (100);
       boost::this_thread::sleep (boost::posix_time::microseconds (100000));

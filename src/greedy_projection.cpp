@@ -10,6 +10,17 @@
 
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 
+//Pasthrough Filter
+const float MIN_Z       = 0.0f;
+const float MAX_Z       = 5.0f;
+
+//Voxelization
+const float VOXEL_SIZE  = 0.05f;
+const int NEIGHBORS     = 30;
+
+//Meshing
+const float GP3_MU      = 2.5f;
+
 pcl_ptr points_to_pcl(const rs2::points& points)
 {
     pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -35,6 +46,7 @@ pcl_ptr points_to_pcl(const rs2::points& points)
 int
 main (int argc, char** argv)
 {
+
   // Declare pointcloud object, for calculating pointclouds and texture mappings
   rs2::pointcloud pc;
   // We want the points object to be persistent so we can display the last cloud when a frame drops
@@ -49,10 +61,7 @@ main (int argc, char** argv)
   auto frames = pipe.wait_for_frames();
   auto depth = frames.get_depth_frame();
 
-  // Generate the pointcloud and texture mappings
-  points = pc.calculate(depth);
-
-  auto cloud = points_to_pcl(points);
+  auto cloud = points_to_pcl(pc.calculate(depth));
 
   pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
   pcl_ptr cloud_vox_filtered(new pcl::PointCloud<pcl::PointXYZ>);
@@ -60,29 +69,25 @@ main (int argc, char** argv)
   pcl::PassThrough<pcl::PointXYZ> pass;
   pass.setInputCloud(cloud);
   pass.setFilterFieldName("z");
-  pass.setFilterLimits(0.0, 2);
+  pass.setFilterLimits(MIN_Z, MAX_Z);
   pass.filter(*cloud_filtered);
 
   pcl::VoxelGrid<pcl::PointXYZ> sor;
   sor.setInputCloud (cloud_filtered);
-  sor.setLeafSize (0.03f, 0.03f, 0.03f);
+  sor.setLeafSize (VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
   sor.filter (*cloud_vox_filtered);
 
-
-  std::cout << "Here" << std::endl;
-
-  // Normal estimation*
-  pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
-  pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
+  // Normal estimation
   pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
   tree->setInputCloud (cloud_vox_filtered);
+
+  pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
+  pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
   n.setInputCloud (cloud_vox_filtered);
   n.setSearchMethod (tree);
-  n.setKSearch (20);
+  n.setKSearch (NEIGHBORS);
   n.compute (*normals);
   //* normals should not contain the point normals + surface curvatures
-
-  std::cout << "And here" << std::endl;
 
   // Concatenate the XYZ and normal fields*
   pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals (new pcl::PointCloud<pcl::PointNormal>);
@@ -100,15 +105,15 @@ main (int argc, char** argv)
   std::cout << "And also here" << std::endl;
 
   // Set the maximum distance between connected points (maximum edge length)
-  gp3.setSearchRadius (0.05);
+  gp3.setSearchRadius (VOXEL_SIZE*2);
 
   // Set typical values for the parameters
-  gp3.setMu (2.5);
-  gp3.setMaximumNearestNeighbors (100);
+  gp3.setMu (GP3_MU);
+  gp3.setMaximumNearestNeighbors (NEIGHBORS);
   gp3.setMaximumSurfaceAngle(M_PI/4); // 45 degrees
   gp3.setMinimumAngle(M_PI/18); // 10 degrees
   gp3.setMaximumAngle(2*M_PI/3); // 120 degrees
-  gp3.setNormalConsistency(false);
+  gp3.setNormalConsistency(true);
 
   // Get result
   gp3.setInputCloud (cloud_with_normals);

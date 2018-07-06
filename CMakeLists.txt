@@ -21,16 +21,24 @@ include_directories(
 set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} glfw)
 
 
-set(APP_SOURCES src/greedy_projection.cpp)
-
-set(LIB_SOURCES src/street.cpp)
-
-# creates ./build/bin/runner
+set(APP_SOURCES src/main.cpp)
 add_executable(${PROJECT_NAME} ${APP_SOURCES})
+target_link_libraries(${PROJECT_NAME} ${DEPENDENCIES})
 
-target_link_libraries(streetsmarts ${DEPENDENCIES})
+set(CANNY_SOURCES src/opencv.cpp)
+add_executable(canny ${CANNY_SOURCES})
+target_link_libraries(canny ${DEPENDENCIES})
+
+set(MESH_SOURCES src/greedy_projection.cpp)
+add_executable(mesh ${MESH_SOURCES})
+target_link_libraries(mesh ${DEPENDENCIES})
+
+set(NORMAL_SOURCES src/pcl.cpp)
+add_executable(normal ${NORMAL_SOURCES})
+target_link_libraries(normal ${DEPENDENCIES})
 
 # shared library
+set(LIB_SOURCES src/street.cpp)
 set(LIBRARY_NAME World)
 add_library(${LIBRARY_NAME} SHARED ${LIB_SOURCES})
 target_link_libraries(${PROJECT_NAME} ${LIBRARY_NAME})
