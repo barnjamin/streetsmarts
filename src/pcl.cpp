@@ -3,15 +3,29 @@
 
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "/home/ben/librealsense/examples/example.hpp" // Include short list of convenience functions for rendering
-
 #include <boost/thread/thread.hpp>
 
 #include <pcl/common/common_headers.h>
+
 #include <pcl/point_types.h>
+
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/conditional_removal.h>
+
 #include <pcl/features/normal_3d.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/features/integral_image_normal.h>
+
+#include <pcl/search/kdtree.h>
+#include <pcl/search/organized.h>
+
+#include <pcl/segmentation/extract_clusters.h>
+
 #include <pcl/visualization/pcl_visualizer.h>
+
+
+
 
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 
@@ -42,81 +56,52 @@ int main(int argc, char * argv[]) try
     rs2::pointcloud pc;
     // We want the points object to be persistent so we can display the last cloud when a frame drops
     rs2::points points;
-
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
     // Start streaming with default recommended configuration
     pipe.start();
 
-    Eigen::Affine3f q;
-    q = Eigen::AngleAxis<float>(2, Eigen::Vector3f(0,0,1));
-
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     viewer->setBackgroundColor (0, 0, 0);
     viewer->initCameraParameters ();
-    viewer->addCoordinateSystem(1.0, q);
+    viewer->setCameraPosition(0,0,0,0,-1,0);
+    //viewer->setFullScreen(true);
 
-    while (!viewer->wasStopped ())
-    {
+    rs2::decimation_filter dec_filter;  // Decimation - reduces depth frame density
+    dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 3.0);
 
+    while (!viewer->wasStopped ()) {
       // Wait for the next set of frames from the camera
       auto frames = pipe.wait_for_frames();
-  
       auto depth = frames.get_depth_frame();
-  
+      depth = dec_filter.process(depth);
+
       // Generate the pointcloud and texture mappings
-      points = pc.calculate(depth);
-  
-      auto pcl_points = points_to_pcl(points);
-  
-      pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-      pcl_ptr cloud_vox_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-  
-      pcl::PassThrough<pcl::PointXYZ> pass;
-      pass.setInputCloud(pcl_points);
-      pass.setFilterFieldName("z");
-      pass.setFilterLimits(5.0, 10.0);
-      pass.filter(*cloud_filtered);
-  
-	  pcl::VoxelGrid<pcl::PointXYZ> sor;
-	  sor.setInputCloud (cloud_filtered);
-	  sor.setLeafSize (0.03f, 0.03f, 0.03f);
-	  sor.filter (*cloud_vox_filtered);
+      auto pcl_points = points_to_pcl(pc.calculate(depth));
 
-	  //pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
-	  //pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
 
-	  //pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
-      //ne.setInputCloud (cloud_vox_filtered);
-	  //ne.setSearchMethod (tree);
-	  //ne.setKSearch (10);
-	  //ne.compute (*cloud_normals);
+
+	  //pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
+      //pcl::IntegralImageNormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+      //ne.setNormalEstimationMethod (ne.AVERAGE_DEPTH_CHANGE);
+      //ne.setMaxDepthChangeFactor(0.02f);
+      //ne.setNormalSmoothingSize(10.0f);
+      //ne.setInputCloud(pcl_points);
+      //ne.compute(*normals);
 
       viewer->removeAllPointClouds();
-
-      viewer->addPointCloud<pcl::PointXYZ> (cloud_vox_filtered, "sample cloud");
-      //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
-      //viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal> (cloud_vox_filtered, cloud_normals, 5, 0.15, "normals");
+      //viewer->addPointCloud<pcl::PointXYZ> ();
+      //viewer->addPointCloudNormals<pcl::PointNormal> ();
 
       viewer->spinOnce (100);
       boost::this_thread::sleep (boost::posix_time::microseconds (100000));
     }
 
-
-
-
-
     return EXIT_SUCCESS;
-}
-catch (const rs2::error & e)
-{
+} catch (const rs2::error & e) {
     std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
     return EXIT_FAILURE;
-}
-catch (const std::exception & e)
-{
+} catch (const std::exception & e) {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
 }
-
-

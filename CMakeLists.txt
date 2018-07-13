@@ -24,9 +24,9 @@ include_directories(
 set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} glfw)
 
 
-set(APP_SOURCES src/main.cpp)
-add_executable(${PROJECT_NAME} ${APP_SOURCES})
-target_link_libraries(${PROJECT_NAME} ${DEPENDENCIES})
+set(APP_SOURCES src/watershed.cpp)
+add_executable(watershed ${APP_SOURCES})
+target_link_libraries(watershed ${DEPENDENCIES})
 
 set(POST_PROC src/rs-post-processing.cpp ${IMGUI_SOURCES})
 add_executable(postproc ${POST_PROC})
@@ -44,9 +44,13 @@ set(NORMAL_SOURCES src/pcl.cpp)
 add_executable(normal ${NORMAL_SOURCES})
 target_link_libraries(normal ${DEPENDENCIES})
 
+set(HW_SOURCES src/histogram-watershed.cpp)
+add_executable(histogram-watershed ${HW_SOURCES})
+target_link_libraries(histogram-watershed ${DEPENDENCIES})
+
 # shared library
-set(LIB_SOURCES src/street.cpp)
-set(LIBRARY_NAME World)
-add_library(${LIBRARY_NAME} SHARED ${LIB_SOURCES})
-target_link_libraries(${PROJECT_NAME} ${LIBRARY_NAME})
+#set(LIB_SOURCES src/street.cpp)
+#set(LIBRARY_NAME World)
+#add_library(${LIBRARY_NAME} SHARED ${LIB_SOURCES})
+#target_link_libraries(${PROJECT_NAME} ${LIBRARY_NAME})
 

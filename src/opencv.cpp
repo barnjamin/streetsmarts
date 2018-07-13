@@ -27,6 +27,12 @@ int main(int argc, char * argv[]) try
     rs2::pipeline pipe;
 	rs2::config cfg;
 
+	rs2::decimation_filter dec_filter;  // Decimation - reduces depth frame density
+    //rs2::spatial_filter spat_filter;    // Spatial    - edge-preserving spatial smoothing
+    //rs2::temporal_filter temp_filter;
+
+	dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 2.0);
+
 	cfg.enable_stream(RS2_STREAM_COLOR, WIDTH, HEIGHT);
 	cfg.enable_stream(RS2_STREAM_DEPTH, WIDTH, HEIGHT);
 	pipe.start(cfg);
@@ -35,9 +41,12 @@ int main(int argc, char * argv[]) try
 
 	while (cv::waitKey(1)<0 && cvGetWindowHandle(window_name)) {
 		rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
+		auto depth = data.get_depth_frame();
+		auto filtered_depth = depth;
 
-		auto mat = frame_to_mat(color_map(data.get_depth_frame()));
-		//auto mat =  frame_to_mat(data.get_color_frame());
+		filtered_depth = dec_filter.process(filtered_depth);
+
+		auto mat = frame_to_mat(color_map(filtered_depth));
 
 		//Canny
 		cv::Mat src, src_gray;
