@@ -22,6 +22,7 @@ int NEIGHBORS     = 30;
 //Meshing
 float GP3_MU      = 2.5f;
 
+
 int FRAMES = 180;
 int FRAMESTART = 180;
 

@@ -31,23 +31,7 @@ set(APP_SOURCES src/seg.cpp)
 add_executable(seg ${APP_SOURCES})
 target_link_libraries(seg ${DEPENDENCIES})
 
-set(APP_SOURCES src/playback.cpp)
-add_executable(playback ${APP_SOURCES})
-target_link_libraries(playback ${DEPENDENCIES})
-
-set(APP_SOURCES src/watershed.cpp)
-add_executable(watershed ${APP_SOURCES})
-target_link_libraries(watershed ${DEPENDENCIES})
-
-#set(POST_PROC src/rs-post-processing.cpp ${IMGUI_SOURCES})
-#add_executable(postproc ${POST_PROC})
-#target_link_libraries(postproc ${DEPENDENCIES})
-
-set(CANNY_SOURCES src/opencv.cpp)
-add_executable(canny ${CANNY_SOURCES})
-target_link_libraries(canny ${DEPENDENCIES})
-
-set(MESH_SOURCES src/greedy_projection.cpp)
+set(MESH_SOURCES src/mesh.cpp)
 add_executable(mesh ${MESH_SOURCES})
 target_link_libraries(mesh ${DEPENDENCIES})
 
@@ -55,13 +39,9 @@ set(NORMAL_SOURCES src/pcl.cpp)
 add_executable(normal ${NORMAL_SOURCES})
 target_link_libraries(normal ${DEPENDENCIES})
 
-set(HW_SOURCES src/histogram-watershed.cpp)
-add_executable(histogram-watershed ${HW_SOURCES})
-target_link_libraries(histogram-watershed ${DEPENDENCIES})
 
 # shared library
 #set(LIB_SOURCES src/street.cpp)
 #set(LIBRARY_NAME World)
 #add_library(${LIBRARY_NAME} SHARED ${LIB_SOURCES})
 #target_link_libraries(${PROJECT_NAME} ${LIBRARY_NAME})
-
