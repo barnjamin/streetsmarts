@@ -8,12 +8,9 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/common/transforms.h>
+#include "utils.h" 
 
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
-
-//Pasthrough Filter
-float MIN_Z       = 0.0f;
-float MAX_Z       = 5.0f;
 
 //Voxelization
 float VOXEL_SIZE  = 0.05f;
@@ -22,80 +19,43 @@ int NEIGHBORS     = 30;
 //Meshing
 float GP3_MU      = 2.5f;
 
-
-int FRAMES = 180;
-int FRAMESTART = 180;
-
-pcl_ptr points_to_pcl(const rs2::points& points)
-{
-    pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-    auto sp = points.get_profile().as<rs2::video_stream_profile>();
-    cloud->width = sp.width();
-    cloud->height = sp.height();
-    cloud->is_dense = false;
-    cloud->points.resize(points.size());
-    auto ptr = points.get_vertices();
-    for (auto& p : cloud->points)
-    {
-        p.x = ptr->x;
-        p.y = ptr->y;
-        p.z = ptr->z;
-        ptr++;
-    }
-
-
-
-    pcl_ptr cloud_rot(new pcl::PointCloud<pcl::PointXYZ>);
-
-    std::cout <<"Rotating...";
-    //Rotate
-    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    transform.rotate(Eigen::AngleAxisf(M_PI, Eigen::Vector3f::UnitZ()));
-    pcl::transformPointCloud(*cloud, *cloud_rot, transform);
-
-    std::cout <<"done"<<std::endl;
-
-    return cloud_rot;
-}
-
-
 int
 main (int argc, char** argv)
 {
 
+  Config conf;
+  conf.parseArgs(argc, argv);
 
   for(int x=1; x<argc; x+=2){
     std::string flag (argv[x]);
-    if(flag == "--minz"){
-       //std::cout<<argv[x]<<std::endl;
-       MIN_Z = std::stof(argv[x+1]);
-    } else if(flag == "--maxz"){
-       //std::cout<<argv[x]<<std::endl;
-       MAX_Z = std::stof(argv[x+1]);
-    } else if (flag ==  "--voxel-size") {
-       //std::cout<<argv[x]<<std::endl;
+     if (flag ==  "--voxel-size") {
        VOXEL_SIZE = std::stof(argv[x+1]);
      }else if(flag ==  "--neighbors"){
-       //std::cout<<argv[x]<<std::endl;
        NEIGHBORS = std::stoi(argv[x+1]);
      }else if(flag ==  "--mu"){
-       //std::cout<<argv[x]<<std::endl;
        GP3_MU = std::stof(argv[x+1]);
-     }else if(flag ==  "--frames"){
-       //std::cout<<argv[x]<<std::endl;
-       FRAMES = std::stoi(argv[x+1]);
-     }else if(flag ==  "--fstart"){
-       //std::cout<<argv[x]<<std::endl;
-       FRAMESTART = std::stoi(argv[x+1]);
      }
   }
 
 
   auto bagfile = "/media/ssd/20180819_091914.bag";
 
-  rs2::decimation_filter dec_filter;  // Decimation - reduces depth frame density
-  dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 4.0);  // Decimation - reduces depth frame density
+  rs2::decimation_filter dec_filter;
+  dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, conf.dec_mag);  
+
+  rs2::spatial_filter spat_filter;
+  spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, conf.spat_mag);
+  spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, conf.spat_a);
+  spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, conf.spat_d);
+
+  rs2::temporal_filter temp_filter;
+  temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, conf.temp_a);
+  temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, conf.temp_d);
+
+  rs2::disparity_transform depth_to_disparity(true);
+  rs2::disparity_transform disparity_to_depth(false);
+
+
   rs2::config cfg;    
   cfg.enable_device_from_file(bagfile);
   
@@ -139,17 +99,25 @@ main (int argc, char** argv)
   // Wait for the next set of frames from the camera
   auto frames = pipe.wait_for_frames();
   auto depth = frames.get_depth_frame();
-  auto cloud = points_to_pcl(pc.calculate(depth));
-  for(int i=FRAMESTART; i<FRAMESTART+FRAMES; i++){
+  for(int i=0; i<conf.framestart; i++){
+      pipe.wait_for_frames();
+  }
+
+  pcl_ptr cloud; 
+  for(int i=0; i<conf.frames; i++) {
       frames = pipe.wait_for_frames();
       depth = frames.get_depth_frame();
       depth = dec_filter.process(depth);
+      depth = depth_to_disparity.process(depth);
+      depth = spat_filter.process(depth);
+      depth = temp_filter.process(depth);
+      depth = disparity_to_depth.process(depth);
 
       cloud = points_to_pcl(pc.calculate(depth));
 
       pass.setInputCloud(cloud);
       pass.setFilterFieldName("z");
-      pass.setFilterLimits(MIN_Z, MAX_Z);
+      pass.setFilterLimits(conf.min_z, conf.max_z);
       pass.filter(*cloud_filtered);
 
       sor.setInputCloud (cloud_filtered);
@@ -170,14 +138,10 @@ main (int argc, char** argv)
       // Create search tree*
       tree2->setInputCloud (cloud_with_normals);
 
-      std::cout << "And also here" << std::endl;
-
       // Get result
       gp3.setInputCloud (cloud_with_normals);
       gp3.setSearchMethod (tree2);
       gp3.reconstruct (triangles);
-
-      std::cout << "And also here man" << std::endl;
 
       // Additional vertex information
       std::vector<int> parts = gp3.getPartIDs();

@@ -23,25 +23,23 @@ include_directories(
 
 set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} glfw)
 
-set(APP_SOURCES src/region_growing.cpp)
+set(APP_SOURCES src/don_seg.cpp src/utils.cpp)
+add_executable(don_seg ${APP_SOURCES})
+target_link_libraries(don_seg ${DEPENDENCIES})
+
+set(APP_SOURCES src/region_growing.cpp src/utils.cpp)
 add_executable(region_growing ${APP_SOURCES})
 target_link_libraries(region_growing ${DEPENDENCIES})
 
-set(APP_SOURCES src/seg.cpp)
+set(APP_SOURCES src/seg.cpp src/utils.cpp)
 add_executable(seg ${APP_SOURCES})
 target_link_libraries(seg ${DEPENDENCIES})
 
-set(MESH_SOURCES src/mesh.cpp)
+set(MESH_SOURCES src/mesh.cpp src/utils.cpp)
 add_executable(mesh ${MESH_SOURCES})
 target_link_libraries(mesh ${DEPENDENCIES})
 
-set(NORMAL_SOURCES src/pcl.cpp)
+set(NORMAL_SOURCES src/pcl.cpp src/utils.cpp)
 add_executable(normal ${NORMAL_SOURCES})
 target_link_libraries(normal ${DEPENDENCIES})
 
-
-# shared library
-#set(LIB_SOURCES src/street.cpp)
-#set(LIBRARY_NAME World)
-#add_library(${LIBRARY_NAME} SHARED ${LIB_SOURCES})
-#target_link_libraries(${PROJECT_NAME} ${LIBRARY_NAME})

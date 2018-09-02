@@ -12,42 +12,7 @@
 
 #include <pcl/common/transforms.h>
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
-
-
-using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
-
-pcl_ptr points_to_pcl(const rs2::points& points)
-{
-    pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-    auto sp = points.get_profile().as<rs2::video_stream_profile>();
-    cloud->width = sp.width();
-    cloud->height = sp.height();
-    cloud->is_dense = false;
-    cloud->points.resize(points.size());
-    auto ptr = points.get_vertices();
-    for (auto& p : cloud->points)
-    {
-        p.x = ptr->x;
-        p.y = ptr->y;
-        p.z = ptr->z;
-        ptr++;
-    }
-
-    pcl_ptr cloud_rot(new pcl::PointCloud<pcl::PointXYZ>);
-
-    std::cout <<"Rotating...";
-    //Rotate
-    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    transform.rotate(Eigen::AngleAxisf(M_PI, Eigen::Vector3f::UnitZ()));
-    pcl::transformPointCloud(*cloud, *cloud_rot, transform);
-
-    std::cout <<"done"<<std::endl;
-
-    return cloud_rot;
-}
-
-
+#include "utils.h"
 
 int
 main (int argc, char** argv)
