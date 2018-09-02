@@ -23,14 +23,25 @@ include_directories(
 
 set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} glfw)
 
+set(APP_SOURCES src/region_growing.cpp)
+add_executable(region_growing ${APP_SOURCES})
+target_link_libraries(region_growing ${DEPENDENCIES})
+
+set(APP_SOURCES src/seg.cpp)
+add_executable(seg ${APP_SOURCES})
+target_link_libraries(seg ${DEPENDENCIES})
+
+set(APP_SOURCES src/playback.cpp)
+add_executable(playback ${APP_SOURCES})
+target_link_libraries(playback ${DEPENDENCIES})
 
 set(APP_SOURCES src/watershed.cpp)
 add_executable(watershed ${APP_SOURCES})
 target_link_libraries(watershed ${DEPENDENCIES})
 
-set(POST_PROC src/rs-post-processing.cpp ${IMGUI_SOURCES})
-add_executable(postproc ${POST_PROC})
-target_link_libraries(postproc ${DEPENDENCIES})
+#set(POST_PROC src/rs-post-processing.cpp ${IMGUI_SOURCES})
+#add_executable(postproc ${POST_PROC})
+#target_link_libraries(postproc ${DEPENDENCIES})
 
 set(CANNY_SOURCES src/opencv.cpp)
 add_executable(canny ${CANNY_SOURCES})

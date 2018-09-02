@@ -16,13 +16,20 @@ int main(int argc, char * argv[]) try
     // Declare two textures on the GPU, one for color and one for depth
     texture depth_image, color_image;
 
+	auto bagfile = "/media/ssd/20180819_091914.bag";
+    //rs2::context ctx;
+    //rs2::playback device = ctx.load_device("");
+
+	rs2::config cfg;    
+	cfg.enable_device_from_file(bagfile);
+
     // Declare depth colorizer for pretty visualization of depth data
     rs2::colorizer color_map;
 
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
     // Start streaming with default recommended configuration
-    pipe.start();
+    pipe.start(cfg);
 
     while(app) // Application still alive?
     {

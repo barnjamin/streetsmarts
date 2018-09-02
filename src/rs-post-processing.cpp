@@ -2,7 +2,7 @@
 // Copyright(c) 2017 Intel Corporation. All Rights Reserved.
 
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
-#include "/home/ben/librealsense/examples/example.hpp"          // Include short list of convenience functions for rendering
+#include "/home/nvidia/librealsense/examples/example.hpp"          // Include short list of convenience functions for rendering
 
 #include <map>
 #include <string>
