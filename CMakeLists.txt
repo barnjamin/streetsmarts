@@ -43,3 +43,7 @@ set(NORMAL_SOURCES src/pcl.cpp src/utils.cpp)
 add_executable(normal ${NORMAL_SOURCES})
 target_link_libraries(normal ${DEPENDENCIES})
 
+set(NORMAL_SOURCES src/registration.cpp src/utils.cpp)
+add_executable(register ${NORMAL_SOURCES})
+target_link_libraries(register ${DEPENDENCIES})
+

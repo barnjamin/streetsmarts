@@ -17,6 +17,32 @@
 using namespace pcl;
 using namespace std;
 
+
+void print(const rs2_motion_device_intrinsic& intrinsics)
+{
+    stringstream ss;
+     ss << "Bias Variances: ";
+
+    for (auto i = 0 ; i < sizeof(intrinsics.bias_variances)/sizeof(intrinsics.bias_variances[0]) ; ++i)
+        ss << setprecision(15) << intrinsics.bias_variances[i] << "  ";
+
+    ss << "\nNoise Variances: ";
+    for (auto i = 0 ; i < sizeof(intrinsics.noise_variances)/sizeof(intrinsics.noise_variances[0]) ; ++i)
+        ss << setprecision(15) << intrinsics.noise_variances[i] << "  ";
+
+    ss << "\nData: " << std::endl;
+    for (auto i = 0 ; i < sizeof(intrinsics.data)/sizeof(intrinsics.data[0]) ; ++i)
+    {
+        for (auto j = 0 ; j < sizeof(intrinsics.data[0])/sizeof(intrinsics.data[0][0]) ; ++j)
+            ss << std::setw(13) << setprecision(10) << intrinsics.data[i][j] << "  ";
+        ss << "\n";
+    }
+
+
+    cout << ss.str() << endl << endl;
+}
+
+
 int
 main (int argc, char *argv[])
 {
@@ -25,18 +51,10 @@ main (int argc, char *argv[])
   Config conf;
   conf.parseArgs(argc, argv);
 
-  ///The smallest scale to use in the DoN filter.
   double scale1 = conf.don_small;
-
-  ///The largest scale to use in the DoN filter.
   double scale2 = conf.don_large;
-
-  ///The minimum DoN magnitude to threshold by
   double threshold = conf.threshold;
-
-  ///segment scene into clusters with given distance tolerance using euclidean clustering
   double segradius = conf.segradius;
-
 
   // Load cloud in blob format
   auto bagfile = "/media/ssd/20180819_091914.bag";
@@ -59,147 +77,164 @@ main (int argc, char *argv[])
   rs2::config cfg;    
   cfg.enable_device_from_file(bagfile);
 
-  
-  // Declare pointcloud object, for calculating pointclouds and texture mappings
   rs2::pointcloud pc;
-  // Declare RealSense pipeline, encapsulating the actual device and sensors
   rs2::pipeline pipe;
-  // Start streaming with default recommended configuration
-  pipe.start(cfg);
+  auto selection = pipe.start(cfg);
+
+//  auto motion_stream = selection.get_stream(RS2_STREAM_GYRO).as<rs2::motion_stream_profile>();
+//  print(motion_stream.get_motion_intrinsics());
+//
+  //std::cout << motion_stream << std::endl;
+  ///auto me = motion_stream.get_extrinsics();
+  ///auto mi = motion_stream.get_intrinsics();
+  ///std::count << me << " " << mi << std::endl;
+
+
+  pcl_ptr cloud; 
+
+
+   
 
   auto frames = pipe.wait_for_frames();
+  auto depth = frames.get_depth_frame();
   for(int i=0; i<conf.framestart; i++){
       frames = pipe.wait_for_frames();
   }
 
-  auto depth = frames.get_depth_frame();
-  depth = dec_filter.process(depth);
-  depth = depth_to_disparity.process(depth);
-  depth = spat_filter.process(depth);
-  depth = temp_filter.process(depth);
-  depth = disparity_to_depth.process(depth);
+  for(int i=0; i<conf.frames; i++){
+      frames = pipe.wait_for_frames();
 
-  auto cloud = points_to_pcl(pc.calculate(depth));
 
-  // Create a search tree, use KDTreee for non-organized data.
-  pcl::search::Search<PointXYZ>::Ptr tree;
-  if (cloud->isOrganized ()) {
-    tree.reset (new pcl::search::OrganizedNeighbor<PointXYZ> ());
-  } else {
-    tree.reset (new pcl::search::KdTree<PointXYZ> (false));
-  }
 
-  // Set the input pointcloud for the search tree
-  tree->setInputCloud (cloud);
+      depth = frames.get_depth_frame();
+      depth = dec_filter.process(depth);
+      depth = depth_to_disparity.process(depth);
+      depth = spat_filter.process(depth);
+      depth = temp_filter.process(depth);
+      depth = disparity_to_depth.process(depth);
 
-  if (scale1 >= scale2)
-  {
-    cerr << "Error: Large scale must be > small scale!" << endl;
-    exit (EXIT_FAILURE);
-  }
+      cloud = points_to_pcl(pc.calculate(depth));
 
-  // Compute normals using both small and large scales at each point
-  pcl::NormalEstimationOMP<PointXYZ, PointNormal> ne;
-  ne.setInputCloud (cloud);
-  ne.setSearchMethod (tree);
+      // Create a search tree, use KDTreee for non-organized data.
+      pcl::search::Search<PointXYZ>::Ptr tree;
+      if (cloud->isOrganized ()) {
+        tree.reset (new pcl::search::OrganizedNeighbor<PointXYZ> ());
+      } else {
+        tree.reset (new pcl::search::KdTree<PointXYZ> (false));
+      }
 
-  ne.setViewPoint (std::numeric_limits<float>::max (), std::numeric_limits<float>::max (), std::numeric_limits<float>::max ());
+      // Set the input pointcloud for the search tree
+      tree->setInputCloud (cloud);
 
-  // calculate normals with the small scale
-  cout << "Calculating normals for scale..." << scale1 << endl;
-  pcl::PointCloud<PointNormal>::Ptr normals_small_scale (new pcl::PointCloud<PointNormal>);
+      if (scale1 >= scale2)
+      {
+        cerr << "Error: Large scale must be > small scale!" << endl;
+        exit (EXIT_FAILURE);
+      }
 
-  ne.setRadiusSearch (scale1);
-  ne.compute (*normals_small_scale);
+      // Compute normals using both small and large scales at each point
+      pcl::NormalEstimationOMP<PointXYZ, PointNormal> ne;
+      ne.setInputCloud (cloud);
+      ne.setSearchMethod (tree);
 
-  // calculate normals with the large scale
-  cout << "Calculating normals for scale..." << scale2 << endl;
-  pcl::PointCloud<PointNormal>::Ptr normals_large_scale (new pcl::PointCloud<PointNormal>);
+      ne.setViewPoint (std::numeric_limits<float>::max (), std::numeric_limits<float>::max (), std::numeric_limits<float>::max ());
 
-  ne.setRadiusSearch (scale2);
-  ne.compute (*normals_large_scale);
+      // calculate normals with the small scale
+      cout << "Calculating normals for scale..." << scale1 << endl;
+      pcl::PointCloud<PointNormal>::Ptr normals_small_scale (new pcl::PointCloud<PointNormal>);
 
-  // Create output cloud for DoN results
-  PointCloud<PointNormal>::Ptr doncloud (new pcl::PointCloud<PointNormal>);
-  copyPointCloud<PointXYZ, PointNormal>(*cloud, *doncloud);
+      ne.setRadiusSearch (scale1);
+      ne.compute (*normals_small_scale);
 
-  cout << "Calculating DoN... " << endl;
-  // Create DoN operator
-  pcl::DifferenceOfNormalsEstimation<PointXYZ, PointNormal, PointNormal> don;
-  don.setInputCloud (cloud);
-  don.setNormalScaleLarge (normals_large_scale);
-  don.setNormalScaleSmall (normals_small_scale);
+      // calculate normals with the large scale
+      cout << "Calculating normals for scale..." << scale2 << endl;
+      pcl::PointCloud<PointNormal>::Ptr normals_large_scale (new pcl::PointCloud<PointNormal>);
 
-  if (!don.initCompute ())
-  {
-    std::cerr << "Error: Could not initialize DoN feature operator" << std::endl;
-    exit (EXIT_FAILURE);
-  }
+      ne.setRadiusSearch (scale2);
+      ne.compute (*normals_large_scale);
 
-  // Compute DoN
-  don.computeFeature (*doncloud);
+      // Create output cloud for DoN results
+      PointCloud<PointNormal>::Ptr doncloud (new pcl::PointCloud<PointNormal>);
+      copyPointCloud<PointXYZ, PointNormal>(*cloud, *doncloud);
 
-  // Save DoN features
-  pcl::PCDWriter writer;
-  writer.write<PointNormal> ("/media/ssd/dons/don.pcd", *doncloud, false); 
+      cout << "Calculating DoN... " << endl;
+      // Create DoN operator
+      pcl::DifferenceOfNormalsEstimation<PointXYZ, PointNormal, PointNormal> don;
+      don.setInputCloud (cloud);
+      don.setNormalScaleLarge (normals_large_scale);
+      don.setNormalScaleSmall (normals_small_scale);
 
-  // Filter by magnitude
-  cout << "Filtering out DoN mag <= " << threshold << "..." << endl;
+      if (!don.initCompute ())
+      {
+        std::cerr << "Error: Could not initialize DoN feature operator" << std::endl;
+        exit (EXIT_FAILURE);
+      }
 
-  // Build the condition for filtering
-  pcl::ConditionOr<PointNormal>::Ptr range_cond ( new pcl::ConditionOr<PointNormal> ());
-  range_cond->addComparison (pcl::FieldComparison<PointNormal>::ConstPtr ( new pcl::FieldComparison<PointNormal> ("curvature", pcl::ComparisonOps::LT, threshold)));
+      // Compute DoN
+      don.computeFeature (*doncloud);
 
-  // Build the filter
-  pcl::ConditionalRemoval<PointNormal> condrem;
-  condrem.setCondition(range_cond);
-  condrem.setInputCloud (doncloud);
+      // Save DoN features
+      pcl::PCDWriter writer;
+      //writer.write<PointNormal> ("/media/ssd/dons/don.pcd", *doncloud, false); 
 
-  pcl::PointCloud<PointNormal>::Ptr doncloud_filtered (new pcl::PointCloud<PointNormal>);
+      // Filter by magnitude
+      cout << "Filtering out DoN mag <= " << threshold << "..." << endl;
 
-  // Apply filter
-  condrem.filter (*doncloud_filtered);
+      // Build the condition for filtering
+      pcl::ConditionOr<PointNormal>::Ptr range_cond ( new pcl::ConditionOr<PointNormal> ());
+      range_cond->addComparison (pcl::FieldComparison<PointNormal>::ConstPtr ( new pcl::FieldComparison<PointNormal> ("curvature", pcl::ComparisonOps::LT, threshold)));
 
-  doncloud = doncloud_filtered;
+      // Build the filter
+      pcl::ConditionalRemoval<PointNormal> condrem;
+      condrem.setCondition(range_cond);
+      condrem.setInputCloud (doncloud);
 
-  // Save filtered output
-  std::cout << "Filtered Pointcloud: " << doncloud->points.size () << " data points." << std::endl;
+      pcl::PointCloud<PointNormal>::Ptr doncloud_filtered (new pcl::PointCloud<PointNormal>);
 
-  writer.write<PointNormal> ("/media/ssd/dons/don_filtered.pcd", *doncloud, false); 
+      // Apply filter
+      condrem.filter (*doncloud_filtered);
 
-  // Filter by magnitude
-  cout << "Clustering using EuclideanClusterExtraction with tolerance <= " << segradius << "..." << endl;
+      doncloud = doncloud_filtered;
 
-  pcl::search::KdTree<PointNormal>::Ptr segtree (new pcl::search::KdTree<PointNormal>);
-  segtree->setInputCloud (doncloud);
+      // Save filtered output
+      std::cout << "Filtered Pointcloud: " << doncloud->points.size () << " data points." << std::endl;
 
-  std::vector<pcl::PointIndices> cluster_indices;
-  pcl::EuclideanClusterExtraction<PointNormal> ec;
+      //writer.write<PointNormal> ("/media/ssd/dons/don_filtered.pcd", *doncloud, false); 
 
-  ec.setClusterTolerance (segradius);
-  ec.setMinClusterSize (50);
-  ec.setMaxClusterSize (100000);
-  ec.setSearchMethod (segtree);
-  ec.setInputCloud (doncloud);
-  ec.extract (cluster_indices);
+      // Filter by magnitude
+      cout << "Clustering using EuclideanClusterExtraction with tolerance <= " << segradius << "..." << endl;
 
-  int j = 0;
-  for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it, j++)
-  {
-    pcl::PointCloud<PointNormal>::Ptr cloud_cluster_don (new pcl::PointCloud<PointNormal>);
-    for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
-    {
-      cloud_cluster_don->points.push_back (doncloud->points[*pit]);
-    }
+      pcl::search::KdTree<PointNormal>::Ptr segtree (new pcl::search::KdTree<PointNormal>);
+      segtree->setInputCloud (doncloud);
 
-    cloud_cluster_don->width = int (cloud_cluster_don->points.size ());
-    cloud_cluster_don->height = 1;
-    cloud_cluster_don->is_dense = true;
+      std::vector<pcl::PointIndices> cluster_indices;
+      pcl::EuclideanClusterExtraction<PointNormal> ec;
 
-    //Save cluster
-    cout << "PointCloud representing the Cluster: " << cloud_cluster_don->points.size () << " data points." << std::endl;
-    stringstream ss;
-    ss << "/media/ssd/dons/don_cluster_" << j << ".pcd";
-    writer.write<PointNormal> (ss.str (), *cloud_cluster_don, false);
+      ec.setClusterTolerance (segradius);
+      ec.setMinClusterSize (50);
+      ec.setMaxClusterSize (100000);
+      ec.setSearchMethod (segtree);
+      ec.setInputCloud (doncloud);
+      ec.extract (cluster_indices);
+
+      int j = 0;
+      for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it, j++)
+      {
+        pcl::PointCloud<PointNormal>::Ptr cloud_cluster_don (new pcl::PointCloud<PointNormal>);
+        for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
+        {
+          cloud_cluster_don->points.push_back (doncloud->points[*pit]);
+        }
+
+        cloud_cluster_don->width = int (cloud_cluster_don->points.size ());
+        cloud_cluster_don->height = 1;
+        cloud_cluster_don->is_dense = true;
+
+        //Save cluster
+        cout << "PointCloud representing the Cluster: " << cloud_cluster_don->points.size () << " data points." << std::endl;
+        stringstream ss;
+        ss << "/media/ssd/dons/don_cluster_" << j << "_" << i << ".pcd";
+        writer.write<PointNormal> (ss.str (), *cloud_cluster_don, false);
+      }
   }
 }

@@ -86,8 +86,8 @@ void showCloudsLeft(const PointCloud::Ptr cloud_target, const PointCloud::Ptr cl
   p->addPointCloud (cloud_target, tgt_h, "vp1_target", vp_1);
   p->addPointCloud (cloud_source, src_h, "vp1_source", vp_1);
 
-  PCL_INFO ("Press q to begin the registration.\n");
-  p-> spin();
+  //PCL_INFO ("Press q to begin the registration.\n");
+  //p-> spin();
 }
 
 
@@ -124,19 +124,19 @@ void showCloudsRight(const PointCloudWithNormals::Ptr cloud_target, const PointC
   */
 void loadData (int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<PCD> > &models)
 {
-  std::string extension (".pcd");
+  std::string pcd_extension (".pcd");
   // Suppose the first argument is the actual test model
   for (int i = 1; i < argc; i++)
   {
     std::string fname = std::string (argv[i]);
     // Needs to be at least 5: .plot
-    if (fname.size () <= extension.size ())
+    if (fname.size () <= pcd_extension.size ())
       continue;
 
     std::transform (fname.begin (), fname.end (), fname.begin (), (int(*)(int))tolower);
 
     //check that the argument is a pcd file
-    if (fname.compare (fname.size () - extension.size (), extension.size (), extension) == 0)
+    if (fname.compare (fname.size () - pcd_extension.size (), pcd_extension.size (), pcd_extension) == 0)
     {
       // Load the cloud and saves it into the global list of models
       PCD m;
@@ -213,7 +213,7 @@ void pairAlign (const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt
   reg.setTransformationEpsilon (1e-6);
   // Set the maximum distance between two correspondences (src<->tgt) to 10cm
   // Note: adjust this based on the size of your datasets
-  reg.setMaxCorrespondenceDistance (0.1);  
+  reg.setMaxCorrespondenceDistance (1.0);  
   // Set the point representation
   reg.setPointRepresentation (boost::make_shared<const MyPointRepresentation> (point_representation));
 
@@ -269,8 +269,8 @@ void pairAlign (const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt
   p->addPointCloud (output, cloud_tgt_h, "target", vp_2);
   p->addPointCloud (cloud_src, cloud_src_h, "source", vp_2);
 
-    PCL_INFO ("Press q to continue the registration.\n");
-  p->spin ();
+  //PCL_INFO ("Press q to continue the registration.\n");
+  //p->spin ();
 
   p->removePointCloud ("source"); 
   p->removePointCloud ("target");
@@ -303,7 +303,7 @@ int main (int argc, char** argv)
   p->createViewPort (0.0, 0, 0.5, 1.0, vp_1);
   p->createViewPort (0.5, 0, 1.0, 1.0, vp_2);
 
-    PointCloud::Ptr result (new PointCloud), source, target;
+  PointCloud::Ptr result (new PointCloud), source, target;
   Eigen::Matrix4f GlobalTransform = Eigen::Matrix4f::Identity (), pairTransform;
   
   for (size_t i = 1; i < data.size (); ++i)
@@ -324,10 +324,9 @@ int main (int argc, char** argv)
     //update the global transform
     GlobalTransform = GlobalTransform * pairTransform;
 
-        //save aligned pair, transformed into the first cloud's frame
-    std::stringstream ss;
-    ss << i << ".pcd";
-    pcl::io::savePCDFile (ss.str (), *result, true);
-
   }
+  //save aligned pair, transformed into the first cloud's frame
+  std::stringstream ss;
+  ss << "final" << ".pcd";
+  pcl::io::savePCDFile (ss.str (), *result, true);
 }
