@@ -19,31 +19,40 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${IMGUI}
+ /usr/local/cuda/include/
 ) 
 
 set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} glfw)
 
-set(APP_SOURCES src/don_seg.cpp src/utils.cpp)
-add_executable(don_seg ${APP_SOURCES})
-target_link_libraries(don_seg ${DEPENDENCIES})
+#set(APP_SOURCES src/don_seg.cpp src/utils.cpp)
+#add_executable(don_seg ${APP_SOURCES})
+#target_link_libraries(don_seg ${DEPENDENCIES})
+#
+#set(APP_SOURCES src/region_growing.cpp src/utils.cpp)
+#add_executable(region_growing ${APP_SOURCES})
+#target_link_libraries(region_growing ${DEPENDENCIES})
+#
+#set(APP_SOURCES src/seg.cpp src/utils.cpp)
+#add_executable(seg ${APP_SOURCES})
+#target_link_libraries(seg ${DEPENDENCIES})
+#
+#set(MESH_SOURCES src/mesh.cpp src/utils.cpp)
+#add_executable(mesh ${MESH_SOURCES})
+#target_link_libraries(mesh ${DEPENDENCIES})
+#
+#set(NORMAL_SOURCES src/pcl.cpp src/utils.cpp)
+#add_executable(normal ${NORMAL_SOURCES})
+#target_link_libraries(normal ${DEPENDENCIES})
+#
+#set(PCL_SOURCES src/registration.cpp src/utils.cpp)
+#add_executable(register ${PCL_SOURCES})
+#target_link_libraries(register ${DEPENDENCIES})
 
-set(APP_SOURCES src/region_growing.cpp src/utils.cpp)
-add_executable(region_growing ${APP_SOURCES})
-target_link_libraries(region_growing ${DEPENDENCIES})
+set(GPU_SOURCES src/gpu_seg.cpp src/utils.cpp)
+add_executable(gpu_seg ${GPU_SOURCES})
+target_link_libraries(gpu_seg ${DEPENDENCIES})
 
-set(APP_SOURCES src/seg.cpp src/utils.cpp)
-add_executable(seg ${APP_SOURCES})
-target_link_libraries(seg ${DEPENDENCIES})
-
-set(MESH_SOURCES src/mesh.cpp src/utils.cpp)
-add_executable(mesh ${MESH_SOURCES})
-target_link_libraries(mesh ${DEPENDENCIES})
-
-set(NORMAL_SOURCES src/pcl.cpp src/utils.cpp)
-add_executable(normal ${NORMAL_SOURCES})
-target_link_libraries(normal ${DEPENDENCIES})
-
-set(NORMAL_SOURCES src/registration.cpp src/utils.cpp)
-add_executable(register ${NORMAL_SOURCES})
-target_link_libraries(register ${DEPENDENCIES})
+#set(GPU_SOURCES src/gpu_seg.cpp src/utils.cpp)
+#add_executable(gpu_seg ${GPU_SOURCES})
+#target_link_libraries(gpu_seg ${DEPENDENCIES})
 

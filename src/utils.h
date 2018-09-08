@@ -7,6 +7,8 @@ using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 
 pcl_ptr points_to_pcl(const rs2::points& points);
 
+pcl::PointCloud<pcl::PointXYZ> p2pcl(const rs2::points& points);
+
 
 class Config {
 public:

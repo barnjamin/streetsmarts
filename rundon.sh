@@ -4,10 +4,10 @@ mkdir /media/ssd/dons
 
 ./build/bin/don_seg \
 --don_small 0.03 \
---don_large 0.18 \
+--don_large 0.15 \
 --don_thresh 0.04 \
 --don_rad .03 \
---frames 100 \
+--frames 1 \
 --fstart 10 \
 --dec-mag 4.0 \
 --spat-mag 5.0 \
@@ -17,6 +17,5 @@ mkdir /media/ssd/dons
 
 
 
-#pcl_viewer /media/ssd/dons/don_cluster*
-./build/bin/register /media/ssd/dons/don_cluster_0_*
-
+pcl_viewer /media/ssd/dons/don_cluster_0_0.pcd /media/ssd/meshes/mesh_1.vtk
+#./build/bin/register /media/ssd/dons/don_cluster_0_*

@@ -6,36 +6,41 @@
 
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 
-pcl_ptr points_to_pcl(const rs2::points& points)
+pcl::PointCloud<pcl::PointXYZ>::Ptr points_to_pcl(const rs2::points& points)
 {
-    pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
     auto sp = points.get_profile().as<rs2::video_stream_profile>();
-    cloud->width = sp.width();
-    cloud->height = sp.height();
+
+    cloud->width = sp.width()*sp.height();
+    cloud->height = 1;
     cloud->is_dense = false;
-    cloud->points.resize(points.size());
+
     auto ptr = points.get_vertices();
-    for (auto& p : cloud->points)
-    {
-        p.x = ptr->x;
-        p.y = ptr->y;
-        p.z = ptr->z;
+    int inv = 0;
+    for (int x=0; x<points.size(); x++) {
+        if(ptr->z == 0){
+            inv++;
+        }else{
+            pcl::PointXYZ p;
+            p.x = ptr->x; p.y = ptr->y; p.z = ptr->z;
+            cloud->points.push_back(p);
+        }
         ptr++;
     }
 
+    cloud->width -= inv;
 
-    pcl_ptr cloud_rot(new pcl::PointCloud<pcl::PointXYZ>);
+    return cloud;
 
-    std::cout <<"Rotating...";
-    //Rotate
-    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    transform.rotate(Eigen::AngleAxisf(M_PI, Eigen::Vector3f::UnitZ()));
-    pcl::transformPointCloud(*cloud, *cloud_rot, transform);
-
-    std::cout <<"done"<<std::endl;
-
-    return cloud_rot;
+    //pcl_ptr cloud_rot(new pcl::PointCloud<pcl::PointXYZ>);
+    //std::cout <<"Rotating...";
+    ////Rotate
+    //Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    //transform.rotate(Eigen::AngleAxisf(M_PI, Eigen::Vector3f::UnitZ()));
+    //pcl::transformPointCloud(*cloud, *cloud_rot, transform);
+    //std::cout <<"done"<<std::endl;
+    //return cloud_rot;
 }
 
 Config::~Config() { }

@@ -17,32 +17,6 @@
 using namespace pcl;
 using namespace std;
 
-
-void print(const rs2_motion_device_intrinsic& intrinsics)
-{
-    stringstream ss;
-     ss << "Bias Variances: ";
-
-    for (auto i = 0 ; i < sizeof(intrinsics.bias_variances)/sizeof(intrinsics.bias_variances[0]) ; ++i)
-        ss << setprecision(15) << intrinsics.bias_variances[i] << "  ";
-
-    ss << "\nNoise Variances: ";
-    for (auto i = 0 ; i < sizeof(intrinsics.noise_variances)/sizeof(intrinsics.noise_variances[0]) ; ++i)
-        ss << setprecision(15) << intrinsics.noise_variances[i] << "  ";
-
-    ss << "\nData: " << std::endl;
-    for (auto i = 0 ; i < sizeof(intrinsics.data)/sizeof(intrinsics.data[0]) ; ++i)
-    {
-        for (auto j = 0 ; j < sizeof(intrinsics.data[0])/sizeof(intrinsics.data[0][0]) ; ++j)
-            ss << std::setw(13) << setprecision(10) << intrinsics.data[i][j] << "  ";
-        ss << "\n";
-    }
-
-
-    cout << ss.str() << endl << endl;
-}
-
-
 int
 main (int argc, char *argv[])
 {
@@ -81,19 +55,7 @@ main (int argc, char *argv[])
   rs2::pipeline pipe;
   auto selection = pipe.start(cfg);
 
-//  auto motion_stream = selection.get_stream(RS2_STREAM_GYRO).as<rs2::motion_stream_profile>();
-//  print(motion_stream.get_motion_intrinsics());
-//
-  //std::cout << motion_stream << std::endl;
-  ///auto me = motion_stream.get_extrinsics();
-  ///auto mi = motion_stream.get_intrinsics();
-  ///std::count << me << " " << mi << std::endl;
-
-
   pcl_ptr cloud; 
-
-
-   
 
   auto frames = pipe.wait_for_frames();
   auto depth = frames.get_depth_frame();
@@ -103,8 +65,6 @@ main (int argc, char *argv[])
 
   for(int i=0; i<conf.frames; i++){
       frames = pipe.wait_for_frames();
-
-
 
       depth = frames.get_depth_frame();
       depth = dec_filter.process(depth);
@@ -175,7 +135,7 @@ main (int argc, char *argv[])
 
       // Save DoN features
       pcl::PCDWriter writer;
-      //writer.write<PointNormal> ("/media/ssd/dons/don.pcd", *doncloud, false); 
+      writer.write<PointNormal> ("/media/ssd/dons/don.pcd", *doncloud, false); 
 
       // Filter by magnitude
       cout << "Filtering out DoN mag <= " << threshold << "..." << endl;
