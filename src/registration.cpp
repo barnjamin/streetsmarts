@@ -170,12 +170,8 @@ void pairAlign (const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt
   // Align
   pcl::IterativeClosestPointNonLinear<PointNormalT, PointNormalT> reg;
   reg.setTransformationEpsilon (1e-6);
-  // Set the maximum distance between two correspondences (src<->tgt) to 10cm
-  // Note: adjust this based on the size of your datasets
   reg.setMaxCorrespondenceDistance (conf.icp_dist);  
-  // Set the point representation
   reg.setPointRepresentation (boost::make_shared<const MyPointRepresentation> (point_representation));
-
   reg.setInputSource (points_with_normals_src);
   reg.setInputTarget (points_with_normals_tgt);
 
@@ -198,8 +194,7 @@ void pairAlign (const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt
     Ti = reg.getFinalTransformation () * Ti;
 
     //if the difference between this transformation and the previous one
-    //is smaller than the threshold, refine the process by reducing
-    //the maximal correspondence distance
+    //is smaller than the threshold, refine the process by reducing the maximal correspondence distance
     if (fabs ((reg.getLastIncrementalTransformation () - prev).sum ()) < reg.getTransformationEpsilon ())
       reg.setMaxCorrespondenceDistance (reg.getMaxCorrespondenceDistance () - 0.001);
     
@@ -218,35 +213,24 @@ void pairAlign (const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt
 }
   
 
-int main (int argc, char** argv)
-{
+int main (int argc, char** argv) {
+
   conf.parseArgs(argc, argv);
 
-  // Load data
   std::vector<PCD, Eigen::aligned_allocator<PCD> > data;
   loadData (data);
 
-  // Check user input
-  if (data.empty ()) {
-    PCL_ERROR ("Syntax is: %s <source.pcd> <target.pcd> [*]", argv[0]);
-    PCL_ERROR ("[*] - multiple files can be added. The registration results of (i, i+1) will be registered against (i+2), etc");
-    return (-1);
-  }
-
-  PCL_INFO ("Loaded %d datasets.", (int)data.size ());
-
   PointCloud::Ptr result (new PointCloud), source, target;
+
   Eigen::Matrix4f GlobalTransform = Eigen::Matrix4f::Identity (), pairTransform;
-  for (size_t i = 1; i < data.size (); ++i)
-  {
+  for (size_t i = 1; i < data.size (); ++i) {
+
     source = data[i-1].cloud;
     target = data[i].cloud;
 
-    // Add visualization data
-    //showCloudsLeft(source, target);
-
     PointCloud::Ptr temp (new PointCloud);
     PCL_INFO ("Aligning %s (%d) with %s (%d).\n", data[i-1].f_name.c_str (), source->points.size (), data[i].f_name.c_str (), target->points.size ());
+
     pairAlign (source, target, temp, pairTransform, true);
 
     //transform current pair into the global transform
@@ -254,9 +238,9 @@ int main (int argc, char** argv)
 
     //update the global transform
     GlobalTransform = GlobalTransform * pairTransform;
+
   }
 
-  //save aligned pair, transformed into the first cloud's frame
   std::stringstream ss;
   ss << "final" << ".pcd";
   pcl::io::savePCDFile (ss.str (), *result, true);
