@@ -44,15 +44,10 @@ set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} 
 #add_executable(normal ${NORMAL_SOURCES})
 #target_link_libraries(normal ${DEPENDENCIES})
 #
-#set(PCL_SOURCES src/registration.cpp src/utils.cpp)
-#add_executable(register ${PCL_SOURCES})
-#target_link_libraries(register ${DEPENDENCIES})
-
-set(GPU_SOURCES src/gpu_seg.cpp src/utils.cpp)
-add_executable(gpu_seg ${GPU_SOURCES})
-target_link_libraries(gpu_seg ${DEPENDENCIES})
+set(PCL_SOURCES src/registration.cpp src/utils.cpp)
+add_executable(register ${PCL_SOURCES})
+target_link_libraries(register ${DEPENDENCIES})
 
 #set(GPU_SOURCES src/gpu_seg.cpp src/utils.cpp)
 #add_executable(gpu_seg ${GPU_SOURCES})
 #target_link_libraries(gpu_seg ${DEPENDENCIES})
-

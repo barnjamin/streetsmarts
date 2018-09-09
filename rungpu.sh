@@ -2,7 +2,7 @@
 rm -rf /media/ssd/dons
 mkdir /media/ssd/dons
 
-./build/bin/don_seg \
+./build/bin/gpu_seg \
 --don_small 0.03 \
 --don_large 0.15 \
 --don_thresh 0.04 \

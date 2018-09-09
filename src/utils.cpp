@@ -31,16 +31,14 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr points_to_pcl(const rs2::points& points)
 
     cloud->width -= inv;
 
-    return cloud;
-
-    //pcl_ptr cloud_rot(new pcl::PointCloud<pcl::PointXYZ>);
-    //std::cout <<"Rotating...";
-    ////Rotate
-    //Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    //transform.rotate(Eigen::AngleAxisf(M_PI, Eigen::Vector3f::UnitZ()));
-    //pcl::transformPointCloud(*cloud, *cloud_rot, transform);
-    //std::cout <<"done"<<std::endl;
-    //return cloud_rot;
+    pcl_ptr cloud_rot(new pcl::PointCloud<pcl::PointXYZ>);
+    std::cout <<"Rotating...";
+    //Rotate
+    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    transform.rotate(Eigen::AngleAxisf(M_PI, Eigen::Vector3f::UnitZ()));
+    pcl::transformPointCloud(*cloud, *cloud_rot, transform);
+    std::cout <<"done"<<std::endl;
+    return cloud_rot;
 }
 
 Config::~Config() { }
@@ -64,6 +62,10 @@ Config::Config() {
     don_large			= 0.25;
     threshold			= 0.1 ;
     segradius			= 0.02;  // threshold for radius segmentation
+
+    icp_iters           = 30;
+    icp_dist            = 1.0;
+    icp_leaf            = 0.15;
 
 }
 
@@ -98,6 +100,12 @@ void Config::parseArgs(int argc, char **argv) {
       threshold = std::stof(argv[x+1]);
     }else if(flag == "--don_rad"){
       segradius = std::stof(argv[x+1]);
+    }else if(flag == "--icp_iters"){
+      icp_iters = std::stoi(argv[x+1]);
+    }else if(flag == "--icp_dist"){
+      icp_iters = std::stof(argv[x+1]);
+    }else if(flag == "--icp_leaf"){
+      icp_iters = std::stof(argv[x+1]);
     }
   }
 }

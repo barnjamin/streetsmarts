@@ -1,17 +1,12 @@
 #include <pcl/ModelCoefficients.h>
-#include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
 #include <pcl/filters/extract_indices.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/features/normal_3d.h>
-#include <pcl/kdtree/kdtree.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/search/organized.h>
-#include <pcl/search/kdtree.h>
-#include <pcl/features/normal_3d_omp.h>
 #include <pcl/filters/conditional_removal.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/features/don.h>
@@ -28,15 +23,39 @@
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "utils.h" 
 
+using namespace pcl;
+using namespace std;
 int 
 main (int argc, char** argv)
 {
 
-  // Load cloud in blob format
+
+  Config conf;
+  conf.parseArgs(argc, argv);
+
+  double scale1 = conf.don_small;
+  double scale2 = conf.don_large;
+  double threshold = conf.threshold;
+  double segradius = conf.segradius;
+
+  pcl::PCDWriter writer;
+
   auto bagfile = "/media/ssd/20180819_091914.bag";
 
   rs2::decimation_filter dec_filter;
-  dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 3.0);  
+  dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, conf.dec_mag);  
+
+  rs2::spatial_filter spat_filter;
+  spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, conf.spat_mag);
+  spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, conf.spat_a);
+  spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, conf.spat_d);
+
+  rs2::temporal_filter temp_filter;
+  temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, conf.temp_a);
+  temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, conf.temp_d);
+
+  rs2::disparity_transform depth_to_disparity(true);
+  rs2::disparity_transform disparity_to_depth(false);
 
   rs2::config cfg;    
   cfg.enable_device_from_file(bagfile);
@@ -47,95 +66,196 @@ main (int argc, char** argv)
 
   auto frames = pipe.wait_for_frames();
   auto depth = frames.get_depth_frame();
-  for(int i=0; i<10; i++){
+  for(int i=0; i<conf.framestart; i++){
       frames = pipe.wait_for_frames();
   }
 
-  frames = pipe.wait_for_frames();
+  pcl::gpu::Octree::PointCloud cloud_device;
+  pcl::gpu::NormalEstimation ne;
+  pcl::gpu::Feature::Normals normals_small;
+  pcl::gpu::Feature::Normals normals_large;
 
-  depth = frames.get_depth_frame();
-  depth = dec_filter.process(depth);
+  pcl::PointCloud<PointNormal>::Ptr small_normals(new pcl::PointCloud<PointNormal>);
+  pcl::PointCloud<PointNormal>::Ptr large_normals(new pcl::PointCloud<PointNormal>);
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr  cloud_filtered = points_to_pcl(pc.calculate(depth));
+  std::vector<pcl::PointIndices> cluster_indices_gpu;
+  pcl::gpu::EuclideanClusterExtraction gec;
 
-  pcl::PointCloud<PointNormal>::Ptr normals_small(new pcl::PointCloud<PointNormal>);
+  pcl::gpu::Octree::PointCloud doncloud_device;
+  pcl::gpu::Octree::Ptr octree_device (new pcl::gpu::Octree);
 
-  pcl::gpu::NormalEstimation<pcl::PointXYZ, pcl::PointNormal> ne;
-  ne.setInputCloud(cloud_filtered);
-  ne.setRadiusSearch(0.02);
-  ne.compute(*normals_small);
+  for(int i=0; i<conf.frames; i++){
+
+      frames = pipe.wait_for_frames();
+
+      depth = frames.get_depth_frame();
+      depth = frames.get_depth_frame();
+      depth = dec_filter.process(depth);
+      depth = depth_to_disparity.process(depth);
+      depth = spat_filter.process(depth);
+      depth = temp_filter.process(depth);
+      depth = disparity_to_depth.process(depth);
+
+      pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = points_to_pcl(pc.calculate(depth));
+
+      cloud_device.release();
+      cloud_device.upload(cloud->points);
+
+      ne.setInputCloud(cloud_device);
+      ne.setRadiusSearch(scale1, 100);
+      ne.compute(normals_small);
+      ne.setRadiusSearch(scale2, 100);
+      ne.compute(normals_large);
+
+      PointXYZ normals_small_host[cloud->points.size()];
+      normals_small.download(&normals_small_host[0]);
+
+      PointXYZ normals_large_host[cloud->points.size()];
+      normals_large.download(&normals_large_host[0]);
+
+      small_normals->clear();
+      small_normals->width = cloud->points.size();
+      small_normals->height = 1;
+
+      large_normals->clear();
+      large_normals->width = cloud->points.size();
+      large_normals->height = 1;
+
+      Normal* n;
+      PointXYZ p;
+      for(int x=0; x<cloud->points.size(); x++){
+            PointNormal nps;
+            PointNormal npl;
+            p = cloud->points[x];
+
+            npl.x = p.x; npl.y =p.y; npl.z = p.z;
+            nps.x = p.x; nps.y =p.y; nps.z = p.z;
+
+            n = (Normal*)&normals_small_host[x];
+            nps.normal_x = n->normal_x; nps.normal_y = n->normal_y; nps.normal_z = n->normal_z;
+            nps.curvature = n->curvature;
+            small_normals->points.push_back(nps);
+
+            n = (Normal*)&normals_large_host[x];
+            npl.normal_x = n->normal_x; npl.normal_y = n->normal_y; npl.normal_z = n->normal_z;
+            npl.curvature = n->curvature;
+            large_normals->points.push_back(npl);
+      }
 
 
-  pcl::PointCloud<PointNormal>::Ptr normals_large(new pcl::PointCloud<PointNormal>);
-  ne.setRadiusSearch (0.18);
-  ne.compute (*normals_large);
+      // Create output cloud for DoN results
+      PointCloud<PointNormal>::Ptr doncloud (new pcl::PointCloud<PointNormal>);
+      copyPointCloud<PointXYZ, PointNormal>(*cloud, *doncloud);
 
+      cout << "Calculating DoN... " << endl;
+      // Create DoN operator
+      pcl::DifferenceOfNormalsEstimation<PointXYZ, PointNormal, PointNormal> don;
+      don.setInputCloud (cloud);
+      don.setNormalScaleLarge (large_normals);
+      don.setNormalScaleSmall (small_normals);
 
-  // Create output cloud for DoN results
-  PointCloud<PointNormal>::Ptr doncloud (new pcl::PointCloud<PointNormal>);
-  copyPointCloud<PointXYZ, PointNormal>(*cloud, *doncloud);
+      if (!don.initCompute ()) {
+        std::cerr << "Error: Could not initialize DoN feature operator" << std::endl;
+        exit (EXIT_FAILURE);
+      }
+      don.computeFeature (*doncloud);
 
-  cout << "Calculating DoN... " << endl;
-  // Create DoN operator
-  pcl::DifferenceOfNormalsEstimation<PointXYZ, PointNormal, PointNormal> don;
-  don.setInputCloud (cloud);
-  don.setNormalScaleLarge (normals_large_scale);
-  don.setNormalScaleSmall (normals_small_scale);
+      // Filter by magnitude
+      cout << "Filtering out DoN mag <= " << threshold << "..." << endl;
 
-  if (!don.initCompute ())
-  {
-    std::cerr << "Error: Could not initialize DoN feature operator" << std::endl;
-    exit (EXIT_FAILURE);
+      // Build the condition for filtering
+      pcl::ConditionOr<PointNormal>::Ptr range_cond ( new pcl::ConditionOr<PointNormal> ());
+      range_cond->addComparison (pcl::FieldComparison<PointNormal>::ConstPtr ( new pcl::FieldComparison<PointNormal> ("curvature", pcl::ComparisonOps::LT, threshold)));
+
+      // Build the filter
+      pcl::ConditionalRemoval<PointNormal> condrem;
+      condrem.setCondition(range_cond);
+      condrem.setInputCloud (doncloud);
+
+      pcl::PointCloud<PointNormal>::Ptr doncloud_filtered (new pcl::PointCloud<PointNormal>);
+
+      // Apply filter
+      condrem.filter (*doncloud_filtered);
+      doncloud = doncloud_filtered;
+
+      // Save filtered output
+      std::cout << "Filtered Pointcloud: " << doncloud->points.size () << " data points." << std::endl;
+
+      pcl::search::KdTree<PointNormal>::Ptr segtree (new pcl::search::KdTree<PointNormal>);
+      segtree->setInputCloud (doncloud);
+
+      std::vector<pcl::PointIndices> cluster_indices;
+      pcl::EuclideanClusterExtraction<PointNormal> ec;
+
+      ec.setClusterTolerance (segradius);
+      ec.setMinClusterSize (50);
+      ec.setMaxClusterSize (100000);
+      ec.setSearchMethod (segtree);
+      ec.setInputCloud (doncloud);
+      ec.extract (cluster_indices);
+
+      int j = 0;
+      for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it, j++)
+      {
+        pcl::PointCloud<PointNormal>::Ptr cloud_cluster_don (new pcl::PointCloud<PointNormal>);
+        for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
+        {
+          cloud_cluster_don->points.push_back (doncloud->points[*pit]);
+        }
+
+        cloud_cluster_don->width = int (cloud_cluster_don->points.size ());
+        cloud_cluster_don->height = 1;
+        cloud_cluster_don->is_dense = true;
+
+        //Save cluster
+        cout << "PointCloud representing the Cluster: " << cloud_cluster_don->points.size () << " data points." << std::endl;
+        stringstream ss;
+        ss << "/media/ssd/dons/don_cluster_" << j << "_" << i << ".pcd";
+        writer.write<PointNormal> (ss.str (), *cloud_cluster_don, false);
+      }
+
+      //pcl::PointCloud<PointXYZ>::Ptr hc (new pcl::PointCloud<PointXYZ>);
+      //for(int x=0; x<doncloud->points.size(); x++){
+      //  PointXYZ p;
+      //  PointNormal dp = doncloud->points[x];
+      //  p.x = dp.x; p.y=dp.y; p.z=dp.z; 
+      //  hc->points.push_back(p);
+      //}
+      //hc->height = 1;
+      //hc->width = hc->points.size();
+
+      //doncloud_device.release();
+      //doncloud_device.upload(hc->points);
+
+      //octree_device->setCloud(doncloud_device);
+      //octree_device->build();
+
+      //gec.setClusterTolerance (segradius); 
+      //gec.setMinClusterSize (50);
+      //gec.setMaxClusterSize (100000);
+      //gec.setSearchMethod (octree_device);
+      //gec.setHostCloud(hc);
+      //gec.extract (cluster_indices_gpu);
+
+      //int j = 0;
+      //for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices_gpu.begin (); it != cluster_indices_gpu.end (); ++it)
+      //{
+      //  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster_gpu (new pcl::PointCloud<pcl::PointXYZ>);
+      //  for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
+      //    cloud_cluster_gpu->points.push_back (cloud->points[*pit]); //*
+      //  cloud_cluster_gpu->width = cloud_cluster_gpu->points.size ();
+      //  cloud_cluster_gpu->height = 1;
+      //  cloud_cluster_gpu->is_dense = true;
+
+      //  std::cout << "PointCloud representing the Cluster: " << cloud_cluster_gpu->points.size () << " data points." << std::endl;
+      //  std::stringstream ss;
+      //  ss << "/media/ssd/dons/don_cluster_" << j << "_" << i << ".pcd";
+      //  writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster_gpu, false); //*
+      //  j++;
+      //}
+
   }
 
-  // Compute DoN
-  don.computeFeature (*doncloud);
-
-  // Save DoN features
-  pcl::PCDWriter writer;
-  writer.write<PointNormal> ("/media/ssd/dons/don.pcd", *doncloud, false); 
-
-  //pcl::PCDWriter writer;
-
-  //std::cout << "INFO: starting with the GPU version" << std::endl;
-
-  //clock_t tStart = clock();
-
-  //pcl::gpu::Octree::PointCloud cloud_device;
-  //cloud_device.upload(cloud_filtered->points);
-  //
-  //pcl::gpu::Octree::Ptr octree_device (new pcl::gpu::Octree);
-  //octree_device->setCloud(cloud_device);
-  //octree_device->build();
-
-  //std::vector<pcl::PointIndices> cluster_indices_gpu;
-  //pcl::gpu::EuclideanClusterExtraction gec;
-  //gec.setClusterTolerance (0.02); // 2cm
-  //gec.setMinClusterSize (100);
-  //gec.setMaxClusterSize (25000);
-  //gec.setSearchMethod (octree_device);
-  //gec.setHostCloud(cloud_filtered);
-  //gec.extract (cluster_indices_gpu);
-
-  //printf("GPU Time taken: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
-  //std::cout << "INFO: stopped with the GPU version" << std::endl;
-
-  //int j = 0;
-  //for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices_gpu.begin (); it != cluster_indices_gpu.end (); ++it)
-  //{
-  //  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster_gpu (new pcl::PointCloud<pcl::PointXYZ>);
-  //  for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
-  //    cloud_cluster_gpu->points.push_back (cloud_filtered->points[*pit]); //*
-  //  cloud_cluster_gpu->width = cloud_cluster_gpu->points.size ();
-  //  cloud_cluster_gpu->height = 1;
-  //  cloud_cluster_gpu->is_dense = true;
-
-  //  std::cout << "PointCloud representing the Cluster: " << cloud_cluster_gpu->points.size () << " data points." << std::endl;
-  //  std::stringstream ss;
-  //  ss << "gpu_cloud_cluster_" << j << ".pcd";
-  //  writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster_gpu, false); //*
-  //  j++;
-  //}
 
   return (0);
 }

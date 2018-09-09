@@ -33,6 +33,10 @@ public:
     double threshold;
     double segradius;   // threshold for radius segmentation
 
+    int icp_iters;
+    float icp_dist;
+    float icp_leaf;
+
 
     Config();
 
