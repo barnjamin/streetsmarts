@@ -14,14 +14,15 @@
 #include <pcl/registration/icp_nl.h>
 #include <pcl/registration/transforms.h>
 
-#include <pcl/visualization/pcl_visualizer.h>
 
+#include <pcl/gpu/octree/octree.hpp>
+#include <pcl/gpu/containers/device_array.hpp>
+#include <pcl/gpu/segmentation/gpu_extract_clusters.h>
+#include <pcl/gpu/segmentation/impl/gpu_extract_clusters.hpp>
+#include <pcl/gpu/features/features.hpp>
 
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "utils.h" 
-
-using pcl::visualization::PointCloudColorHandlerGenericField;
-using pcl::visualization::PointCloudColorHandlerCustom;
 
 Config conf;
 
@@ -30,9 +31,6 @@ typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloud;
 typedef pcl::PointNormal PointNormalT;
 typedef pcl::PointCloud<PointNormalT> PointCloudWithNormals;
-
-pcl::visualization::PCLVisualizer *p;
-int vp_1, vp_2;
 
 //convenient structure to handle our pointclouds
 struct PCD
@@ -74,58 +72,7 @@ public:
   }
 };
 
-
-////////////////////////////////////////////////////////////////////////////////
-/** \brief Display source and target on the first viewport of the visualizer
- *
- */
-void showCloudsLeft(const PointCloud::Ptr cloud_target, const PointCloud::Ptr cloud_source)
-{
-  p->removePointCloud ("vp1_target");
-  p->removePointCloud ("vp1_source");
-
-  PointCloudColorHandlerCustom<PointT> tgt_h (cloud_target, 0, 255, 0);
-  PointCloudColorHandlerCustom<PointT> src_h (cloud_source, 255, 0, 0);
-  p->addPointCloud (cloud_target, tgt_h, "vp1_target", vp_1);
-  p->addPointCloud (cloud_source, src_h, "vp1_source", vp_1);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-/** \brief Display source and target on the second viewport of the visualizer
- *
- */
-void showCloudsRight(const PointCloudWithNormals::Ptr cloud_target, const PointCloudWithNormals::Ptr cloud_source)
-{
-  p->removePointCloud ("source");
-  p->removePointCloud ("target");
-
-  PointCloudColorHandlerGenericField<PointNormalT> tgt_color_handler (cloud_target, "curvature");
-  if (!tgt_color_handler.isCapable ())
-      PCL_WARN ("Cannot create curvature color handler!");
-
-  PointCloudColorHandlerGenericField<PointNormalT> src_color_handler (cloud_source, "curvature");
-  if (!src_color_handler.isCapable ())
-      PCL_WARN ("Cannot create curvature color handler!");
-
-
-  p->addPointCloud (cloud_target, tgt_color_handler, "target", vp_2);
-  p->addPointCloud (cloud_source, src_color_handler, "source", vp_2);
-
-  p->spinOnce();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-/** \brief Load a set of PCD files that we want to register together
-  * \param argc the number of arguments (pass from main ())
-  * \param argv the actual command line arguments (pass from main ())
-  * \param models the resultant vector of point cloud datasets
-  */
-void loadData (std::vector<PCD, Eigen::aligned_allocator<PCD> > &models)
-{
-
-
-
+void loadData (std::vector<PCD, Eigen::aligned_allocator<PCD> > &models) {
   auto bagfile = "/media/ssd/20180819_091914.bag";
 
   rs2::decimation_filter dec_filter;
@@ -178,17 +125,9 @@ void loadData (std::vector<PCD, Eigen::aligned_allocator<PCD> > &models)
   }
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-/** \brief Align a pair of PointCloud datasets and return the result
-  * \param cloud_src the source PointCloud
-  * \param cloud_tgt the target PointCloud
-  * \param output the resultant aligned source PointCloud
-  * \param final_transform the resultant transform between source and target
-  */
 void pairAlign (const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, Eigen::Matrix4f &final_transform, bool downsample = false)
 {
-  
+
   PointCloud::Ptr src (new PointCloud);
   PointCloud::Ptr tgt (new PointCloud);
   pcl::VoxelGrid<PointT> grid;
@@ -255,49 +194,29 @@ void pairAlign (const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt
     reg.setInputSource (points_with_normals_src);
     reg.align (*reg_result);
 
-        //accumulate transformation between each Iteration
+    //accumulate transformation between each Iteration
     Ti = reg.getFinalTransformation () * Ti;
 
-        //if the difference between this transformation and the previous one
-        //is smaller than the threshold, refine the process by reducing
-        //the maximal correspondence distance
+    //if the difference between this transformation and the previous one
+    //is smaller than the threshold, refine the process by reducing
+    //the maximal correspondence distance
     if (fabs ((reg.getLastIncrementalTransformation () - prev).sum ()) < reg.getTransformationEpsilon ())
       reg.setMaxCorrespondenceDistance (reg.getMaxCorrespondenceDistance () - 0.001);
     
     prev = reg.getLastIncrementalTransformation ();
-
-    // visualize current state
-    //showCloudsRight(points_with_normals_tgt, points_with_normals_src);
   }
 
-    //
   // Get the transformation from target to source
   targetToSource = Ti.inverse();
 
-  //
-  // Transform target back in source frame
   pcl::transformPointCloud (*cloud_tgt, *output, targetToSource);
-
-  p->removePointCloud ("source");
-  p->removePointCloud ("target");
-
-  PointCloudColorHandlerCustom<PointT> cloud_tgt_h (output, 0, 255, 0);
-  PointCloudColorHandlerCustom<PointT> cloud_src_h (cloud_src, 255, 0, 0);
-  p->addPointCloud (output, cloud_tgt_h, "target", vp_2);
-  p->addPointCloud (cloud_src, cloud_src_h, "source", vp_2);
-
-  //PCL_INFO ("Press q to continue the registration.\n");
-  //p->spin ();
-
-  p->removePointCloud ("source"); 
-  p->removePointCloud ("target");
 
   //add the source to the transformed target
   *output += *cloud_src;
   
   final_transform = targetToSource;
 }
-
+  
 
 int main (int argc, char** argv)
 {
@@ -315,15 +234,9 @@ int main (int argc, char** argv)
   }
 
   PCL_INFO ("Loaded %d datasets.", (int)data.size ());
-  
-  // Create a PCLVisualizer object
-  p = new pcl::visualization::PCLVisualizer (argc, argv, "Pairwise Incremental Registration example");
-  //p->createViewPort (0.0, 0, 0.5, 1.0, vp_1);
-  //p->createViewPort (0.5, 0, 1.0, 1.0, vp_2);
 
   PointCloud::Ptr result (new PointCloud), source, target;
   Eigen::Matrix4f GlobalTransform = Eigen::Matrix4f::Identity (), pairTransform;
-  
   for (size_t i = 1; i < data.size (); ++i)
   {
     source = data[i-1].cloud;

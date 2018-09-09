@@ -1,5 +1,7 @@
 #include <pcl/point_types.h>
 #include <pcl/common/transforms.h>
+#include <pcl/filters/passthrough.h>
+
 
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "utils.h"
@@ -38,7 +40,31 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr points_to_pcl(const rs2::points& points)
     transform.rotate(Eigen::AngleAxisf(M_PI, Eigen::Vector3f::UnitZ()));
     pcl::transformPointCloud(*cloud, *cloud_rot, transform);
     std::cout <<"done"<<std::endl;
-    return cloud_rot;
+
+    
+    std::cout << "Filtering...";
+    pcl_ptr cloud_z(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PassThrough<pcl::PointXYZ> pass;
+    pass.setFilterFieldName ("z");
+    pass.setFilterLimits (0.1, 20.0);
+    pass.setInputCloud (cloud_rot);
+    pass.filter (*cloud_z);
+
+    pcl_ptr cloud_x(new pcl::PointCloud<pcl::PointXYZ>);
+    pass.setFilterFieldName ("x");
+    pass.setFilterLimits (-5.0, 5.0);
+    pass.setInputCloud (cloud_z);
+    pass.filter (*cloud_x);
+
+    pcl_ptr cloud_y(new pcl::PointCloud<pcl::PointXYZ>);
+    pass.setFilterFieldName ("y");
+    pass.setFilterLimits (-5.0, 5.0);
+    pass.setInputCloud (cloud_x);
+    pass.filter (*cloud_y);
+
+
+    std::cout << "Done" <<std::endl;
+    return cloud_y;
 }
 
 Config::~Config() { }
@@ -103,9 +129,9 @@ void Config::parseArgs(int argc, char **argv) {
     }else if(flag == "--icp_iters"){
       icp_iters = std::stoi(argv[x+1]);
     }else if(flag == "--icp_dist"){
-      icp_iters = std::stof(argv[x+1]);
+      icp_dist = std::stof(argv[x+1]);
     }else if(flag == "--icp_leaf"){
-      icp_iters = std::stof(argv[x+1]);
+      icp_leaf = std::stof(argv[x+1]);
     }
   }
 }
