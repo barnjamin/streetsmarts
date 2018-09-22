@@ -121,7 +121,7 @@ main (int argc, char** argv)
       large_normals->width = cloud->points.size();
       large_normals->height = 1;
 
-      Normal* n;
+      PointXYZ np;
       PointXYZ p;
       for(int x=0; x<cloud->points.size(); x++){
             PointNormal nps;
@@ -131,17 +131,18 @@ main (int argc, char** argv)
             npl.x = p.x; npl.y =p.y; npl.z = p.z;
             nps.x = p.x; nps.y =p.y; nps.z = p.z;
 
-            n = (Normal*)&normals_small_host[x];
-            nps.normal_x = n->normal_x; nps.normal_y = n->normal_y; nps.normal_z = n->normal_z;
-            nps.curvature = n->curvature;
+            np = normals_small_host[x];
+            nps.normal_x = np.x; nps.normal_y = np.y; nps.normal_z = np.z;
+            nps.curvature = np.data[3];
             small_normals->points.push_back(nps);
 
-            n = (Normal*)&normals_large_host[x];
-            npl.normal_x = n->normal_x; npl.normal_y = n->normal_y; npl.normal_z = n->normal_z;
-            npl.curvature = n->curvature;
+            np = normals_large_host[x];
+            npl.normal_x = np.x; npl.normal_y = np.y; npl.normal_z = np.z;
+            npl.curvature = np.data[3];
             large_normals->points.push_back(npl);
       }
 
+      writer.write<PointNormal> ("normals_small.pcd", *small_normals, false);
 
       // Create output cloud for DoN results
       PointCloud<PointNormal>::Ptr doncloud (new pcl::PointCloud<PointNormal>);
@@ -214,45 +215,45 @@ main (int argc, char** argv)
         writer.write<PointNormal> (ss.str (), *cloud_cluster_don, false);
       }
 
-      //pcl::PointCloud<PointXYZ>::Ptr hc (new pcl::PointCloud<PointXYZ>);
-      //for(int x=0; x<doncloud->points.size(); x++){
-      //  PointXYZ p;
-      //  PointNormal dp = doncloud->points[x];
-      //  p.x = dp.x; p.y=dp.y; p.z=dp.z; 
-      //  hc->points.push_back(p);
-      //}
-      //hc->height = 1;
-      //hc->width = hc->points.size();
+      ////pcl::PointCloud<PointXYZ>::Ptr hc (new pcl::PointCloud<PointXYZ>);
+      ////for(int x=0; x<doncloud->points.size(); x++){
+      ////  PointXYZ p;
+      ////  PointNormal dp = doncloud->points[x];
+      ////  p.x = dp.x; p.y=dp.y; p.z=dp.z; 
+      ////  hc->points.push_back(p);
+      ////}
+      ////hc->height = 1;
+      ////hc->width = hc->points.size();
 
-      //doncloud_device.release();
-      //doncloud_device.upload(hc->points);
+      ////doncloud_device.release();
+      ////doncloud_device.upload(hc->points);
 
-      //octree_device->setCloud(doncloud_device);
-      //octree_device->build();
+      ////octree_device->setCloud(doncloud_device);
+      ////octree_device->build();
 
-      //gec.setClusterTolerance (segradius); 
-      //gec.setMinClusterSize (50);
-      //gec.setMaxClusterSize (100000);
-      //gec.setSearchMethod (octree_device);
-      //gec.setHostCloud(hc);
-      //gec.extract (cluster_indices_gpu);
+      ////gec.setClusterTolerance (segradius); 
+      ////gec.setMinClusterSize (50);
+      ////gec.setMaxClusterSize (100000);
+      ////gec.setSearchMethod (octree_device);
+      ////gec.setHostCloud(hc);
+      ////gec.extract (cluster_indices_gpu);
 
-      //int j = 0;
-      //for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices_gpu.begin (); it != cluster_indices_gpu.end (); ++it)
-      //{
-      //  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster_gpu (new pcl::PointCloud<pcl::PointXYZ>);
-      //  for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
-      //    cloud_cluster_gpu->points.push_back (cloud->points[*pit]); //*
-      //  cloud_cluster_gpu->width = cloud_cluster_gpu->points.size ();
-      //  cloud_cluster_gpu->height = 1;
-      //  cloud_cluster_gpu->is_dense = true;
+      ////int j = 0;
+      ////for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices_gpu.begin (); it != cluster_indices_gpu.end (); ++it)
+      ////{
+      ////  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster_gpu (new pcl::PointCloud<pcl::PointXYZ>);
+      ////  for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
+      ////    cloud_cluster_gpu->points.push_back (cloud->points[*pit]); //*
+      ////  cloud_cluster_gpu->width = cloud_cluster_gpu->points.size ();
+      ////  cloud_cluster_gpu->height = 1;
+      ////  cloud_cluster_gpu->is_dense = true;
 
-      //  std::cout << "PointCloud representing the Cluster: " << cloud_cluster_gpu->points.size () << " data points." << std::endl;
-      //  std::stringstream ss;
-      //  ss << "/media/ssd/dons/don_cluster_" << j << "_" << i << ".pcd";
-      //  writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster_gpu, false); //*
-      //  j++;
-      //}
+      ////  std::cout << "PointCloud representing the Cluster: " << cloud_cluster_gpu->points.size () << " data points." << std::endl;
+      ////  std::stringstream ss;
+      ////  ss << "/media/ssd/dons/don_cluster_" << j << "_" << i << ".pcd";
+      ////  writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster_gpu, false); //*
+      ////  j++;
+      ////}
 
   }
 
