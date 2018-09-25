@@ -1,5 +1,10 @@
 <launch>
-  <arg name="fps" value="30" />
+  
+
+  <node name="imu_node" pkg="imu_node" type="imu_node.py" respawn="true" />
+   
+
+  <arg name="fps" value="60" />
 
   <arg name="camera"              value="camera_link"/>
   <arg name="manager"             default="realsense2_camera_manager"/>
@@ -29,11 +34,12 @@
   <arg name="color_height"        default="480"/>
   <arg name="enable_color"        default="true"/>
 
+  <arg name="depth_fps"           value="$(arg fps)"/>
+  <arg name="color_fps"           value="$(arg fps)"/>
+
   <arg name="fisheye_fps"         default="30"/>
-  <arg name="depth_fps"           default="$(arg fps)"/>
   <arg name="infra1_fps"          default="30"/>
   <arg name="infra2_fps"          default="30"/>
-  <arg name="color_fps"           value="$(arg fps)"/>
   <arg name="gyro_fps"            default="1000"/>
   <arg name="accel_fps"           default="1000"/>
   <arg name="enable_imu"          default="false"/>
@@ -41,6 +47,9 @@
   <arg name="enable_pointcloud"   default="true"/>
   <arg name="enable_sync"         default="true"/>
   <arg name="align_depth"         default="true"/>
+
+
+
 
   <!-- rgbd_launch specific arguments -->
 
@@ -69,6 +78,22 @@
   <arg name="hw_registered_processing"        default="$(arg align_depth)" />
   <arg name="sw_registered_processing"        default="true" unless="$(arg align_depth)" />
   <arg name="sw_registered_processing"        default="false" if="$(arg align_depth)" />
+
+  <arg name="spatial_filter"      default="true"/>
+  <arg name="spatial_alpha"       default="0.25"/>
+  <arg name="spatial_delta"       default="44"/>
+  <arg name="spatial_iterations"  default="5"/>
+
+  <arg name="temporal_filter"      default="false"/>
+  <arg name="temporal_alpha"       default="0.1"/>
+  <arg name="temporal_delta"       default="67"/>
+  <arg name="temporal_persistence" default="1"/>
+
+  <arg name="holes_filter"         default="false"/>
+  <arg name="holes_filling_mode"   default="1"/>
+
+  <arg name="decimation_filter"    default="false"/>
+  <arg name="dec_downsample_scale" default="3"/>
 
   <group ns="$(arg camera)">
 
@@ -110,6 +135,17 @@
       <arg name="gyro_fps"                 value="$(arg gyro_fps)"/>
       <arg name="accel_fps"                value="$(arg accel_fps)"/>
       <arg name="enable_imu"               value="$(arg enable_imu)"/>
+
+      <arg name="temporal_filter"          value="$(arg temporal_filter)"/>
+      <arg name="temporal_alpha"           value="$(arg temporal_alpha)"/>
+      <arg name="temporal_delta"           value="$(arg temporal_delta)"/>
+      <arg name="temporal_persistence"     value="$(arg temporal_persistence)"/>
+
+      <arg name="holes_filter"             value="$(arg holes_filter)"/>
+      <arg name="holes_filling_mode"       value="$(arg holes_filling_mode)"/>
+
+      <arg name="decimation_filter"        value="$(arg decimation_filter)"/>
+      <arg name="dec_downsample_scale"     value="$(arg dec_downsample_scale)"/>
     </include>
 
     <!-- RGB processing -->
@@ -152,5 +188,6 @@
     </group>
 
   </group>
+
 
 </launch>

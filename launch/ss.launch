@@ -1,5 +1,8 @@
 <launch>
 
+
+  <!--<include file="camera.launch" />-->
+
   <node name="rviz" pkg="rviz" type="rviz" required="true" args="-d /home/nvidia/streetsmarts/launch/demo_3d.rviz" /> 
 
   <param name="robot_description" textfile="/home/nvidia/streetsmarts/launch/ss.urdf" />
@@ -9,9 +12,10 @@
   <node name="cartographer_node" pkg="cartographer_ros"
       type="cartographer_node" args="
           -configuration_directory $(find cartographer_ros)/configuration_files
-          -configuration_basename ss_backpack_3d.lua"
-      output="screen">
+          -configuration_basename ss_backpack_3d.lua" output="screen">
+
     <remap from="points2" to="camera_link/depth_registered/points" />
+
   </node> 
 
   <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
