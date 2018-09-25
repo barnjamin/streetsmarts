@@ -15,8 +15,13 @@
 -->
 
 <launch>
-  <param name="/use_sim_time" value="true" />
-  <include file="ss.launch" />
-  <!-- <node name="rviz" pkg="rviz" type="rviz" required="true" args="-d demo_3d.rviz" /> -->
-  <node name="playbag" pkg="rosbag" type="play" args="--clock $(arg bag_filename)" />
+  <node name="cartographer_assets_writer" pkg="cartographer_ros" required="true"
+      type="cartographer_assets_writer" args="
+          -configuration_directory $(find cartographer_ros)/configuration_files
+          -configuration_basename ss_assets_writer_backpack_3d.lua
+          -urdf_filename /home/nvidia/streetsmarts/launch/ss.urdf
+          -bag_filenames $(arg bag_filenames)
+          -pose_graph_filename $(arg pose_graph_filename)"
+      output="screen">
+  </node>
 </launch>

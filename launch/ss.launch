@@ -1,16 +1,16 @@
 <launch>
 
-  <node name="rviz" pkg="rviz" type="rviz" required="true" args="-d ./demo_3d.rviz" /> 
+  <node name="rviz" pkg="rviz" type="rviz" required="true" args="-d /home/nvidia/streetsmarts/launch/demo_3d.rviz" /> 
 
-  <param name="robot_description" textfile="ss.urdf" />
+  <param name="robot_description" textfile="/home/nvidia/streetsmarts/launch/ss.urdf" />
+
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
   <node name="cartographer_node" pkg="cartographer_ros"
       type="cartographer_node" args="
           -configuration_directory $(find cartographer_ros)/configuration_files
-          -configuration_basename backpack_3d.lua"
+          -configuration_basename ss_backpack_3d.lua"
       output="screen">
-    <remap from="camera_color_optical_frame" to="camera_link/depth_registered/points" />
     <remap from="points2" to="camera_link/depth_registered/points" />
   </node> 
 
