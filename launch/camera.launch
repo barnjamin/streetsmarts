@@ -1,8 +1,7 @@
 <launch>
   
 
-  <!-- <node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />-->
-   
+  <node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />
 
   <arg name="fps" value="60" />
 
@@ -93,7 +92,7 @@
   <arg name="holes_filling_mode"   default="1"/>
 
   <arg name="decimation_filter"    default="false"/>
-  <arg name="dec_downsample_scale" default="3"/>
+  <arg name="dec_downsample_scale" default="2"/>
 
   <group ns="$(arg camera)">
 
