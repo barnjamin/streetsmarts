@@ -73,8 +73,6 @@ Visualization Manager:
           Value: true
         imu_link:
           Value: true
-        fix_link:
-          Value: true
         map:
           Value: true
         odom:
@@ -98,8 +96,6 @@ Visualization Manager:
                   camera_depth_frame:
                     camera_depth_optical_frame:
                       {}
-              fix_link:
-                {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -122,11 +118,6 @@ Visualization Manager:
           Show Trail: false
           Value: true
         imu_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        fix_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false

@@ -1,7 +1,7 @@
 <launch>
   
 
-  <node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />
+  <!-- <node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />-->
    
 
   <arg name="fps" value="60" />
@@ -79,7 +79,7 @@
   <arg name="sw_registered_processing"        default="true" unless="$(arg align_depth)" />
   <arg name="sw_registered_processing"        default="false" if="$(arg align_depth)" />
 
-  <arg name="spatial_filter"      default="true"/>
+  <arg name="spatial_filter"      default="false"/>
   <arg name="spatial_alpha"       default="0.25"/>
   <arg name="spatial_delta"       default="44"/>
   <arg name="spatial_iterations"  default="5"/>
