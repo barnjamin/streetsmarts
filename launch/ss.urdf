@@ -16,6 +16,16 @@
     </visual>
   </link>
 
+  <link name="fix_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.06 0.04 0.02" />
+      </geometry>
+      <material name="orange" />
+    </visual>
+  </link>
+
   <link name="camera_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" />
@@ -31,6 +41,12 @@
   <joint name="imu_link_joint" type="fixed">
     <parent link="base_link" />
     <child link="imu_link" />
+    <origin xyz="0 0 0" rpy="3.1416 0 0" />
+  </joint>
+
+  <joint name="fix_link_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="fix_link" />
     <origin xyz="0 0 0" rpy="3.1416 0 0" />
   </joint>
 

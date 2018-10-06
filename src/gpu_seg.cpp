@@ -102,8 +102,10 @@ main (int argc, char** argv)
       cloud_device.upload(cloud->points);
 
       ne.setInputCloud(cloud_device);
+
       ne.setRadiusSearch(scale1, 100);
       ne.compute(normals_small);
+
       ne.setRadiusSearch(scale2, 100);
       ne.compute(normals_large);
 
@@ -142,7 +144,7 @@ main (int argc, char** argv)
             large_normals->points.push_back(npl);
       }
 
-      writer.write<PointNormal> ("normals_small.pcd", *small_normals, false);
+      //writer.write<PointNormal> ("normals_small.pcd", *small_normals, false);
 
       // Create output cloud for DoN results
       PointCloud<PointNormal>::Ptr doncloud (new pcl::PointCloud<PointNormal>);

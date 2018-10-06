@@ -24,16 +24,26 @@ void loop()
 {
   jsonBuffer.clear();
   JsonObject& root = jsonBuffer.createObject();
- if(gps.available( Serial3 )) {
+
+  if(gps.available( Serial3 )) {
     fix = gps.read();
-    JsonObject& gpsdata = root.createNestedObject("gps");
-    gpsdata["lat"]      = fix.latitudeL();
-    gpsdata["lng"]      = fix.longitudeL();
-    gpsdata["alt"]      = fix.alt.whole;
-    gpsdata["brearing"] = fix.heading();
-    gpsdata["error"]    = fix.hdg_err();
-    gpsdata["stamp"]    = fix.dateTime_ms();
-    gpsdata["speed"]    = fix.spd.whole;
+    if(fix.valid.location){
+        JsonObject& gpsdata = root.createNestedObject("gps");
+        gpsdata["lat"]      = fix.latitudeL();
+        gpsdata["lng"]      = fix.longitudeL();
+        if(fix.valid.altitude){
+            gpsdata["alt"]      = fix.alt.whole;
+        }
+        if(fix.valid.heading){
+            gpsdata["heading"]  = fix.heading();
+        }
+        if(fix.valid.date && fix.valid.time){
+            gpsdata["stamp"]    = fix.dateTime_ms();
+        }
+        if(fix.valid.speed){
+            gpsdata["speed"]    = fix.spd.whole;
+        }
+    }
   }
   
   mpu6050.update();
