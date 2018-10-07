@@ -41,19 +41,19 @@
   <joint name="imu_link_joint" type="fixed">
     <parent link="base_link" />
     <child link="imu_link" />
-    <origin xyz="0 0 0" rpy="3.1416 0 0" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
   </joint>
 
   <joint name="fix_link_joint" type="fixed">
     <parent link="base_link" />
     <child link="fix_link" />
-    <origin xyz="0 0 0" rpy="3.1416 0 0" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
   </joint>
 
   <joint name="camera_link_joint" type="fixed">
-    <parent link="imu_link" />
+    <parent link="base_link" />
     <child link="camera_link" />
-    <origin xyz="0.01 0. 0.19" rpy="0. -0.1745 3.1416" />
+    <origin xyz="-0.8 0. 0.3" rpy="0. 0. 0." />
   </joint>
 
 </robot>

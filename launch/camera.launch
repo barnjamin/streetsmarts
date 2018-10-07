@@ -1,10 +1,10 @@
 <launch>
   
 
-  <node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />
+<!--  <node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />-->
    
 
-  <arg name="fps" value="60" />
+  <arg name="fps" value="30" />
 
   <arg name="camera"              value="camera_link"/>
   <arg name="manager"             default="realsense2_camera_manager"/>
@@ -79,7 +79,7 @@
   <arg name="sw_registered_processing"        default="true" unless="$(arg align_depth)" />
   <arg name="sw_registered_processing"        default="false" if="$(arg align_depth)" />
 
-  <arg name="spatial_filter"      default="true"/>
+  <arg name="spatial_filter"      default="false"/>
   <arg name="spatial_alpha"       default="0.25"/>
   <arg name="spatial_delta"       default="44"/>
   <arg name="spatial_iterations"  default="5"/>
@@ -93,7 +93,7 @@
   <arg name="holes_filling_mode"   default="1"/>
 
   <arg name="decimation_filter"    default="false"/>
-  <arg name="dec_downsample_scale" default="3"/>
+  <arg name="dec_downsample_scale" default="2"/>
 
   <group ns="$(arg camera)">
 
