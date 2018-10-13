@@ -148,11 +148,11 @@ void loop()
       velo["z"] = ypr[0];
       
       mpu.dmpGetAccel(&aa, fifoBuffer);
-      mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
+      //mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
       JsonObject& accel = root.createNestedObject("accel");
-      accel["x"] = (aaReal.x * scale);
-      accel["y"] = (aaReal.y * scale);
-      accel["z"] = (aaReal.z * scale);
+      accel["x"] = (aa.x * scale) * -2;
+      accel["y"] = (aa.y * scale) * -2;
+      accel["z"] = (aa.z * scale) * -2;
 
   }
 

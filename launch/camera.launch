@@ -1,7 +1,7 @@
 <launch>
   
 
-<!--  <node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />-->
+  <node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />
    
 
   <arg name="fps" value="30" />
@@ -44,9 +44,9 @@
   <arg name="accel_fps"           default="1000"/>
   <arg name="enable_imu"          default="false"/>
 
-  <arg name="enable_pointcloud"   default="true"/>
-  <arg name="enable_sync"         default="true"/>
-  <arg name="align_depth"         default="true"/>
+  <arg name="enable_pointcloud"   default="false"/>
+  <arg name="enable_sync"         default="false"/>
+  <arg name="align_depth"         default="false"/>
 
 
 

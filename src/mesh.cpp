@@ -38,7 +38,9 @@ main (int argc, char** argv)
   }
 
 
-  auto bagfile = "/media/ssd/20180819_091914.bag";
+  //auto bagfile = "/media/ssd/20180819_091914.bag";
+  auto bagfile = "/media/ssd/2018-10-09-15-01-09.bag";
+
 
   rs2::decimation_filter dec_filter;
   dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, conf.dec_mag);  
@@ -147,7 +149,7 @@ main (int argc, char** argv)
       std::vector<int> parts = gp3.getPartIDs();
       std::vector<int> states = gp3.getPointStates();
 
-      pcl::io::saveVTKFile ("/media/ssd/meshes/mesh_"+std::to_string(i)+".vtk", triangles);
+      pcl::io::saveVTKFile ("/media/ssd/meshes2/mesh_"+std::to_string(i)+".vtk", triangles);
   }
 
   // Finish

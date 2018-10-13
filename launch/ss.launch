@@ -1,7 +1,7 @@
 <launch>
 
 
-  <include file="camera.launch" />
+  <!--<include file="camera.launch" />-->
 
   <node name="rviz" pkg="rviz" type="rviz" required="true" args="-d /home/nvidia/streetsmarts/launch/demo_3d.rviz" /> 
 

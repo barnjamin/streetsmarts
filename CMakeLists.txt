@@ -36,9 +36,9 @@ set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} 
 #add_executable(seg ${APP_SOURCES})
 #target_link_libraries(seg ${DEPENDENCIES})
 #
-#set(MESH_SOURCES src/mesh.cpp src/utils.cpp)
-#add_executable(mesh ${MESH_SOURCES})
-#target_link_libraries(mesh ${DEPENDENCIES})
+set(MESH_SOURCES src/mesh.cpp src/utils.cpp)
+add_executable(mesh ${MESH_SOURCES})
+target_link_libraries(mesh ${DEPENDENCIES})
 #
 #set(NORMAL_SOURCES src/pcl.cpp src/utils.cpp)
 #add_executable(normal ${NORMAL_SOURCES})
@@ -48,6 +48,6 @@ set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} 
 #add_executable(register ${PCL_SOURCES})
 #target_link_libraries(register ${DEPENDENCIES})
 
-set(GPU_SOURCES src/gpu_seg.cpp src/utils.cpp)
-add_executable(gpu_seg ${GPU_SOURCES})
-target_link_libraries(gpu_seg ${DEPENDENCIES})
+#set(GPU_SOURCES src/gpu_seg.cpp src/utils.cpp)
+#add_executable(gpu_seg ${GPU_SOURCES})
+#target_link_libraries(gpu_seg ${DEPENDENCIES})
