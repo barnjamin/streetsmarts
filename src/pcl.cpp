@@ -7,103 +7,71 @@
 
 #include <pcl/common/common_headers.h>
 
+#include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
-
-#include <pcl/filters/passthrough.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/filters/conditional_removal.h>
-
-#include <pcl/features/normal_3d.h>
-#include <pcl/features/normal_3d_omp.h>
-#include <pcl/features/integral_image_normal.h>
-
-#include <pcl/search/kdtree.h>
-#include <pcl/search/organized.h>
-
-#include <pcl/gpu/segmentation/gpu_extract_clusters.h>
-
-#include <pcl/visualization/pcl_visualizer.h>
-
+#include <stdio.h>
 #include "utils.h"
 
 
 int main(int argc, char * argv[]) try
 {
 
+    Config conf;
+    conf.parseArgs(argc, argv);
+
+    pcl::PCDWriter writer;
+
 	auto bagfile = "/media/ssd/20180819_091914.bag";
 
 	rs2::config cfg;    
 	cfg.enable_device_from_file(bagfile);
 
-    // Declare pointcloud object, for calculating pointclouds and texture mappings
-    rs2::pointcloud pc;
-    // We want the points object to be persistent so we can display the last cloud when a frame drops
     rs2::points points;
-    // Declare RealSense pipeline, encapsulating the actual device and sensors
+
+    rs2::decimation_filter dec_filter;
+    dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, conf.dec_mag);  
+
+    rs2::spatial_filter spat_filter;
+    spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, conf.spat_mag);
+    spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, conf.spat_a);
+    spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, conf.spat_d);
+
+    rs2::temporal_filter temp_filter;
+    temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, conf.temp_a);
+    temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, conf.temp_d);
+
+    rs2::disparity_transform depth_to_disparity(true);
+    rs2::disparity_transform disparity_to_depth(false);
+
+    rs2::pointcloud pc;
     rs2::pipeline pipe;
-    // Start streaming with default recommended configuration
     pipe.start(cfg);
 
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-
-    viewer->setBackgroundColor (0, 0, 0);
-    viewer->initCameraParameters ();
-    viewer->setCameraPosition(0,0,0,0,-1,0);
-
-    rs2::decimation_filter dec_filter;  // Decimation - reduces depth frame density
-    dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 3.0);
-
-    while (!viewer->wasStopped ()) {
-
-      // Wait for the next set of frames from the camera
-      auto frames = pipe.wait_for_frames();
-  
-      auto depth = frames.get_depth_frame();
-  	  // Generate the pointcloud and texture mappings
-      points = pc.calculate(depth);
-  
-      auto pcl_points = points_to_pcl(points);
-  
-      pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-      pcl_ptr cloud_vox_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-  
-      pcl::PassThrough<pcl::PointXYZ> pass;
-      pass.setInputCloud(pcl_points);
-      pass.setFilterFieldName("z");
-      pass.setFilterLimits(1.0, 10.0);
-      pass.filter(*cloud_filtered);
-  
-	  pcl::VoxelGrid<pcl::PointXYZ> sor;
-	  sor.setInputCloud (cloud_filtered);
-	  sor.setLeafSize (0.1f, 0.1f, 0.1f);
-	  sor.filter (*cloud_vox_filtered);
-
-	  //pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
-	  //pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
-
-	  //pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
-      //ne.setInputCloud (cloud_vox_filtered);
-	  //ne.setSearchMethod (tree);
-	  //ne.setKSearch (10);
-	  //ne.compute (*cloud_normals);
-
-	  pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
-      pcl::IntegralImageNormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
-      ne.setNormalEstimationMethod (ne.AVERAGE_DEPTH_CHANGE);
-      ne.setMaxDepthChangeFactor(0.02f);
-      ne.setNormalSmoothingSize(10.0f);
-      ne.setInputCloud(cloud_vox_filtered);
-      ne.compute(*cloud_normals);
-
-      viewer->removeAllPointClouds();
-      viewer->addPointCloud<pcl::PointXYZ> (cloud_vox_filtered, "sample cloud");
-      //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
-      viewer->addPointCloudNormals<pcl::PointXYZ, pcl::Normal> (cloud_vox_filtered, cloud_normals, 5, 0.15, "normals");
-
-      viewer->spinOnce (10);
-      boost::this_thread::sleep (boost::posix_time::microseconds (1000));
-
+    auto frames = pipe.wait_for_frames();
+    auto depth = frames.get_depth_frame();
+    for(int i=0; i<conf.framestart; i++){
+        frames = pipe.wait_for_frames();
     }
+    for(int i=0; i<conf.frames; i++){
+
+        frames = pipe.wait_for_frames();
+
+        depth = frames.get_depth_frame();
+        depth = frames.get_depth_frame();
+        depth = dec_filter.process(depth);
+        depth = depth_to_disparity.process(depth);
+        depth = spat_filter.process(depth);
+        depth = temp_filter.process(depth);
+        depth = disparity_to_depth.process(depth);
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = points_to_pcl(pc.calculate(depth));
+
+        std::ostringstream ss;
+        ss << "/media/ssd/pcls/points_"<<i<<".pcd";
+        writer.write<pcl::PointXYZ> (ss.str(), *cloud, false);
+    }
+  
+
 
     return EXIT_SUCCESS;
 } catch (const rs2::error & e) {

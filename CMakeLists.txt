@@ -36,13 +36,13 @@ set(DEPENDENCIES realsense2 ${OPENGL_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} 
 #add_executable(seg ${APP_SOURCES})
 #target_link_libraries(seg ${DEPENDENCIES})
 #
-set(MESH_SOURCES src/mesh.cpp src/utils.cpp)
-add_executable(mesh ${MESH_SOURCES})
-target_link_libraries(mesh ${DEPENDENCIES})
-#
-#set(NORMAL_SOURCES src/pcl.cpp src/utils.cpp)
-#add_executable(normal ${NORMAL_SOURCES})
-#target_link_libraries(normal ${DEPENDENCIES})
+#set(MESH_SOURCES src/mesh.cpp src/utils.cpp)
+#add_executable(mesh ${MESH_SOURCES})
+#target_link_libraries(mesh ${DEPENDENCIES})
+
+set(PCL_SOURCES src/pcl.cpp src/utils.cpp)
+add_executable(pcl_convert ${PCL_SOURCES})
+target_link_libraries(pcl_convert ${DEPENDENCIES})
 #
 #set(PCL_SOURCES src/registration.cpp src/utils.cpp)
 #add_executable(register ${PCL_SOURCES})

@@ -42,6 +42,9 @@ main (int argc, char** argv)
 
   auto bagfile = "/media/ssd/20180819_091914.bag";
 
+  rs2::config cfg;    
+  cfg.enable_device_from_file(bagfile);
+
   rs2::decimation_filter dec_filter;
   dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, conf.dec_mag);  
 
@@ -57,8 +60,6 @@ main (int argc, char** argv)
   rs2::disparity_transform depth_to_disparity(true);
   rs2::disparity_transform disparity_to_depth(false);
 
-  rs2::config cfg;    
-  cfg.enable_device_from_file(bagfile);
 
   rs2::pointcloud pc;
   rs2::pipeline pipe;

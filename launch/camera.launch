@@ -1,7 +1,7 @@
 <launch>
   
 
-  <node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />
+  <!--<node name="imu_node" pkg="imu_node" type="arduino_node.py" respawn="true" />-->
    
 
   <arg name="fps" value="30" />

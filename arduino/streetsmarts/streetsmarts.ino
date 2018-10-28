@@ -50,13 +50,16 @@ void setup(){
   Serial.println(F("Initializing DMP..."));
   devStatus = mpu.dmpInitialize();
 
-  mpu.setXAccelOffset(-304);
-  mpu.setYAccelOffset(1333);
-  mpu.setZAccelOffset(960);
+  mpu.setXAccelOffset(-323);
+  mpu.setYAccelOffset(1350);
+  mpu.setZAccelOffset(957);
 
-  mpu.setXGyroOffset(149);
+  mpu.setXGyroOffset(156);
   mpu.setYGyroOffset(-95);
   mpu.setZGyroOffset(-5);
+
+
+
 
   // turn on the DMP, now that it's ready
   Serial.println(F("Enabling DMP..."));
