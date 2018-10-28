@@ -1,7 +1,13 @@
 
 #include <Core/Core.h>
 #include <Cuda/Odometry/RGBDOdometryCuda.h>
-
+#include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
+#include <Cuda/Integration/ScalableMeshVolumeCuda.h>
+#include <Cuda/Geometry/VectorCuda.h>
+#include <Core/Core.h>
+#include <Eigen/Eigen>
+#include <IO/IO.h>
+#include <vector>
 #include <opencv2/opencv.hpp>
 
 #include <librealsense2/rs.hpp> 
@@ -10,6 +16,7 @@
 
 using namespace open3d;
 using namespace cv;
+
 
 int main(int argc, char * argv[]) try
 {
@@ -30,14 +37,13 @@ int main(int argc, char * argv[]) try
 
     Timer timer;
 
+    ImageCuda<Vector1f> source_I, target_I, source_D, target_D;
     RGBDOdometryCuda<3> odometry;
     odometry.server()->pinhole_camera_intrinsics_.SetUp(
         resolution.first, resolution.second, 
         focal_length.first, focal_length.second,
         principal_point.first, principal_point.second);
     odometry.SetParameters(0.2f, 0.1f, 4.0f, 0.05f);
-
-    ImageCuda<Vector1f> source_I, target_I, source_D, target_D;
 
     //Get initial frame
     rs2::frameset data = pipe.wait_for_frames();
@@ -54,7 +60,19 @@ int main(int argc, char * argv[]) try
     target_I.Upload(target_color);
     target_D.Upload(target_depth);
 
-    while(true) {
+    const auto window_name = "Display Image";
+    namedWindow(window_name, WINDOW_AUTOSIZE);
+
+    MonoPinholeCameraCuda intrinsics;
+    intrinsics.SetUp();
+
+    float voxel_length = 0.01f;
+    TransformCuda extrinsics = TransformCuda::Identity();
+    ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3 * voxel_length, extrinsics);
+
+
+    bool initialized = false;
+    while(waitKey(1) < 0 && cvGetWindowHandle(window_name)) {
         data = pipe.wait_for_frames(); 
 
         Mat source_color = frame_to_mat(data.get_color_frame());
@@ -68,15 +86,29 @@ int main(int argc, char * argv[]) try
         source_D.Upload(source_depth);
 
         odometry.transform_source_to_target_ = RGBDOdometryCuda<3>::Matrix4f::Identity();
-        odometry.Build(source_D, source_I, target_D, target_I);
-        odometry.Apply(source_D, source_I, target_D, target_I);
 
+        if(!initialized) {
+            odometry.Build(source_D, source_I, target_D, target_I);
+            initialized = true;
+        }
+
+        timer.Start();
+        odometry.Apply(source_D, source_I, target_D, target_I);
+        timer.Stop();
+
+        PrintInfo("Application took: %.3f\n", timer.GetDuration());
         
-        std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
+
+        //std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
 
         //Set current source to target
         source_I.CopyTo(target_I);
         source_D.CopyTo(target_D);
+
+        ImageCuda<Vector1s> imcuda;
+        source_D.CopyTo(imcuda);
+        auto imcudaf = imcuda.ToFloat(0.001f);
+        tsdf_volume.Integrate(imcudaf, intrinsics, extrinsics);
     }
 
     return EXIT_SUCCESS;
