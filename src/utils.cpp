@@ -1,70 +1,41 @@
-#include <pcl/point_types.h>
-#include <pcl/common/transforms.h>
-#include <pcl/filters/passthrough.h>
 
-
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>   // Include OpenCV API
+#include <opencv2/imgproc/imgproc.hpp>
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "utils.h"
 
-using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr points_to_pcl(const rs2::points& points)
+// Convert rs2::frame to cv::Mat
+cv::Mat frame_to_mat(const rs2::frame& f)
 {
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+	using namespace cv;
+	using namespace rs2;
 
-    auto sp = points.get_profile().as<rs2::video_stream_profile>();
+	auto vf = f.as<video_frame>();
+	const int w = vf.get_width();
+	const int h = vf.get_height();
 
-    cloud->width = sp.width()*sp.height();
-    cloud->height = 1;
-    cloud->is_dense = false;
+	if (f.get_profile().format() == RS2_FORMAT_BGR8)
+	{
+		return Mat(Size(w, h), CV_8UC3, (void*)f.get_data(), Mat::AUTO_STEP);
+	}
+	else if (f.get_profile().format() == RS2_FORMAT_RGB8)
+	{
+		auto r = Mat(Size(w, h), CV_8UC3, (void*)f.get_data(), Mat::AUTO_STEP);
+		cvtColor(r, r, CV_RGB2BGR);
+		return r;
+	}
+	else if (f.get_profile().format() == RS2_FORMAT_Z16)
+	{
+		return Mat(Size(w, h), CV_16UC1, (void*)f.get_data(), Mat::AUTO_STEP);
+	}
+	else if (f.get_profile().format() == RS2_FORMAT_Y8)
+	{
+		return Mat(Size(w, h), CV_8UC1, (void*)f.get_data(), Mat::AUTO_STEP);
+	}
 
-    auto ptr = points.get_vertices();
-    int inv = 0;
-    for (int x=0; x<points.size(); x++) {
-        if(ptr->z == 0){
-            inv++;
-        }else{
-            pcl::PointXYZ p;
-            p.x = ptr->x; p.y = ptr->y; p.z = ptr->z;
-            cloud->points.push_back(p);
-        }
-        ptr++;
-    }
-
-    cloud->width -= inv;
-
-    pcl_ptr cloud_rot(new pcl::PointCloud<pcl::PointXYZ>);
-    std::cout <<"Rotating...";
-    //Rotate
-    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    transform.rotate(Eigen::AngleAxisf(M_PI, Eigen::Vector3f::UnitZ()));
-    pcl::transformPointCloud(*cloud, *cloud_rot, transform);
-    std::cout <<"done"<<std::endl;
-
-    
-    std::cout << "Filtering...";
-    pcl_ptr cloud_z(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PassThrough<pcl::PointXYZ> pass;
-    pass.setFilterFieldName ("z");
-    pass.setFilterLimits (0.1, 20.0);
-    pass.setInputCloud (cloud_rot);
-    pass.filter (*cloud_z);
-
-    pcl_ptr cloud_x(new pcl::PointCloud<pcl::PointXYZ>);
-    pass.setFilterFieldName ("x");
-    pass.setFilterLimits (-5.0, 5.0);
-    pass.setInputCloud (cloud_z);
-    pass.filter (*cloud_x);
-
-    pcl_ptr cloud_y(new pcl::PointCloud<pcl::PointXYZ>);
-    pass.setFilterFieldName ("y");
-    pass.setFilterLimits (-5.0, 5.0);
-    pass.setInputCloud (cloud_x);
-    pass.filter (*cloud_y);
-
-
-    std::cout << "Done" <<std::endl;
-    return cloud_y;
+	throw std::runtime_error("Frame format is not supported yet!");
 }
 
 Config::~Config() { }

@@ -1,14 +1,11 @@
-#include <pcl/point_types.h>
-#include <pcl/common/transforms.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>   // Include OpenCV API
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 
-using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 
-pcl_ptr points_to_pcl(const rs2::points& points);
-
-pcl::PointCloud<pcl::PointXYZ> p2pcl(const rs2::points& points);
-
+cv::Mat frame_to_mat(const rs2::frame& f);
 
 class Config {
 public:
