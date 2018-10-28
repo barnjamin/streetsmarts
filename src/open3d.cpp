@@ -1,7 +1,6 @@
+
 #include <Core/Core.h>
-#include <Cuda/Geometry/ImageCuda.h>
-#include <Cuda/Geometry/ImagePyramidCuda.h>
-#include <Cuda/Geometry/VectorCuda.h>
+#include <Cuda/Odometry/RGBDOdometryCuda.h>
 
 #include <opencv2/opencv.hpp>
 
@@ -14,67 +13,77 @@ using namespace cv;
 
 int main(int argc, char * argv[]) try
 {
-    // Declare depth colorizer for pretty visualization of depth data
-    rs2::colorizer color_map;
-
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
-    // Start streaming with default recommended configuration
-    rs2::pipeline_profile selection = pipe.start();
+    rs2::config cfg;
+    cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
+    cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
+
+    rs2::pipeline_profile selection = pipe.start(cfg);
     auto depth_stream = selection.get_stream(RS2_STREAM_DEPTH)
                                  .as<rs2::video_stream_profile>();
+
     auto resolution = std::make_pair(depth_stream.width(), depth_stream.height());
     auto i = depth_stream.get_intrinsics();
     auto principal_point = std::make_pair(i.ppx, i.ppy);
     auto focal_length = std::make_pair(i.fx, i.fy);
 
-
-
-    const auto window_name = "Display Image";
-    namedWindow(window_name, WINDOW_AUTOSIZE);
-
-    ImageCuda<Vector3b> image_cuda;
-
     Timer timer;
-    while (waitKey(1) < 0 && cvGetWindowHandle(window_name))
-    {
-        rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-        rs2::frame depth = data.get_depth_frame().apply_filter(color_map);
 
-        // Query frame size (width and height)
-        const int w = depth.as<rs2::video_frame>().get_width();
-        const int h = depth.as<rs2::video_frame>().get_height();
+    RGBDOdometryCuda<3> odometry;
+    odometry.server()->pinhole_camera_intrinsics_.SetUp(
+        resolution.first, resolution.second, 
+        focal_length.first, focal_length.second,
+        principal_point.first, principal_point.second);
+    odometry.SetParameters(0.2f, 0.1f, 4.0f, 0.05f);
 
+    ImageCuda<Vector1f> source_I, target_I, source_D, target_D;
 
-        timer.Start(); 
-        // Create OpenCV matrix of size (w,h) from the colorized depth data
-        Mat image(Size(w, h), CV_8UC3, (void*)depth.get_data(), Mat::AUTO_STEP);
-        timer.Stop();
-        PrintInfo("Conversion took %.3f ms\n", timer.GetDuration());
+    //Get initial frame
+    rs2::frameset data = pipe.wait_for_frames();
+    rs2::frame depth = data.get_depth_frame();
+    rs2::frame color = data.get_color_frame();
 
-        timer.Start(); 
-        image_cuda.Upload(image);
-        timer.Stop(); 
-        PrintInfo("Upload took %.3f ms\n", timer.GetDuration());
+    Mat target_color = frame_to_mat(color);
+    cvtColor(target_color, target_color, cv::COLOR_BGR2GRAY);
+    target_color.convertTo(target_color, CV_32FC1, 1.0f / 255.0f);
 
-        timer.Start(); 
-        Mat downloaded_image = image_cuda.Download();
-        timer.Stop(); 
-        PrintInfo("Download took %.3f ms\n", timer.GetDuration());
+    Mat target_depth = frame_to_mat(depth);
+    target_depth.convertTo(target_depth, CV_32FC1, 0.001f);
 
-        // Update the window with new data
-        imshow(window_name, downloaded_image);
+    target_I.Upload(target_color);
+    target_D.Upload(target_depth);
+
+    while(true) {
+        data = pipe.wait_for_frames(); 
+
+        Mat source_color = frame_to_mat(data.get_color_frame());
+        cvtColor(source_color, source_color, cv::COLOR_BGR2GRAY);
+        source_color.convertTo(source_color, CV_32FC1, 1.0f / 255.0f);
+
+        Mat source_depth = frame_to_mat(data.get_depth_frame());
+        source_depth.convertTo(source_depth, CV_32FC1, 0.001f);
+
+        source_I.Upload(source_color);
+        source_D.Upload(source_depth);
+
+        odometry.transform_source_to_target_ = RGBDOdometryCuda<3>::Matrix4f::Identity();
+        odometry.Build(source_D, source_I, target_D, target_I);
+        odometry.Apply(source_D, source_I, target_D, target_I);
+
+        
+        std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
+
+        //Set current source to target
+        source_I.CopyTo(target_I);
+        source_D.CopyTo(target_D);
     }
 
     return EXIT_SUCCESS;
-}
-catch (const rs2::error & e)
-{
+} catch (const rs2::error & e) {
     std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
     return EXIT_FAILURE;
-}
-catch (const std::exception& e)
-{
+} catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
 }
