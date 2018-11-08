@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import copy
 import numpy as np
 from open3d import *
@@ -5,11 +7,15 @@ from open3d import *
 if __name__ == "__main__":
 
     print("Testing mesh in open3d ...")
-    mesh = read_triangle_mesh("20181021_164959/20_resave.ply")
+    mesh = read_triangle_mesh("latest/scene/integrated.ply")
     print(mesh)
     print(np.asarray(mesh.vertices))
     print(np.asarray(mesh.triangles))
     print("")
+    draw_geometries([mesh])
+
+    import sys
+    sys.exit()
 
     print("Try to render a mesh with normals (exist: " +
             str(mesh.has_vertex_normals()) +
