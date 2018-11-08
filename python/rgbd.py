@@ -5,7 +5,7 @@ import numpy as np
 import sys
 
 
-image_dirs = "/home/ben/streetsmarts/latest"
+image_dirs = "/home/ben/streetsmarts/python/latest"
 
 if __name__ == "__main__":
     pinhole_camera_intrinsic = read_pinhole_camera_intrinsic(image_dirs + "/intrinsic.json")
@@ -22,10 +22,8 @@ if __name__ == "__main__":
     target_rgbd_image = create_rgbd_image_from_color_and_depth(target_color, target_depth)
 
     #source_pcd = create_point_cloud_from_rgbd_image(source_rgbd_image, pinhole_camera_intrinsic)
-    target_pcd = create_point_cloud_from_rgbd_image(target_rgbd_image, pinhole_camera_intrinsic)
-
-
-
+    target_pcd = create_point_cloud_from_rgbd_image(
+            target_rgbd_image, pinhole_camera_intrinsic)
 
 
     option = OdometryOption()
