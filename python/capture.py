@@ -15,6 +15,9 @@ os.mkdir(filedate)
 os.mkdir(filedate+"/depth")
 os.mkdir(filedate+"/color")
 
+if os.path.islink("latest"):
+    os.unlink("latest")
+
 os.symlink(filedate, "latest")
 
 def write_intrinsics(cfg):

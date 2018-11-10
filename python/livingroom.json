@@ -1,7 +1,7 @@
 {
     "name": "Open3D reconstruction tutorial http://open3d.org/docs/tutorial/ReconstructionSystem/system_overview.html",
-    "path_dataset": "/home/ben/streetsmarts/python/latest",
-    "path_intrinsic": "/home/ben/streetsmarts/python/latest/intrinsic.json",
+    "path_dataset": "/home/nvidia/streetsmarts/python/latest",
+    "path_intrinsic": "/home/nvidia/streetsmarts/python/latest/intrinsic.json",
     "max_depth": 7.0,
     "voxel_size": 0.05,
     "max_depth_diff": 0.07,

@@ -23,14 +23,23 @@ int main(int argc, char * argv[]) try
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
     rs2::config cfg;
+<<<<<<< HEAD
 
+=======
+>>>>>>> open3d
     cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
     cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
 
     rs2::pipeline_profile selection = pipe.start(cfg);
+<<<<<<< HEAD
 
     auto depth_stream = selection.get_stream(RS2_STREAM_DEPTH)
                                  .as<rs2::video_stream_profile>();
+=======
+    auto depth_stream = selection.get_stream(RS2_STREAM_DEPTH)
+                                 .as<rs2::video_stream_profile>();
+
+>>>>>>> open3d
     auto resolution = std::make_pair(depth_stream.width(), depth_stream.height());
     auto i = depth_stream.get_intrinsics();
     auto principal_point = std::make_pair(i.ppx, i.ppy);
@@ -39,7 +48,10 @@ int main(int argc, char * argv[]) try
     Timer timer;
 
     ImageCuda<Vector1f> source_I, target_I, source_D, target_D;
+<<<<<<< HEAD
 
+=======
+>>>>>>> open3d
     RGBDOdometryCuda<3> odometry;
     odometry.server()->pinhole_camera_intrinsics_.SetUp(
         resolution.first, resolution.second, 
@@ -62,10 +74,26 @@ int main(int argc, char * argv[]) try
     target_I.Upload(target_color);
     target_D.Upload(target_depth);
 
+<<<<<<< HEAD
 
     bool initialized = false;
 
     while(true) {
+=======
+    const auto window_name = "Display Image";
+    namedWindow(window_name, WINDOW_AUTOSIZE);
+
+    MonoPinholeCameraCuda intrinsics;
+    intrinsics.SetUp();
+
+    float voxel_length = 0.01f;
+    TransformCuda extrinsics = TransformCuda::Identity();
+    ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3 * voxel_length, extrinsics);
+
+
+    bool initialized = false;
+    while(waitKey(1) < 0 && cvGetWindowHandle(window_name)) {
+>>>>>>> open3d
         data = pipe.wait_for_frames(); 
 
         Mat source_color = frame_to_mat(data.get_color_frame());
@@ -78,7 +106,10 @@ int main(int argc, char * argv[]) try
         source_I.Upload(source_color);
         source_D.Upload(source_depth);
 
+<<<<<<< HEAD
         //Reset transform
+=======
+>>>>>>> open3d
         odometry.transform_source_to_target_ = RGBDOdometryCuda<3>::Matrix4f::Identity();
 
         if(!initialized) {
@@ -89,9 +120,16 @@ int main(int argc, char * argv[]) try
         timer.Start();
         odometry.Apply(source_D, source_I, target_D, target_I);
         timer.Stop();
+<<<<<<< HEAD
         PrintInfo("Application took: %.3f\n", timer.GetDuration());
 
         
+=======
+
+        PrintInfo("Application took: %.3f\n", timer.GetDuration());
+        
+
+>>>>>>> open3d
         //std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
 
         //Set current source to target
