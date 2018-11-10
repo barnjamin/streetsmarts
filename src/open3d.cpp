@@ -1,4 +1,10 @@
 #include <Core/Core.h>
+#include <Visualization/Visualization.h>
+#include <Cuda/Geometry/ImageCuda.h>
+#include <Cuda/Camera/PinholeCameraIntrinsicCuda.h>
+#include <Cuda/Common/TransformCuda.h>
+#include <Cuda/Geometry/TriangleMeshCuda.h>
+#include <Cuda/Geometry/RGBDImageCuda.h>
 #include <Cuda/Odometry/RGBDOdometryCuda.h>
 #include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
 #include <Cuda/Integration/ScalableMeshVolumeCuda.h>
@@ -8,8 +14,12 @@
 #include <IO/IO.h>
 #include <vector>
 
+#include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp> 
 #include "utils.h" 
+
+
+
 
 
 using namespace open3d;
@@ -71,7 +81,8 @@ int main(int argc, char * argv[]) try
     PinholeCameraIntrinsicCuda cudaint(intrinsic);
 
     bool initialized = false;
-    while(true){
+    for(int i=0; i<100; i++){
+
         data = pipe.wait_for_frames(); 
 
         Mat source_color = frame_to_mat(data.get_color_frame());
@@ -87,8 +98,6 @@ int main(int argc, char * argv[]) try
         source_I.Upload(source_color);
         source_D.Upload(source_depth);
 
-
-
         //Reset transform
         odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
 
@@ -99,7 +108,8 @@ int main(int argc, char * argv[]) try
 
         odometry.Apply(source_D, source_I, target_D, target_I);
 
-        std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
+        //std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
+
         TransformCuda tfc;
         tfc.FromEigen(odometry.transform_source_to_target_);
 
@@ -110,6 +120,23 @@ int main(int argc, char * argv[]) try
         auto src_rgbd = RGBDImageCuda(source_D, source_o);
         tsdf_volume.Integrate(src_rgbd, cudaint, tfc);
     }
+
+
+    ScalableMeshVolumeCuda<8> mesher(10000, VertexWithNormalAndColor, 100000, 200000);
+    mesher.active_subvolumes_ = tsdf_volume.active_subvolume_entry_array().size();
+    PrintInfo("Active subvolumes: %d\n", mesher.active_subvolumes_);
+
+    mesher.MarchingCubes(tsdf_volume);
+
+    //std::shared_ptr<TriangleMeshCuda> mesh = std::make_shared<TriangleMeshCuda>(mesher.mesh());
+    //std::shared_ptr<TriangleMesh> meshcpu = mesh->Download();
+    auto mesh = mesher.mesh().Download();
+    PrintInfo("MaxBound: %s\n", mesh->GetMaxBound());
+    PrintInfo("MinBound: %s\n", mesh->GetMinBound());
+    
+    //mesh->ComputeVertexNormals();
+
+    WriteTriangleMeshToPLY("wtf.ply", *mesh, true);
 
     return EXIT_SUCCESS;
 
