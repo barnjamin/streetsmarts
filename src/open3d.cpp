@@ -42,6 +42,7 @@ int main(int argc, char * argv[]) try
     Timer timer;
 
     ImageCuda<Vector1f> source_I, target_I, source_D, target_D;
+    ImageCuda<Vector3b> source_o;
 
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsic);
@@ -67,44 +68,47 @@ int main(int argc, char * argv[]) try
     ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3 * voxel_length, extrinsics);
 
 
+    PinholeCameraIntrinsicCuda cudaint(intrinsic);
+
     bool initialized = false;
     while(true){
         data = pipe.wait_for_frames(); 
 
         Mat source_color = frame_to_mat(data.get_color_frame());
+        Mat src_orig = source_color.clone();
         cvtColor(source_color, source_color, cv::COLOR_BGR2GRAY);
         source_color.convertTo(source_color, CV_32FC1, 1.0f / 255.0f);
 
         Mat source_depth = frame_to_mat(data.get_depth_frame());
         source_depth.convertTo(source_depth, CV_32FC1, 0.001f);
 
+        source_o.Upload(src_orig);
+
         source_I.Upload(source_color);
         source_D.Upload(source_depth);
 
+
+
         //Reset transform
-        odometry.transform_source_to_target_ = Eigen::Matrix4f::Identity();
+        odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
 
         if(!initialized) {
             odometry.Build(source_D, source_I, target_D, target_I);
             initialized = true;
         }
 
-        timer.Start();
         odometry.Apply(source_D, source_I, target_D, target_I);
-        timer.Stop();
-        PrintInfo("Application took: %.3f\n", timer.GetDuration());
 
         std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
+        TransformCuda tfc;
+        tfc.FromEigen(odometry.transform_source_to_target_);
 
         //Set current source to target
         target_I.CopyFrom(source_I);
         target_D.CopyFrom(source_D);
 
-        ImageCuda<Vector1f> imcuda;
-        imcuda.CopyFrom(source_D);
-        auto imcudaf = imcuda.ToFloat(0.001f);
-
-        tsdf_volume.Integrate(imcudaf, intrinsic, extrinsics);
+        auto src_rgbd = RGBDImageCuda(source_D, source_o);
+        tsdf_volume.Integrate(src_rgbd, cudaint, tfc);
     }
 
     return EXIT_SUCCESS;
