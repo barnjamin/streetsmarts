@@ -49,8 +49,6 @@ int main(int argc, char * argv[]) try
         principal_point.first, principal_point.second);
 
 
-    Timer timer;
-
     ImageCuda<Vector1f> source_I, target_I, source_D, target_D;
     ImageCuda<Vector3b> source_o;
 
@@ -73,7 +71,7 @@ int main(int argc, char * argv[]) try
     target_I.Upload(target_color);
     target_D.Upload(target_depth);
 
-    float voxel_length = 0.01f;
+    float voxel_length = 0.05f;
     TransformCuda extrinsics = TransformCuda::Identity();
     ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3 * voxel_length, extrinsics);
 
@@ -122,8 +120,9 @@ int main(int argc, char * argv[]) try
     }
 
 
-    ScalableMeshVolumeCuda<8> mesher(10000, VertexWithNormalAndColor, 100000, 200000);
+    ScalableMeshVolumeCuda<8> mesher(100000, VertexWithNormalAndColor, 1000000, 2000000);
     mesher.active_subvolumes_ = tsdf_volume.active_subvolume_entry_array().size();
+
     PrintInfo("Active subvolumes: %d\n", mesher.active_subvolumes_);
 
     mesher.MarchingCubes(tsdf_volume);
