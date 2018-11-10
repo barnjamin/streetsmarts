@@ -57,7 +57,8 @@ set(DEPENDENCIES ${realsense2_LIBRARY} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} glfw $
 #add_executable(opencv ${OPENCV_SOURCES})
 #target_link_libraries(opencv ${DEPENDENCIES})
 
-set(OPEN3D_SOURCE src/reconstruct.cpp src/utils.cpp)
+#set(OPEN3D_SOURCE src/reconstruct.cpp src/utils.cpp)
+set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp)
 add_executable(open3d ${OPEN3D_SOURCE})
 target_link_libraries(open3d ${DEPENDENCIES})
 
