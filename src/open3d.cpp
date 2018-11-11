@@ -18,110 +18,131 @@
 #include <librealsense2/rs.hpp> 
 #include "utils.h" 
 
-
-
-
-
 using namespace open3d;
 using namespace cv;
 
 int main(int argc, char * argv[]) try
 {
 
+    Config conf;
+    conf.parseArgs(argc, argv);
+
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
     rs2::config cfg;
+    rs2::align align(RS2_STREAM_COLOR);
+
     cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
     cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
 
-    rs2::pipeline_profile selection = pipe.start(cfg);
-    auto depth_stream = selection.get_stream(RS2_STREAM_DEPTH)
-                                 .as<rs2::video_stream_profile>();
+    rs2::pipeline_profile profile = pipe.start(cfg);
 
-    auto resolution = std::make_pair(depth_stream.width(), depth_stream.height());
-    auto i = depth_stream.get_intrinsics();
-    auto principal_point = std::make_pair(i.ppx, i.ppy);
-    auto focal_length = std::make_pair(i.fx, i.fy);
-
-    PinholeCameraIntrinsic intrinsic(
-        resolution.first, resolution.second, 
-        focal_length.first, focal_length.second,
-        principal_point.first, principal_point.second);
-
-
-    ImageCuda<Vector1f> source_I, target_I, source_D, target_D;
-    ImageCuda<Vector3b> source_o;
-
-    RGBDOdometryCuda<3> odometry;
-    odometry.SetIntrinsics(intrinsic);
-    odometry.SetParameters(0.2f, 0.1f, 4.0f, 0.05f);
-
-    //Get initial frame
-    rs2::frameset data = pipe.wait_for_frames();
-    rs2::frame depth = data.get_depth_frame();
-    rs2::frame color = data.get_color_frame();
-
-    Mat target_color = frame_to_mat(color);
-    cvtColor(target_color, target_color, cv::COLOR_BGR2GRAY);
-    target_color.convertTo(target_color, CV_32FC1, 1.0f / 255.0f);
-
-    Mat target_depth = frame_to_mat(depth);
-    target_depth.convertTo(target_depth, CV_32FC1, 0.001f);
-
-    target_I.Upload(target_color);
-    target_D.Upload(target_depth);
-
-    float voxel_length = 0.05f;
-    TransformCuda extrinsics = TransformCuda::Identity();
-    ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3 * voxel_length, extrinsics);
-
+    Intrinsic i = get_intrinsics(profile);
+    PinholeCameraIntrinsic intrinsic(i.width, i.height, 
+        i.intrinsics.fx, i.intrinsics.fy, i.intrinsics.ppx, i.intrinsics.ppy);
 
     PinholeCameraIntrinsicCuda cudaint(intrinsic);
 
-    bool initialized = false;
+    ImageCuda<Vector1f> source_I, target_I, source_D, target_D;
+    ImageCuda<Vector3b> source_O;
+
+
+    RGBDOdometryCuda<3> odometry;
+    odometry.SetIntrinsics(intrinsic);
+
+    //sigma, depth_near_thresh, depth_far_thresh, depth_diff_thresh
+    odometry.SetParameters(0.2f, 0.1f, 8.0f, 0.05f);
+
+    //Set empty transform
+    odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+
+    float voxel_length = 0.02f;
+
+    TransformCuda extrinsics = TransformCuda::Identity();
+
+    ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3 * voxel_length, extrinsics);
+
+    open3d::Timer t;
     for(int i=0; i<100; i++){
+        t.Start(); 
+        rs2::frameset frameset = pipe.wait_for_frames();
+        t.Stop();
+        t.Print("Got Frame");
 
-        data = pipe.wait_for_frames(); 
+        t.Start();
+        //Get processed aligned frame
+        auto processed = align.process(frameset);
 
-        Mat source_color = frame_to_mat(data.get_color_frame());
-        Mat src_orig = source_color.clone();
+        // Trying to get both other and aligned depth frames
+        rs2::video_frame color_frame = processed.first(RS2_STREAM_COLOR);
+        rs2::depth_frame depth_frame = processed.get_depth_frame();
+
+        //If one of them is unavailable, continue iteration
+        if (!depth_frame || !color_frame) {
+            continue;
+        }
+        t.Stop();
+        t.Print("Aligned");
+
+        //Further process
+        t.Start();
+        auto depth = conf.filter(depth_frame);
+        t.Stop();
+        t.Print("Filtered");
+
+        t.Start();
+        Mat source_color = frame_to_mat(color_frame);
+        Mat source_depth = frame_to_mat(depth);
+        t.Stop();
+        t.Print("Converted to Matrix");
+
+        t.Start();
+        source_O.Upload(source_color);
+        
         cvtColor(source_color, source_color, cv::COLOR_BGR2GRAY);
         source_color.convertTo(source_color, CV_32FC1, 1.0f / 255.0f);
-
-        Mat source_depth = frame_to_mat(data.get_depth_frame());
         source_depth.convertTo(source_depth, CV_32FC1, 0.001f);
-
-        source_o.Upload(src_orig);
 
         source_I.Upload(source_color);
         source_D.Upload(source_depth);
+        t.Stop();
+        t.Print("Converted and uploaded");
 
-        //Reset transform
-        odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+        //If we've been through our first loop
+        if(i>0) {
+            if(i == 1){
+                t.Start();
+                odometry.PrepareData(source_D, source_I, target_D, target_I);
+                t.Stop();
+                t.Print("Prepared");
+            }   
+            t.Start();
+            odometry.Apply();
+            t.Stop();
+            t.Print("Applied");
 
-        if(!initialized) {
-            odometry.Build(source_D, source_I, target_D, target_I);
-            initialized = true;
+
+            //std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
+
+            t.Start();
+            TransformCuda tfc;
+            tfc.FromEigen(odometry.transform_source_to_target_);
+
+            auto src_rgbd = RGBDImageCuda(source_D, source_O);
+            tsdf_volume.Integrate(src_rgbd, cudaint, tfc);
+            t.Stop();
+            t.Print("Integrated");
         }
-
-        odometry.Apply(source_D, source_I, target_D, target_I);
-
-        //std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
-
-        TransformCuda tfc;
-        tfc.FromEigen(odometry.transform_source_to_target_);
 
         //Set current source to target
         target_I.CopyFrom(source_I);
         target_D.CopyFrom(source_D);
-
-        auto src_rgbd = RGBDImageCuda(source_D, source_o);
-        tsdf_volume.Integrate(src_rgbd, cudaint, tfc);
     }
 
-
-    ScalableMeshVolumeCuda<8> mesher(100000, VertexWithNormalAndColor, 1000000, 2000000);
-    mesher.active_subvolumes_ = tsdf_volume.active_subvolume_entry_array().size();
+    int appxsize = tsdf_volume.active_subvolume_entry_array().size();
+    ScalableMeshVolumeCuda<8> mesher(appxsize * 100, VertexWithNormalAndColor, 
+                                        appxsize*100, appxsize*200);
+    mesher.active_subvolumes_ = appxsize;
 
     PrintInfo("Active subvolumes: %d\n", mesher.active_subvolumes_);
 

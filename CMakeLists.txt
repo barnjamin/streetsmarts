@@ -41,39 +41,11 @@ link_directories(${Open3D_LIBRARY_DIRS})
 
 set(DEPENDENCIES ${realsense2_LIBRARY} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} glfw ${Open3D_LIBRARIES} Eigen3::Eigen /media/ssd/Open3D/build/lib/libCuda.a)
 
-#set(APP_SOURCES src/don_seg.cpp src/utils.cpp)
-#add_executable(don_seg ${APP_SOURCES})
-#target_link_libraries(don_seg ${DEPENDENCIES})
-#
-#set(APP_SOURCES src/region_growing.cpp src/utils.cpp)
-#add_executable(region_growing ${APP_SOURCES})
-#target_link_libraries(region_growing ${DEPENDENCIES})
-#
-#set(APP_SOURCES src/seg.cpp src/utils.cpp)
-#add_executable(seg ${APP_SOURCES})
-#target_link_libraries(seg ${DEPENDENCIES})
 
-#set(OPENCV_SOURCES src/opencv.cpp)
-#add_executable(opencv ${OPENCV_SOURCES})
-#target_link_libraries(opencv ${DEPENDENCIES})
+#set(CUDA_ALIGN_SOURCES src/rs-cuda.cpp src/utils.cpp)
+#add_executable(rs-cuda ${CUDA_ALIGN_SOURCES})
+#target_link_libraries(rs-cuda ${DEPENDENCIES})
 
-#set(OPEN3D_SOURCE src/reconstruct.cpp src/utils.cpp)
 set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp)
 add_executable(open3d ${OPEN3D_SOURCE})
 target_link_libraries(open3d ${DEPENDENCIES})
-
-#set(MESH_SOURCES src/mesh.cpp src/utils.cpp)
-#add_executable(mesh ${MESH_SOURCES})
-#target_link_libraries(mesh ${DEPENDENCIES})
-
-#set(PCL_SOURCES src/pcl.cpp src/utils.cpp)
-#add_executable(pcl_convert ${PCL_SOURCES})
-#target_link_libraries(pcl_convert ${DEPENDENCIES})
-#
-#set(PCL_SOURCES src/registration.cpp src/utils.cpp)
-#add_executable(register ${PCL_SOURCES})
-#target_link_libraries(register ${DEPENDENCIES})
-
-#set(GPU_SOURCES src/gpu_seg.cpp src/utils.cpp)
-#add_executable(gpu_seg ${GPU_SOURCES})
-#target_link_libraries(gpu_seg ${DEPENDENCIES})

@@ -5,7 +5,6 @@
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "utils.h"
 
-
 // Convert rs2::frame to cv::Mat
 cv::Mat frame_to_mat(const rs2::frame& f)
 {
@@ -54,6 +53,9 @@ Config::Config() {
     temp_a      = 0.5;
     temp_d      = 50;
 
+
+    depth_to_disparity = rs2::disparity_transform(true);
+    disparity_to_depth = rs2::disparity_transform(false);
 
     don_small			= 0.05;
     don_large			= 0.25;
@@ -105,4 +107,51 @@ void Config::parseArgs(int argc, char **argv) {
       icp_leaf = std::stof(argv[x+1]);
     }
   }
+
+  dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, dec_mag);  
+
+  spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, spat_mag);
+  spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, spat_a);
+  spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, spat_d);
+
+  temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, temp_a);
+  temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, temp_d);
+}
+
+rs2::frame Config::filter(rs2::depth_frame depth)
+{
+    depth = dec_filter.process(depth);
+    depth = depth_to_disparity.process(depth);
+    depth = spat_filter.process(depth);
+    depth = temp_filter.process(depth);
+
+    return disparity_to_depth.process(depth);
+}
+
+Intrinsic get_intrinsics(rs2::pipeline_profile prof)
+{
+    auto depth_stream = prof.get_stream(RS2_STREAM_DEPTH)
+                                 .as<rs2::video_stream_profile>();
+
+    Intrinsic i;
+    i.width = depth_stream.width();
+    i.height = depth_stream.height();
+    i.intrinsics = depth_stream.get_intrinsics();
+
+    return i;
+}
+
+
+float get_depth_scale(rs2::device dev)
+{
+    // Go over the device's sensors
+    for (rs2::sensor& sensor : dev.query_sensors())
+    {
+        // Check if the sensor if a depth sensor
+        if (rs2::depth_sensor dpt = sensor.as<rs2::depth_sensor>())
+        {
+            return dpt.get_depth_scale();
+        }
+    }
+    throw std::runtime_error("Device does not have a depth sensor");
 }

@@ -5,7 +5,16 @@
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 
 
-cv::Mat frame_to_mat(const rs2::frame& f);
+
+struct Intrinsic {
+    int width, height;
+    rs2_intrinsics intrinsics;
+};
+
+
+cv::Mat     frame_to_mat(const rs2::frame& f);
+float       get_depth_scale(rs2::device dev);
+Intrinsic   get_intrinsics(rs2::pipeline_profile); 
 
 class Config {
 public:
@@ -34,10 +43,18 @@ public:
     float icp_dist;
     float icp_leaf;
 
+    rs2::decimation_filter dec_filter;
+    rs2::spatial_filter spat_filter;
+    rs2::temporal_filter temp_filter;
+
+    rs2::disparity_transform depth_to_disparity;
+    rs2::disparity_transform disparity_to_depth;
 
     Config();
 
     void parseArgs(int argc, char **argv);
+    rs2::frame filter(rs2::depth_frame depth);
+
 
     virtual ~Config();    
 };
