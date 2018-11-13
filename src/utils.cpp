@@ -124,7 +124,6 @@ rs2::frame Config::filter(rs2::depth_frame depth)
     depth = depth_to_disparity.process(depth);
     depth = spat_filter.process(depth);
     depth = temp_filter.process(depth);
-
     return disparity_to_depth.process(depth);
 }
 

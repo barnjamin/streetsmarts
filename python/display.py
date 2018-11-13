@@ -8,11 +8,11 @@ if __name__ == "__main__":
 
     print("Testing mesh in open3d ...")
     #mesh = read_triangle_mesh("latest/scene/integrated.ply")
-    mesh = read_triangle_mesh("../build/wtf.ply")
-    print(mesh)
-    print(np.asarray(mesh.vertices))
-    print(np.asarray(mesh.triangles))
-    print("")
+    mesh = read_triangle_mesh("../build/fragment-0.ply")
+    draw_geometries([mesh])
+    mesh = read_triangle_mesh("../build/fragment-1.ply")
+    draw_geometries([mesh])
+    mesh = read_triangle_mesh("../build/fragment-2.ply")
     draw_geometries([mesh])
 
     import sys

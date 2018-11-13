@@ -1,18 +1,11 @@
+#include <string>
+#include <vector>
 #include <Core/Core.h>
-#include <Visualization/Visualization.h>
-#include <Cuda/Geometry/ImageCuda.h>
-#include <Cuda/Camera/PinholeCameraIntrinsicCuda.h>
-#include <Cuda/Common/TransformCuda.h>
-#include <Cuda/Geometry/TriangleMeshCuda.h>
-#include <Cuda/Geometry/RGBDImageCuda.h>
+#include <IO/IO.h>
 #include <Cuda/Odometry/RGBDOdometryCuda.h>
 #include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
 #include <Cuda/Integration/ScalableMeshVolumeCuda.h>
-#include <Cuda/Common/VectorCuda.h>
-#include <Core/Core.h>
-#include <Eigen/Eigen>
-#include <IO/IO.h>
-#include <vector>
+#include <Visualization/Visualization.h>
 
 #include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp> 
@@ -38,38 +31,46 @@ int main(int argc, char * argv[]) try
     rs2::pipeline_profile profile = pipe.start(cfg);
 
     Intrinsic i = get_intrinsics(profile);
-    PinholeCameraIntrinsic intrinsic(i.width, i.height, 
-        i.intrinsics.fx, i.intrinsics.fy, i.intrinsics.ppx, i.intrinsics.ppy);
+    PinholeCameraIntrinsic intrinsics(i.width, i.height, i.intrinsics.fx, i.intrinsics.fy, i.intrinsics.ppx, i.intrinsics.ppy);
 
-    PinholeCameraIntrinsicCuda cudaint(intrinsic);
-
-    ImageCuda<Vector1f> source_I, target_I, source_D, target_D;
-    ImageCuda<Vector3b> source_O;
-
+    PinholeCameraIntrinsicCuda cuda_intrinsics(intrinsics);
 
     RGBDOdometryCuda<3> odometry;
-    odometry.SetIntrinsics(intrinsic);
-
-    //sigma, depth_near_thresh, depth_far_thresh, depth_diff_thresh
-    odometry.SetParameters(0.2f, 0.1f, 8.0f, 0.05f);
-
-    //Set empty transform
+    odometry.SetIntrinsics(intrinsics);
+    odometry.SetParameters(0.0f, 0.1f, 4.0f, 0.07f);
     odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
 
-    float voxel_length = 0.02f;
-
+    float voxel_length = 0.01f;
     TransformCuda extrinsics = TransformCuda::Identity();
-
     ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3 * voxel_length, extrinsics);
 
-    open3d::Timer t;
-    for(int i=0; i<100; i++){
-        t.Start(); 
-        rs2::frameset frameset = pipe.wait_for_frames();
-        t.Stop();
-        t.Print("Got Frame");
+    auto depth_image_ptr = std::make_shared<Image>();
+    depth_image_ptr->PrepareImage(640, 480, 1, 2);
 
-        t.Start();
+    auto color_image_ptr = std::make_shared<Image>();
+    color_image_ptr->PrepareImage(640, 480, 3, 1);
+
+    RGBDImageCuda rgbd_prev(0.1f, 4.0f, 1000.0f);
+    RGBDImageCuda rgbd_curr(0.1f, 4.0f, 1000.0f);
+
+    ScalableMeshVolumeCuda<8> mesher(40000, VertexWithNormalAndColor, 6000000, 12000000);
+
+    std::shared_ptr<TriangleMeshCuda> mesh = std::make_shared<TriangleMeshCuda>();
+
+    Eigen::Matrix4d target_to_world = Eigen::Matrix4d::Identity();
+
+    PinholeCameraParameters params;
+    params.intrinsic_ = PinholeCameraIntrinsicParameters::PrimeSenseDefault;
+
+
+    FPSTimer timer("Process RGBD stream",conf.frames);
+
+    int save_index = 0;
+
+    PrintInfo("Starting to poll for frames\n");
+    for(int i=0; i< conf.frames; i++){
+        rs2::frameset frameset = pipe.wait_for_frames();
+
         //Get processed aligned frame
         auto processed = align.process(frameset);
 
@@ -81,82 +82,54 @@ int main(int argc, char * argv[]) try
         if (!depth_frame || !color_frame) {
             continue;
         }
-        t.Stop();
-        t.Print("Aligned");
 
-        //Further process
-        t.Start();
-        auto depth = conf.filter(depth_frame);
-        t.Stop();
-        t.Print("Filtered");
+        //Further process for hole filling/temporal smoothing
+        //depth_frame = conf.filter(depth_frame);
 
-        t.Start();
-        Mat source_color = frame_to_mat(color_frame);
-        Mat source_depth = frame_to_mat(depth);
-        t.Stop();
-        t.Print("Converted to Matrix");
+        //auto color = frame_to_mat(color_frame);
+        //cvtColor(color, color, COLOR_BGR2GRAY);
+        //color.convertTo(color, CV_32FC1, 1.0f / 255.0f);
 
-        t.Start();
-        source_O.Upload(source_color);
-        
-        cvtColor(source_color, source_color, cv::COLOR_BGR2GRAY);
-        source_color.convertTo(source_color, CV_32FC1, 1.0f / 255.0f);
-        source_depth.convertTo(source_depth, CV_32FC1, 0.001f);
+        //auto depth = frame_to_mat(depth_frame);
+        //depth.convertTo(depth, CV_32FC1, 0.0001);
+        //rgbd_curr.Upload(depth, color);
 
-        source_I.Upload(source_color);
-        source_D.Upload(source_depth);
-        t.Stop();
-        t.Print("Converted and uploaded");
+        memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), 640 * 480 * 2);
+        memcpy(color_image_ptr->data_.data(), color_frame.get_data(), 640 * 480 * 3);
 
-        //If we've been through our first loop
-        if(i>0) {
-            if(i == 1){
-                t.Start();
-                odometry.PrepareData(source_D, source_I, target_D, target_I);
-                t.Stop();
-                t.Print("Prepared");
-            }   
-            t.Start();
+        //auto rgbd = CreateRGBDImageFromColorAndDepth(*color_image_ptr, *depth_image_ptr);
+        //auto pcd = CreatePointCloudFromRGBDImage(*rgbd, intrinsics);
+        //DrawGeometries({pcd});
+
+        rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
+
+        if (i > 0 ) {
+            odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+            odometry.PrepareData(rgbd_curr, rgbd_prev);
             odometry.Apply();
-            t.Stop();
-            t.Print("Applied");
-
-
-            //std::cout<< "Transform: \n" << odometry.transform_source_to_target_ << std::endl;
-
-            t.Start();
-            TransformCuda tfc;
-            tfc.FromEigen(odometry.transform_source_to_target_);
-
-            auto src_rgbd = RGBDImageCuda(source_D, source_O);
-            tsdf_volume.Integrate(src_rgbd, cudaint, tfc);
-            t.Stop();
-            t.Print("Integrated");
+            target_to_world = target_to_world * odometry.transform_source_to_target_;
         }
 
-        //Set current source to target
-        target_I.CopyFrom(source_I);
-        target_D.CopyFrom(source_D);
+        extrinsics.FromEigen(target_to_world);
+        tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
+
+        params.extrinsic_ = extrinsics.ToEigen().inverse();
+
+        if (i > 0 && i % 30 == 0) {
+            tsdf_volume.GetAllSubvolumes();
+            mesher.MarchingCubes(tsdf_volume);
+            WriteTriangleMeshToPLY("fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
+            tsdf_volume.Reset();
+            save_index++;
+        }
+
+        rgbd_prev.CopyFrom(rgbd_curr);
+        timer.Signal();
     }
 
-    int appxsize = tsdf_volume.active_subvolume_entry_array().size();
-    ScalableMeshVolumeCuda<8> mesher(appxsize * 100, VertexWithNormalAndColor, 
-                                        appxsize*100, appxsize*200);
-    mesher.active_subvolumes_ = appxsize;
-
-    PrintInfo("Active subvolumes: %d\n", mesher.active_subvolumes_);
-
+    tsdf_volume.GetAllSubvolumes();
     mesher.MarchingCubes(tsdf_volume);
-
-    //std::shared_ptr<TriangleMeshCuda> mesh = std::make_shared<TriangleMeshCuda>(mesher.mesh());
-    //std::shared_ptr<TriangleMesh> meshcpu = mesh->Download();
-    auto mesh = mesher.mesh().Download();
-    PrintInfo("MaxBound: %s\n", mesh->GetMaxBound());
-    PrintInfo("MinBound: %s\n", mesh->GetMinBound());
-    
-    //mesh->ComputeVertexNormals();
-
-    WriteTriangleMeshToPLY("wtf.ply", *mesh, true);
+    WriteTriangleMeshToPLY("fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
 
     return EXIT_SUCCESS;
 
