@@ -2,6 +2,8 @@
 #include <opencv2/opencv.hpp>   // Include OpenCV API
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <Core/Core.h>
+
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 
 
@@ -14,7 +16,7 @@ struct Intrinsic {
 
 cv::Mat     frame_to_mat(const rs2::frame& f);
 float       get_depth_scale(rs2::device dev);
-Intrinsic   get_intrinsics(rs2::pipeline_profile); 
+open3d::PinholeCameraIntrinsic   get_intrinsics(rs2::pipeline_profile); 
 
 class Config {
 public:

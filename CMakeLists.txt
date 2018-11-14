@@ -42,10 +42,10 @@ link_directories(${Open3D_LIBRARY_DIRS})
 set(DEPENDENCIES ${realsense2_LIBRARY} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} glfw ${Open3D_LIBRARIES} Eigen3::Eigen /media/ssd/Open3D/build/lib/libCuda.a)
 
 
-#set(CUDA_ALIGN_SOURCES src/rs-cuda.cpp src/utils.cpp)
-#add_executable(rs-cuda ${CUDA_ALIGN_SOURCES})
-#target_link_libraries(rs-cuda ${DEPENDENCIES})
+set(CUDA_ALIGN_SOURCES src/rs-cuda.cpp src/utils.cpp)
+add_executable(rs-cuda ${CUDA_ALIGN_SOURCES})
+target_link_libraries(rs-cuda ${DEPENDENCIES})
 
-set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp)
-add_executable(open3d ${OPEN3D_SOURCE})
-target_link_libraries(open3d ${DEPENDENCIES})
+#set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp)
+#add_executable(open3d ${OPEN3D_SOURCE})
+#target_link_libraries(open3d ${DEPENDENCIES})

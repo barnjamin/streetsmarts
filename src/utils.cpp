@@ -44,7 +44,7 @@ Config::Config() {
     max_z       = 5.0f;
 
     frames      = 180;
-    framestart  = 180;
+    framestart  = 10; //Number of frames to discard at the start
 
     dec_mag     = 1.0;
     spat_mag    = 1.0;
@@ -127,17 +127,16 @@ rs2::frame Config::filter(rs2::depth_frame depth)
     return disparity_to_depth.process(depth);
 }
 
-Intrinsic get_intrinsics(rs2::pipeline_profile prof)
+open3d::PinholeCameraIntrinsic get_intrinsics(rs2::pipeline_profile prof)
 {
     auto depth_stream = prof.get_stream(RS2_STREAM_DEPTH)
                                  .as<rs2::video_stream_profile>();
+    auto intrin = depth_stream.get_intrinsics();
 
-    Intrinsic i;
-    i.width = depth_stream.width();
-    i.height = depth_stream.height();
-    i.intrinsics = depth_stream.get_intrinsics();
+    open3d::PinholeCameraIntrinsic intrinsics(depth_stream.width(), depth_stream.height(), 
+            intrin.fx, intrin.fy, intrin.ppx, intrin.ppy);
 
-    return i;
+    return intrinsics;
 }
 
 
