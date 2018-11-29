@@ -5,7 +5,5 @@ mkdir build
 cd build
 cmake ..
 make
-cd ..
-./rungpu.sh
-profit
+./bin/open3d
 ```
