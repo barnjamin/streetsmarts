@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/python3
 
 import copy
 import numpy as np
@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     print("Testing mesh in open3d ...")
     #mesh = read_triangle_mesh("latest/scene/integrated.ply")
-    mesh = read_triangle_mesh("../build/test_pcl.ply")
+    mesh = read_triangle_mesh("../build/fragment-0.ply")
     draw_geometries([mesh])
     #mesh = read_triangle_mesh("../build/fragment-0.ply")
     #draw_geometries([mesh])

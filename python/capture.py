@@ -63,11 +63,17 @@ try:
 
         depth_data = depth.as_frame().get_data()
         depth_image = np.asanyarray(depth_data)
-        cv2.imwrite("{}/depth/{}.png".format(filedate, idx), depth_image)
+        print(depth_image)
+        #cv2.imwrite("{}/depth/{}.png".format(filedate, idx), depth_image)
 
         color_data = color.as_frame().get_data()
         color_image = np.asanyarray(color_data)
-        cv2.imwrite("{}/color/{}.jpg".format(filedate, idx), color_image)
+        print(color_image)
+        #cv2.imwrite("{}/color/{}.jpg".format(filedate, idx), color_image)
+
+
+        
+
 
         idx += 1
 
