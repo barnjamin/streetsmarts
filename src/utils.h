@@ -20,6 +20,9 @@ open3d::PinholeCameraIntrinsic   get_intrinsics(rs2::pipeline_profile);
 
 class Config {
 public:
+
+    std::string imu_src;
+
     float min_z;
     float max_z;
 

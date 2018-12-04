@@ -2,5 +2,6 @@
     "files.associations": {
         "cstdlib": "cpp",
         "ratio": "cpp"
-    }
+    },
+    "C_Cpp.configurationWarnings": "Disabled"
 }

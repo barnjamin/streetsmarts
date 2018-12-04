@@ -40,6 +40,7 @@ cv::Mat frame_to_mat(const rs2::frame& f)
 Config::~Config() { }
 
 Config::Config() {
+    imu_src     = "/dev/ttyACM0";
     min_z       = 0.0f;
     max_z       = 5.0f;
 
@@ -105,6 +106,8 @@ void Config::parseArgs(int argc, char **argv) {
       icp_dist = std::stof(argv[x+1]);
     }else if(flag == "--icp_leaf"){
       icp_leaf = std::stof(argv[x+1]);
+    }else if(flag == "--imu_src"){
+      imu_src = argv[x+1];
     }
   }
 

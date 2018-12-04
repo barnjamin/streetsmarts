@@ -13,6 +13,7 @@
 #include "utils.h" 
 
 using namespace open3d;
+using namespace open3d::cuda;
 using namespace cv;
 
 int main(int argc, char * argv[]) try
@@ -36,7 +37,7 @@ int main(int argc, char * argv[]) try
 
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsics);
-    odometry.SetParameters(0.0f, 0.1f, 4.0f, 0.07f);
+    odometry.SetParameters(OdometryOption());
     odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
 
     float voxel_length = 0.01f;
@@ -100,11 +101,11 @@ int main(int argc, char * argv[]) try
         if (i > 0 ) {
             t.Start();
             odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
-            odometry.PrepareData(rgbd_curr, rgbd_prev);
+            odometry.Initialize(rgbd_curr, rgbd_prev);
             t.Stop();
             t.Print("Prepare");
             t.Start();
-            odometry.Apply();
+            odometry.ComputeMultiScale();
             t.Stop();
             t.Print("Apply");
 

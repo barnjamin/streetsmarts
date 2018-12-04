@@ -39,12 +39,16 @@ include_directories(
 
 link_directories(${Open3D_LIBRARY_DIRS})
 
-set(DEPENDENCIES ${realsense2_LIBRARY} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} glfw ${Open3D_LIBRARIES} Eigen3::Eigen /media/ssd/Open3D/build/lib/libCuda.a)
+set(DEPENDENCIES ${realsense2_LIBRARY} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} glfw ${Open3D_LIBRARIES} Eigen3::Eigen /home/ben/Open3D/build/lib/libCuda.a)
 
 
 #set(CUDA_ALIGN_SOURCES src/pcl-cuda.cpp src/utils.cpp)
 #add_executable(pcl-cuda ${CUDA_ALIGN_SOURCES})
 #target_link_libraries(pcl-cuda ${DEPENDENCIES})
+
+#set(IMU_SOURCE src/imu.cpp src/utils.cpp)
+#add_executable(imu ${IMU_SOURCE})
+#target_link_libraries(imu ${DEPENDENCIES})
 
 set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp)
 add_executable(open3d ${OPEN3D_SOURCE})
