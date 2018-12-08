@@ -27,8 +27,8 @@ int main(int argc, char * argv[]) try
     rs2::config cfg;
     rs2::align align(RS2_STREAM_COLOR);
 
-    cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
-    cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
+    cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
+    cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
 
     rs2::pipeline_profile profile = pipe.start(cfg);
 
@@ -47,8 +47,8 @@ int main(int argc, char * argv[]) try
 
     auto depth_image_ptr = std::make_shared<Image>();
     auto color_image_ptr = std::make_shared<Image>();
-    depth_image_ptr->PrepareImage(640, 480, 1, 2);
-    color_image_ptr->PrepareImage(640, 480, 3, 1);
+    depth_image_ptr->PrepareImage(conf.width, conf.height, 1, 2);
+    color_image_ptr->PrepareImage(conf.width, conf.height, 3, 1);
 
     RGBDImageCuda rgbd_prev(0.1f, 4.0f, 1000.0f);
     RGBDImageCuda rgbd_curr(0.1f, 4.0f, 1000.0f);
@@ -88,8 +88,8 @@ int main(int argc, char * argv[]) try
 
         //depth_frame = conf.filter(depth_frame);
         t.Start();
-        memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), 640 * 480 * 2);
-        memcpy(color_image_ptr->data_.data(), color_frame.get_data(), 640 * 480 * 3);
+        memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
+        memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
         t.Stop();
         t.Print("Copy Frames To Images");
 

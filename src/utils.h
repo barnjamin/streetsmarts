@@ -26,6 +26,7 @@ public:
     float min_z;
     float max_z;
 
+    int fps;
     int frames;
     int framestart;
 
@@ -47,6 +48,9 @@ public:
     int icp_iters;
     float icp_dist;
     float icp_leaf;
+
+    int width;
+    int height;
 
     rs2::decimation_filter dec_filter;
     rs2::spatial_filter spat_filter;

@@ -1,24 +1,28 @@
 #include <string>
-#include <fstream>
 #include <iostream>
-
+#include <fstream>
 #include "utils.h"
 
-int main(int argc, char * argv[])
+using namespace std;
+
+int main(int argc, char* argv[])
 {
 
-    Config conf;
-    conf.parseArgs(argc, argv);
+
+	system("stty -F /dev/ttyACM1 115200");
+
+	string line;
+        ifstream arduino ("/dev/ttyACM1");
 
 
+	if(arduino.is_open()) {
+	  while(getline(arduino, line)) {
+	    cout << line << endl;
+	  }
+	  arduino.close();
+	}
+	else  cout << "Unable to open file\n";
 
-    std::string str;
-    std::fstream f;
-    f.open(conf.imu_src);
-    while (f >> str)
-    {
-        std::cout << str;
-    }
-    return 0;
+
+	return 0;
 }
-

@@ -44,8 +44,12 @@ Config::Config() {
     min_z       = 0.0f;
     max_z       = 5.0f;
 
+    fps      	= 30;
     frames      = 180;
     framestart  = 10; //Number of frames to discard at the start
+
+    width 	= 640;
+    height 	= 480;
 
     dec_mag     = 1.0;
     spat_mag    = 1.0;
@@ -108,6 +112,12 @@ void Config::parseArgs(int argc, char **argv) {
       icp_leaf = std::stof(argv[x+1]);
     }else if(flag == "--imu_src"){
       imu_src = argv[x+1];
+    }else if(flag == "--width"){
+      width = std::stoi(argv[x+1]);
+    }else if(flag == "--height"){
+      height = std::stoi(argv[x+1]);
+    }else if(flag == "--fps"){
+      fps = std::stoi(argv[x+1]);
     }
   }
 
