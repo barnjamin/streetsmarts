@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include "utils.h"
+#include "json.hpp"
 
 using namespace std;
 
@@ -15,14 +16,31 @@ int main(int argc, char* argv[])
         ifstream arduino ("/dev/ttyACM1");
 
 
-	if(arduino.is_open()) {
-	  while(getline(arduino, line)) {
-	    cout << line << endl;
-	  }
-	  arduino.close();
-	}
-	else  cout << "Unable to open file\n";
 
+
+	if(!arduino.is_open()) {
+	  cout << "Unable to open file\n";
+
+	}
+
+	for(int discard=0; discard<3; discard++){
+	  getline(arduino, line); 
+	} 
+
+	while(getline(arduino, line)) {
+	  if(line.length()<10){ //Garbage
+	    continue; 
+	  }
+
+	  auto j = nlohmann::json::parse(line);
+	  auto f = j["velo"]["x"].get<float>();
+	  cout << f << endl;
+
+	  cout<<j.dump()<<endl;
+	}
+
+
+	arduino.close();
 
 	return 0;
 }

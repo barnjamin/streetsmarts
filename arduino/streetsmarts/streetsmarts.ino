@@ -5,9 +5,6 @@
 #include <NMEAGPS.h>
 #include <Wire.h>
 
-StaticJsonBuffer<300> jsonBuffer;
-
-
 MPU6050 mpu;
 
 NMEAGPS gps;
