@@ -1,11 +1,13 @@
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
-#include <ArduinoJson.h>
 #include <MPU6050.h>
+#include <ArduinoJson.h>
 #include <NMEAGPS.h>
 #include <Wire.h>
 
 MPU6050 mpu;
+
+StaticJsonBuffer<300> jsonBuffer;
 
 NMEAGPS gps;
 gps_fix fix;
@@ -27,7 +29,7 @@ VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measure
 VectorFloat gravity;    // [x, y, z]            gravity vector
 float ypr[3];           
 
-float scale =  9.80665/16384.0 ;
+float scale =  (9.80665/16384.0);
 
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
 void dmpDataReady() {
@@ -55,9 +57,6 @@ void setup(){
   mpu.setYGyroOffset(-95);
   mpu.setZGyroOffset(-5);
 
-
-
-
   // turn on the DMP, now that it's ready
   Serial.println(F("Enabling DMP..."));
   mpu.setDMPEnabled(true);
@@ -73,29 +72,31 @@ void setup(){
 
 void loop()
 {
+
+
   jsonBuffer.clear();
   JsonObject& root = jsonBuffer.createObject();
-  
-  if(gps.available( Serial3 )) {
-    fix = gps.read();
-    if(fix.valid.location){
-        JsonObject& gpsdata = root.createNestedObject("gps");
-        gpsdata["lat"]      = fix.latitudeL();
-        gpsdata["lng"]      = fix.longitudeL();
-        if(fix.valid.altitude){
-            gpsdata["alt"]      = fix.alt.whole;
-        }
-        if(fix.valid.heading){
-            gpsdata["heading"]  = fix.heading();
-        }
-        if(fix.valid.date && fix.valid.time){
-            gpsdata["stamp"]    = fix.dateTime_ms();
-        }
-        if(fix.valid.speed){
-            gpsdata["speed"]    = fix.spd.whole;
-        }
-    }
-  }
+
+  //if(gps.available( Serial3 )) {
+  //  fix = gps.read();
+  //  if(fix.valid.location){
+  //      JsonObject& gpsdata = root.createNestedObject("gps");
+  //      gpsdata["lat"]      = fix.latitudeL();
+  //      gpsdata["lng"]      = fix.longitudeL();
+  //      if(fix.valid.altitude){
+  //          gpsdata["alt"]      = fix.alt.whole;
+  //      }
+  //      if(fix.valid.heading){
+  //          gpsdata["heading"]  = fix.heading();
+  //      }
+  //      if(fix.valid.date && fix.valid.time){
+  //          gpsdata["stamp"]    = fix.dateTime_ms();
+  //      }
+  //      if(fix.valid.speed){
+  //          gpsdata["speed"]    = fix.spd.whole;
+  //      }
+  //  }
+  //}
   
   // if programming failed, don't try to do anything
   if (!dmpReady) return;
@@ -133,6 +134,10 @@ void loop()
       fifoCount -= packetSize;
 
       mpu.dmpGetQuaternion(&q, fifoBuffer);
+      mpu.dmpGetAccel(&aa, fifoBuffer);
+      mpu.dmpGetGravity(&gravity, &q);
+      mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity); 
+      mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q); 
 
       JsonObject& quat = root.createNestedObject("quat");
       quat["x"] = q.x;
@@ -140,20 +145,10 @@ void loop()
       quat["z"] = q.z;
       quat["w"] = q.w;
       
-      mpu.dmpGetGravity(&gravity, &q);
-      mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-      JsonObject& velo = root.createNestedObject("velo");
-      velo["x"] = ypr[2];
-      velo["y"] = ypr[1];
-      velo["z"] = ypr[0];
-      
-      mpu.dmpGetAccel(&aa, fifoBuffer);
-      //mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
       JsonObject& accel = root.createNestedObject("accel");
-      accel["x"] = (aa.x * scale) * -2;
-      accel["y"] = (aa.y * scale) * -2;
-      accel["z"] = (aa.z * scale) * -2;
-
+      accel["x"] = aaWorld.x * scale;
+      accel["y"] = aaWorld.y * scale;
+      accel["z"] = aaWorld.z * scale;
   }
 
   root["time"] = millis();
