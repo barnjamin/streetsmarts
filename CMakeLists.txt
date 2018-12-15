@@ -10,6 +10,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 find_package(OpenCV REQUIRED)
 find_package(OpenGL)
+find_package(GLUT)
 #find_package(PCL)
 find_package (Eigen3)
 find_package(Open3D)
@@ -35,11 +36,22 @@ include_directories(
   ${Open3D_INCLUDE_DIRS}
   /usr/local/Open3d/include/
   /usr/local/cuda/include/
+  ${OPENGL_INCLUDE_DIRS}  
+  ${GLUT_INCLUDE_DIRS}
 ) 
 
 link_directories(${Open3D_LIBRARY_DIRS})
 
-set(DEPENDENCIES ${realsense2_LIBRARY} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} glfw ${Open3D_LIBRARIES} Eigen3::Eigen /home/ben/Open3D/build/lib/libCuda.a)
+set(DEPENDENCIES 
+	${GLUT_LIBRARY}
+	${realsense2_LIBRARY} 
+	${OPENGL_LIBRARIES} 
+	${OpenCV_LIBS} 
+	glfw 
+	${Open3D_LIBRARIES} 
+	Eigen3::Eigen 
+	/home/ben/Open3D/build/lib/libCuda.a
+)
 
 
 #set(CUDA_ALIGN_SOURCES src/pcl-cuda.cpp src/utils.cpp)
@@ -54,6 +66,10 @@ set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp)
 add_executable(open3d ${OPEN3D_SOURCE})
 target_link_libraries(open3d ${DEPENDENCIES})
 
-set(MOTION_SOURCE src/motion.cpp src/utils.cpp)
+set(MOTION_SOURCE src/motion.cpp src/utils.cpp src/MadgwickAHRS.c)
 add_executable(motion ${MOTION_SOURCE})
 target_link_libraries(motion ${DEPENDENCIES})
+
+set(GL_SOURCE src/gl.cpp)
+add_executable(gl ${GL_SOURCE})
+target_link_libraries(gl ${DEPENDENCIES})
