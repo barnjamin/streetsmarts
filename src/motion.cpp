@@ -16,6 +16,8 @@ rs2_vector accel;
 rs2_vector gyro;
 Eigen::Quaternionf q(1.0, 0.0, 0.0, 0.0);
 
+Eigen::Vector3f gravity(0, -9.81, 0);
+
 // Clears the window and draws the torus.
 void display() {
   
@@ -27,13 +29,7 @@ void display() {
     glLoadIdentity();
     gluLookAt(4, 6, 5, 0, 0, 0, 0, 1, 0);
 
-    //glRotatef(q.w(), q.x(), q.y(), q.z());
     auto e = q.toRotationMatrix().eulerAngles(0,1,2);
-
-    std::cout << e << std::endl;
-    std::cout << e[0] << std::endl;
-    std::cout << e[1] << std::endl;
-    std::cout << e[2] << std::endl;
 
     glRotatef(e[0]*180/M_PI, 1, 0, 0);
     glRotatef(e[1]*180/M_PI, 0, 1, 0);
@@ -41,9 +37,6 @@ void display() {
 
     glColor3f(1.0, 1.0, 1.0);
     glutWireTorus(0.5, 3, 15, 30);
-
-    //std::cout << "Quat: " << q.w() << " "<< q.x() << " "<< q.y() << " " << q.z() << std::endl;
-    std::cout << "Quat: " << q0 << " "<< q1 << " "<< q2 << " " << q3 << std::endl;
 
     // Draw a red x-axis, a green y-axis, and a blue z-axis.  Each of the
     // axes are ten units long.
@@ -86,58 +79,58 @@ void timer(int v) {
 
 int main(int argc, char * argv[]) try
 {
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowPosition(80, 80);
-    glutInitWindowSize(800, 600);
-    glutCreateWindow("Orientation");
-    glutDisplayFunc(display);
-    init();
-    glutTimerFunc(100, timer, 0);
+    //glutInit(&argc, argv);
+    //glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    //glutInitWindowPosition(80, 80);
+    //glutInitWindowSize(800, 600);
+    //glutCreateWindow("Orientation");
+    //glutDisplayFunc(display);
+    //init();
+    //glutTimerFunc(100, timer, 0);
 
-    // Define frame callback
-    // The callback is executed on a sensor thread and can be called simultaneously from multiple sensors
-    // Therefore any modification to common memory should be done under lock
     auto callback = [&](const rs2::frame& f) {
         std::lock_guard<std::mutex> lock(mutex);
+
         if (!f.as<rs2::frameset>()) {
-            // Stream that bypass synchronization (such as IMU) will produce single frames
             if(f.get_profile().stream_type() == RS2_STREAM_ACCEL){
                 accel = f.as<rs2::motion_frame>().get_motion_data();
-                accel.x /= 9.86;
-                accel.y /= -9.86;
-                accel.z /= 9.86;
             }else if (f.get_profile().stream_type() == RS2_STREAM_GYRO) {
                 gyro = f.as<rs2::motion_frame>().get_motion_data();
             }
         }
 
-        //std::cout << "Gyro: " << gyro.x << " "<< gyro.y << " "<< gyro.z << std::endl;
-        //std::cout << "Accel: " << accel.x << " "<< accel.y << " "<< accel.z << std::endl;
-
 	MadgwickAHRSupdateIMU(gyro.x, gyro.y, gyro.z, accel.x, accel.y, accel.z);
 
         q = Eigen::Quaternionf(q0, q1, q2, q3);
-        //Eigen::Quaternionf qt(q0, q1, q2, q3);
-        //q *= qt;
+        q.normalize();
+
+        Eigen::Vector3f avec(accel.x, accel.y, accel.z);
+        std::cout << "BeforeRot" << avec << std::endl;
+
+        //auto rot  = q.toRotationMatrix();
+        //auto accel_rot = rot * avec;
+        //std::cout << "AfterRot " << accel_rot << std::endl;
+
+        //auto subbed_accel = accel_rot - gravity;
+        //std::cout << "AfterSub "<< subbed_accel << std::endl;
+    
+        //auto world_accel = invrot * subbed_accel;
+        //std::cout << "AfterReRot"<< world_accel << std::endl;
+
+        auto invrot = q.inverse().toRotationMatrix();
+        auto rot_grav = invrot*gravity;
+        std::cout << "RotatedGravity"<< rot_grav << std::endl;
+
+        auto sub_avec  = avec - rot_grav;
+        std::cout << "SubGrav"<< sub_avec << std::endl;
+        
     };
 
-    // Declare RealSense pipeline, encapsulating the actual device and sensors.
     rs2::pipeline pipe;
-
-    // Start streaming through the callback with default recommended configuration
-    // The default video configuration contains Depth and Color streams
-    // If a device is capable to stream IMU data, both Gyro and Accelerometer are enabled by default
     rs2::pipeline_profile profiles = pipe.start(callback);
 
-    //rs2::pipeline pipe;
-    //rs2::config cfg;
-    //cfg.enable_stream(RS2_STREAM_ACCEL);
-    //cfg.enable_stream(RS2_STREAM_GYRO);
-    //rs2::pipeline_profile profiles = pipe.start(cfg);
-
-    glutMainLoop();
-
+    while(true){}
+    //glutMainLoop();
 }
 catch (const rs2::error & e)
 {
