@@ -64,59 +64,51 @@ int main(int argc, char * argv[]) try
 
     int save_index = 0;
     rs2::frameset frameset;
-    rs2::frame color_frame;
-    rs2::frame depth_frame;
+    rs2::frame color_frame, depth_frame;
+    rs2::motion_frame accel_frame, gyro_frame;
+    rs2_vector accel, gyro;
+
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
-    Timer t;
     for(int i=0; i< conf.frames; i++){
-        t.Start();
         frameset = pipe.wait_for_frames();
-        t.Stop();
-        t.Print("Frame Wait");
+
         //Get processed aligned frame
-        t.Start();
-        frameset = align.process(frameset);
-        t.Stop();
-        t.Print("Frame Align");
+        //frameset = align.process(frameset);
 
         // Trying to get both other and aligned depth frames
         color_frame = frameset.first(RS2_STREAM_COLOR);
         depth_frame = frameset.get_depth_frame();
 
-        //If one of them is unavailable, continue iteration
+        accel_frame = frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
+        gyro_frame  = frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
+
+        accel_data = aframe.get_motion_data();
+        gyro_data  = gframe.get_motion_data();
+
         if (!depth_frame || !color_frame) { continue; }
 
         //depth_frame = conf.filter(depth_frame);
-        t.Start();
+
+	MadgwickAHRSupdateIMU(gyro.x, gyro.y, gyro.z, accel.x, accel.y, accel.z);
+
+
         memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
-        t.Stop();
-        t.Print("Copy Frames To Images");
 
-        t.Start();
         rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
-        t.Stop();
-        t.Print("Upload to RGBD");
 
         if (i > 0 ) {
-            t.Start();
+            q = Eigen::Quaternionf(q0, q1, q2, q3);
+
             odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
             odometry.Initialize(rgbd_curr, rgbd_prev);
-            t.Stop();
-            t.Print("Prepare");
-            t.Start();
             odometry.ComputeMultiScale();
-            t.Stop();
-            t.Print("Apply");
 
             target_to_world = target_to_world * odometry.transform_source_to_target_;
         }
 
         extrinsics.FromEigen(target_to_world);
-        t.Start();
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
-        t.Stop();
-        t.Print("Integrate");
 
         //if (i > 0 && i % 30 == 0) {
         //    tsdf_volume.GetAllSubvolumes();
@@ -131,14 +123,8 @@ int main(int argc, char * argv[]) try
         timer.Signal();
     }
 
-    t.Start();
     tsdf_volume.GetAllSubvolumes();
-    t.Stop();
-    t.Print("Got subvolumes");
-    t.Start();
     mesher.MarchingCubes(tsdf_volume);
-    t.Stop();
-    t.Print("Marching Cubes");
 
     WriteTriangleMeshToPLY("fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
 

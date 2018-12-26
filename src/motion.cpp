@@ -1,22 +1,33 @@
-// License: Apache 2.0. See LICENSE file in root directory.
-// Copyright(c) 2017 Intel Corporation. All Rights Reserved.
-
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <chrono>
 #include <mutex>
 #include <thread>
-#include "MadgwickAHRS.h"
+#include "MadgwickAHRS.h" // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
 #include <Eigen/Geometry>
 #include <GL/glut.h>
 
 std::mutex mutex;
+
 rs2_vector accel;
 rs2_vector gyro;
 Eigen::Quaternionf q(1.0, 0.0, 0.0, 0.0);
 
 Eigen::Vector3f gravity(0, -9.81, 0);
+
+Eigen::Vector3f world_accel(0,0,0);
+Eigen::Vector3f accel_raw(0,0,0);
+Eigen::Vector3f accel_rot(0,0,0);
+Eigen::Vector3f accel_invrot(0,0,0);
+
+std::vector<Eigen::Vector3f> path{Eigen::Vector3f(0,0,0)};
+Eigen::Vector3f pos(0,0,0);
+
+void update_path(){
+    world_accel
+}
 
 // Clears the window and draws the torus.
 void display() {
@@ -44,6 +55,12 @@ void display() {
         glColor3f(1, 0, 0); glVertex3f(0, 0, 0); glVertex3f(10, 0, 0);
         glColor3f(0, 1, 0); glVertex3f(0, 0, 0); glVertex3f(0, 10, 0);
         glColor3f(0, 0, 1); glVertex3f(0, 0, 0); glVertex3f(0, 0, 10);
+    glEnd();
+
+    glBegin(GL_LINES);
+        //glColor3f(0.5, 0, 0); glVertex3f(0,0,0); glVertex3f(accel_raw[0], accel_raw[1], accel_raw[2]);
+        //glColor3f(0, 0.5, 0); glVertex3f(0,0,0); glVertex3f(accel_rot[0], accel_rot[1], accel_rot[2]);
+        glColor3f(0.5, 0.5, 0.5); glVertex3f(0,0,0); glVertex3f(world_accel[0], world_accel[1], world_accel[2]);
     glEnd();
 
     glFlush();
@@ -77,60 +94,73 @@ void timer(int v) {
   glutTimerFunc(1000/60, timer, v);
 }
 
+void display_thread(){
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowPosition(80, 80);
+    glutInitWindowSize(800, 600);
+    glutCreateWindow("Orientation");
+    glutDisplayFunc(display);
+    init();
+    glutTimerFunc(100, timer, 0);
+
+    glutMainLoop();
+}
+
 int main(int argc, char * argv[]) try
 {
-    //glutInit(&argc, argv);
-    //glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    //glutInitWindowPosition(80, 80);
-    //glutInitWindowSize(800, 600);
-    //glutCreateWindow("Orientation");
-    //glutDisplayFunc(display);
-    //init();
-    //glutTimerFunc(100, timer, 0);
+    glutInit(&argc, argv);
 
-    auto callback = [&](const rs2::frame& f) {
-        std::lock_guard<std::mutex> lock(mutex);
+    std::thread display = std::thread(display_thread);
 
-        if (!f.as<rs2::frameset>()) {
-            if(f.get_profile().stream_type() == RS2_STREAM_ACCEL){
-                accel = f.as<rs2::motion_frame>().get_motion_data();
-            }else if (f.get_profile().stream_type() == RS2_STREAM_GYRO) {
-                gyro = f.as<rs2::motion_frame>().get_motion_data();
-            }
-        }
+    rs2::pipeline pipe;
+    rs2::config cfg;
+    cfg.enable_stream(RS2_STREAM_ACCEL);
+    cfg.enable_stream(RS2_STREAM_GYRO);
+    rs2::pipeline_profile profile = pipe.start(cfg);
+    rs2::device dev = profile.get_device();
+
+    std::ofstream dump;
+    dump.open ("readings.csv");
+
+    std::ofstream path;
+    path.open ("path.csv");
+
+    while(true){
+        auto frameset = pipe.wait_for_frames();
+
+        mutex.lock();
+
+        auto aframe =  frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
+        auto gframe =  frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
+
+        accel = aframe.get_motion_data();
+        gyro = gframe.get_motion_data();
 
 	MadgwickAHRSupdateIMU(gyro.x, gyro.y, gyro.z, accel.x, accel.y, accel.z);
 
         q = Eigen::Quaternionf(q0, q1, q2, q3);
-        q.normalize();
 
-        Eigen::Vector3f avec(accel.x, accel.y, accel.z);
-        std::cout << "BeforeRot" << avec << std::endl;
+        auto invrot = q.normalized().inverse().toRotationMatrix();
+        auto rot = q.normalized().toRotationMatrix();
 
-        //auto rot  = q.toRotationMatrix();
-        //auto accel_rot = rot * avec;
-        //std::cout << "AfterRot " << accel_rot << std::endl;
+        accel_raw = Eigen::Vector3f (accel.x, accel.y, accel.z);
+        accel_rot = rot * accel_raw;
+        world_accel = accel_rot - gravity;
 
-        //auto subbed_accel = accel_rot - gravity;
-        //std::cout << "AfterSub "<< subbed_accel << std::endl;
-    
-        //auto world_accel = invrot * subbed_accel;
-        //std::cout << "AfterReRot"<< world_accel << std::endl;
+        std::cout << world_accel << std::endl;
 
-        auto invrot = q.inverse().toRotationMatrix();
-        auto rot_grav = invrot*gravity;
-        std::cout << "RotatedGravity"<< rot_grav << std::endl;
+        dump << world_accel[0] << "," << world_accel[1] << "," << world_accel[2]  << "," << 
+            gyro.x << "," << gyro.y << "," << gyro.z  << ","  << 
+            q0 << "," << q1 << "," << q2  << "," << q3  << std::endl;
 
-        auto sub_avec  = avec - rot_grav;
-        std::cout << "SubGrav"<< sub_avec << std::endl;
-        
-    };
 
-    rs2::pipeline pipe;
-    rs2::pipeline_profile profiles = pipe.start(callback);
+        update_path(world_accel)
 
-    while(true){}
-    //glutMainLoop();
+        mutex.unlock();
+    }
+
+    dump.close();
+    display.join();
 }
 catch (const rs2::error & e)
 {
