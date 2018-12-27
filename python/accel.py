@@ -1,23 +1,49 @@
 #! /usr/bin/env python
 
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
 import matplotlib.animation as animation
+import quaternion
 
 np.random.seed(42)
 
 #ax, ay, az, gx, gy, gz, q0, q1, q2, q3
 
 
+gravity = np.array([0,-9.81,0])
+
 def accel_from_file(path):
     accel = []
     f = open(path, 'r')
     for line in f:
         chunks = line.split(',') 
-        accel.append([float(chunks[0]), float(chunks[1]), float(chunks[2])])
+        accel.append([float(chunk) for chunk in chunks])
 
     return np.asarray(accel).T
+
+def accel_to_file(path, accel):
+    f = open(path, 'f')
+    for line in accel:
+        f.write(line.join(',')+'\n')
+
+    f.close()
+
+def rotation_accel(length):
+    accel = np.empty((3,length))
+
+    # Rotate in one direction by certain rate
+    for x in range(length):
+        rotation = np.quaternion(1.0, x%180, 0.0, 0.0)
+
+        # turn rotation quaternion into transformation
+        mat = quaternion.as_rotation_matrix(rotation)
+
+        # rotate gravity vector by quaternion
+        accel[:, x]= np.dot(mat, gravity)
+
+    return accel
 
 def random_accel(length):
     accel = np.empty((3,length))
@@ -79,10 +105,11 @@ if __name__ == "__main__":
 
 
     length = 1000
-    frequency = 200
+    frequency = 20
     timestep =  1/frequency
 
-    accel = accel_from_file("/home/ben/streetsmarts/build/readings.csv")
+    accel = rotation_accel(length) 
+    #accel = accel_from_file("/home/ben/streetsmarts/build/readings.csv")
     path = path_from_accel(accel, length, timestep)
 
     lines = [ax.plot(path[0, 0:1], path[1, 0:1], path[2, 0:1])[0]]
