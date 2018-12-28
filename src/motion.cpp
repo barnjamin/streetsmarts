@@ -22,12 +22,22 @@ Eigen::Vector3f accel_raw(0,0,0);
 Eigen::Vector3f accel_rot(0,0,0);
 Eigen::Vector3f accel_invrot(0,0,0);
 
-std::vector<Eigen::Vector3f> path{Eigen::Vector3f(0,0,0)};
-Eigen::Vector3f pos(0,0,0);
+float timestep = 1.0/200.0;
 
-void update_path(){
-    world_accel
+//std::vector<Eigen::Vector3f> path{Eigen::Vector3f(0,0,0)};
+float pos[3] = {0,0,0};
+float vel[3] = {0,0,0};
+
+void update_current_position() {
+    vel[0] = vel[0] + world_accel[0] * timestep;
+    vel[1] = vel[1] + world_accel[1] * timestep;
+    vel[2] = vel[2] + world_accel[2] * timestep;
+
+    pos[0] = pos[0] + vel[0] * timestep + (world_accel[0] * timestep)/2;    
+    pos[1] = pos[1] + vel[1] * timestep + (world_accel[1] * timestep)/2;    
+    pos[2] = pos[2] + vel[2] * timestep + (world_accel[2] * timestep)/2;    
 }
+
 
 // Clears the window and draws the torus.
 void display() {
@@ -110,7 +120,7 @@ int main(int argc, char * argv[]) try
 {
     glutInit(&argc, argv);
 
-    std::thread display = std::thread(display_thread);
+    //std::thread display = std::thread(display_thread);
 
     rs2::pipeline pipe;
     rs2::config cfg;
@@ -119,6 +129,19 @@ int main(int argc, char * argv[]) try
     rs2::pipeline_profile profile = pipe.start(cfg);
     rs2::device dev = profile.get_device();
 
+    auto accel_stream = profile.get_stream(RS2_STREAM_ACCEL).as<rs2::motion_stream_profile>();
+    auto gyro_stream = profile.get_stream(RS2_STREAM_GYRO).as<rs2::motion_stream_profile>();
+
+    std::cout << accel_stream.stream_name() << std::endl;
+    std::cout << "Accel FPS: " << accel_stream.fps() << std::endl;
+    std::cout << "Gyro FPS: " << gyro_stream.fps() << std::endl;
+
+    //auto accel_intr = accel_stream.get_motion_intrinsics();
+    //auto gyro_intr = gyro_stream.get_motion_intrinsics();
+    //std::cout << accel_intr.data << std::endl;
+    //std::cout << accel_intr.noise_variances << std::endl;
+    //std::cout << accel_intr.bias_variances << std::endl;
+    
     std::ofstream dump;
     dump.open ("readings.csv");
 
@@ -147,20 +170,19 @@ int main(int argc, char * argv[]) try
         accel_rot = rot * accel_raw;
         world_accel = accel_rot - gravity;
 
-        std::cout << world_accel << std::endl;
-
         dump << world_accel[0] << "," << world_accel[1] << "," << world_accel[2]  << "," << 
             gyro.x << "," << gyro.y << "," << gyro.z  << ","  << 
             q0 << "," << q1 << "," << q2  << "," << q3  << std::endl;
 
 
-        update_path(world_accel)
+        update_current_position();
+        path << pos[0] << "," << pos[1]  << "," << pos[2] << std::endl;
 
         mutex.unlock();
     }
 
     dump.close();
-    display.join();
+    //display.join();
 }
 catch (const rs2::error & e)
 {

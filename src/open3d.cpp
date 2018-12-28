@@ -12,9 +12,26 @@
 #include <librealsense2/rs.hpp> 
 #include "utils.h" 
 
+#include "MadgwickAHRS.h" // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
+
 using namespace open3d;
 using namespace open3d::cuda;
 using namespace cv;
+
+void WriteLossesToLog(
+    std::ofstream &fout,
+    int frame_idx,
+    std::vector<std::vector<float>> &losses) {
+    assert(fout.is_open());
+
+    fout << frame_idx << "\n";
+    for (auto &losses_on_level : losses) {
+        for (auto &loss : losses_on_level) {
+            fout << loss << " ";
+        }
+        fout << "\n";
+    }
+}
 
 int main(int argc, char * argv[]) try
 {
@@ -29,6 +46,8 @@ int main(int argc, char * argv[]) try
 
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
+    cfg.enable_stream(RS2_STREAM_ACCEL);
+    cfg.enable_stream(RS2_STREAM_GYRO);
 
     rs2::pipeline_profile profile = pipe.start(cfg);
 
@@ -65,8 +84,18 @@ int main(int argc, char * argv[]) try
     int save_index = 0;
     rs2::frameset frameset;
     rs2::frame color_frame, depth_frame;
-    rs2::motion_frame accel_frame, gyro_frame;
-    rs2_vector accel, gyro;
+    rs2_vector accel_data, gyro_data;
+
+
+    Eigen::Quaterniond q(1.0, 0.0, 0.0, 0.0);
+    Eigen::Quaterniond last_q(1.0, 0.0, 0.0, 0.0);
+    
+    std::string log_filename = "odometry_less_assoc_step_" + std::to_string(1) + ".log";
+    std::ofstream fout(log_filename);
+    if (!fout.is_open()) {
+        PrintError("Unable to write to log file %s, abort.\n", log_filename.c_str());
+    }
+
 
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
     for(int i=0; i< conf.frames; i++){
@@ -79,17 +108,17 @@ int main(int argc, char * argv[]) try
         color_frame = frameset.first(RS2_STREAM_COLOR);
         depth_frame = frameset.get_depth_frame();
 
-        accel_frame = frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
-        gyro_frame  = frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
+        auto accel_frame = frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
+        auto gyro_frame  = frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
 
-        accel_data = aframe.get_motion_data();
-        gyro_data  = gframe.get_motion_data();
+        accel_data = accel_frame.get_motion_data();
+        gyro_data  = gyro_frame.get_motion_data();
 
         if (!depth_frame || !color_frame) { continue; }
 
         //depth_frame = conf.filter(depth_frame);
 
-	MadgwickAHRSupdateIMU(gyro.x, gyro.y, gyro.z, accel.x, accel.y, accel.z);
+	MadgwickAHRSupdateIMU(gyro_data.x, gyro_data.y, gyro_data.z, accel_data.x, accel_data.y, accel_data.z);
 
 
         memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
@@ -97,14 +126,29 @@ int main(int argc, char * argv[]) try
 
         rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
 
-        if (i > 0 ) {
-            q = Eigen::Quaternionf(q0, q1, q2, q3);
+        q = Eigen::Quaterniond(q0, q1, q2, q3);
 
-            odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+        if (i > 0 ) {
+            Eigen::Quaterniond diff = q * last_q.inverse();
+
+            Eigen::Transform<double, 3, Eigen::Affine> t = Eigen::Translation3d(Eigen::Vector3d(0,0,0)) * diff.normalized().toRotationMatrix();
+
+            odometry.transform_source_to_target_ = t.matrix();
+            //odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+
             odometry.Initialize(rgbd_curr, rgbd_prev);
-            odometry.ComputeMultiScale();
+
+            auto result = odometry.ComputeMultiScale();
+            if (std::get<0>(result)) {
+                WriteLossesToLog(fout, i, std::get<2>(result));
+            }
+
+            //std::cout << t.matrix() << std::endl;
+            //std::cout << odometry.transform_source_to_target_ << std::endl;
 
             target_to_world = target_to_world * odometry.transform_source_to_target_;
+
+            last_q = q;
         }
 
         extrinsics.FromEigen(target_to_world);

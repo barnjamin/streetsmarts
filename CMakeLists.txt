@@ -59,9 +59,9 @@ set(DEPENDENCIES
 #target_link_libraries(pcl-cuda ${DEPENDENCIES})
 
 
-#set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp)
-#add_executable(open3d ${OPEN3D_SOURCE})
-#target_link_libraries(open3d ${DEPENDENCIES})
+set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp src/MadgwickAHRS.c)
+add_executable(open3d ${OPEN3D_SOURCE})
+target_link_libraries(open3d ${DEPENDENCIES})
 
 set(MOTION_SOURCE src/motion.cpp src/utils.cpp src/MadgwickAHRS.c)
 add_executable(motion ${MOTION_SOURCE})

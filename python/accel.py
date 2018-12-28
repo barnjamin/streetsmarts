@@ -75,6 +75,15 @@ def path_from_accel(accel, length, timestep):
     return path
 
 
+def path_from_file(filepath):
+    path = []
+    f = open(filepath, 'r')
+    for line in f:
+        chunks = line.split(',') 
+        path.append([float(chunk) for chunk in chunks])
+
+    return np.array(path).T
+
 def update_lines(num, dataLines, lines):
     for line, data in zip(lines, dataLines):
         # NOTE: there is no .set_data() for 3 dim data...
@@ -104,13 +113,15 @@ if __name__ == "__main__":
     ax.set_title('3D Test')
 
 
-    length = 1000
     frequency = 20
     timestep =  1/frequency
 
-    accel = rotation_accel(length) 
+    #accel = rotation_accel(length) 
     #accel = accel_from_file("/home/ben/streetsmarts/build/readings.csv")
-    path = path_from_accel(accel, length, timestep)
+    #path = path_from_accel(accel, length, timestep)
+    path = path_from_file("/home/ben/streetsmarts/build/path.csv")
+
+    length = path.size
 
     lines = [ax.plot(path[0, 0:1], path[1, 0:1], path[2, 0:1])[0]]
 
