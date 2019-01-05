@@ -166,3 +166,4 @@ float get_depth_scale(rs2::device dev)
     }
     throw std::runtime_error("Device does not have a depth sensor");
 }
+

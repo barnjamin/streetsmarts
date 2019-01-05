@@ -1,3 +1,9 @@
+#include <fstream>
+#include <iostream>
+#include <ctime>
+#include <iomanip>
+#include <sys/stat.h>
+#include <Eigen/Geometry>
 #include <string>
 #include <vector>
 #include <Core/Core.h>
@@ -7,18 +13,20 @@
 #include <Cuda/Integration/ScalableMeshVolumeCuda.h>
 #include <Visualization/Visualization.h>
 #include <Core/Utility/Timer.h>
-
 #include <opencv2/opencv.hpp>
+
 #include <librealsense2/rs.hpp> 
-#include "utils.h" 
 
 #include <mutex>
 #include <thread>
 #include <GL/glut.h>
 
+#include "utils.h" 
 #include "MadgwickAHRS.h" // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
 
-std::mutex mutex;
+using namespace std;
+
+mutex mtx;
 
 rs2_vector accel;
 rs2_vector gyro;
@@ -38,9 +46,9 @@ using namespace open3d::cuda;
 using namespace cv;
 
 void WriteLossesToLog(
-    std::ofstream &fout,
+    ofstream &fout,
     int frame_idx,
-    std::vector<std::vector<float>> &losses) {
+    vector<vector<float>> &losses) {
     assert(fout.is_open());
 
     fout << frame_idx << "\n";
@@ -53,12 +61,10 @@ void WriteLossesToLog(
 }
 
 
-
-
 // Clears the window and draws the torus.
 void display() {
   
-    std::lock_guard<std::mutex> lock(mutex);
+    lock_guard<mutex> lock(mtx);
 
     glClear(GL_COLOR_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
@@ -93,23 +99,14 @@ void display() {
     glutSwapBuffers();
 }
 
-// Sets up global attributes like clear color and drawing color, and sets up
-// the desired projection and modelview matrices.
 void init() {
-  // Set the current clear color to black and the current drawing color to
-  // white.
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glColor3f(1.0, 1.0, 1.0);
 
-  // Set the camera lens to have a 60 degree (vertical) field of view, an
-  // aspect ratio of 4/3, and have everything closer than 1 unit to the
-  // camera and greater than 40 units distant clipped away.
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPerspective(60.0, 4.0/3.0, 1, 40);
 
-  // Position camera at (4, 6, 5) looking at (0, 0, 0) with the vector
-  // <0, 1, 0> pointing upward.
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   gluLookAt(4, 6, 5, 0, 0, 0, 0, 1, 0);
@@ -128,18 +125,15 @@ void display_thread(){
     glutDisplayFunc(display);
     init();
     glutTimerFunc(100, timer, 0);
-
     glutMainLoop();
 }
-
-
 
 
 int main(int argc, char * argv[]) try
 {
     glutInit(&argc, argv);
 
-    std::thread display = std::thread(display_thread);
+    thread display = thread(display_thread);
 
     Config conf;
     conf.parseArgs(argc, argv);
@@ -169,8 +163,8 @@ int main(int argc, char * argv[]) try
     ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 
             3 * voxel_length, extrinsics);
 
-    auto depth_image_ptr = std::make_shared<Image>();
-    auto color_image_ptr = std::make_shared<Image>();
+    auto depth_image_ptr = make_shared<Image>();
+    auto color_image_ptr = make_shared<Image>();
     depth_image_ptr->PrepareImage(conf.width, conf.height, 1, 2);
     color_image_ptr->PrepareImage(conf.width, conf.height, 3, 1);
 
@@ -180,70 +174,63 @@ int main(int argc, char * argv[]) try
     ScalableMeshVolumeCuda<8> mesher(40000, VertexWithNormalAndColor, 6000000, 12000000);
 
     Eigen::Matrix4d target_to_world = Eigen::Matrix4d::Identity();
-    for(int i=0; i<conf.framestart; i++){
-        rs2::frameset frameset = pipe.wait_for_frames();
-    }
     
     FPSTimer timer("Process RGBD stream", conf.frames);
 
     int save_index = 0;
-    rs2::frameset frameset;
-    rs2::frame color_frame, depth_frame;
-    rs2_vector accel_data, gyro_data;
     
-    std::string log_filename = "odometry_less_assoc_step_" + std::to_string(1) + ".log";
-    std::ofstream fout(log_filename);
+    string log_filename = "odometry_less_assoc_step_1.log";
+    ofstream fout(log_filename);
     if (!fout.is_open()) {
         PrintError("Unable to write to log file %s, abort.\n", log_filename.c_str());
     }
 
+    string dirname =  "dumps/20190105102137"; //get_latest_dump_dir();
+    ifstream imufile(dirname + "/imu.csv");
+    while(imufile){
+        mtx.lock();
+        string s;
+        if(!getline(imufile, s)) break;
 
-    PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
-    for(int i=0; i< conf.frames; i++){
-        frameset = pipe.wait_for_frames();
+        istringstream ss( s );
+        vector <string> record;
 
-        mutex.lock();
+        while(ss) {
+            string s;
+            if (!getline( ss, s, ',' )) break;
+            record.push_back( s );
+        }
 
-        //Get processed aligned frame
-        //frameset = align.process(frameset);
+        auto idx = record.at(0);
 
-        // Trying to get both other and aligned depth frames
+        int i = atoi(idx.c_str());
 
-        auto accel_frame = frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
-        auto gyro_frame  = frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
+        vector<double> accel{atof(record.at(1).c_str()), atof(record.at(2).c_str()), atof(record.at(3).c_str())} ;
+        vector<double> gyro{atof(record.at(4).c_str()), atof(record.at(5).c_str()), atof(record.at(6).c_str())} ;
 
-        accel_data = accel_frame.get_motion_data();
-        gyro_data  = gyro_frame.get_motion_data();
-
-        if (!depth_frame || !color_frame) { continue; }
-
-        //depth_frame = conf.filter(depth_frame);
-
-	MadgwickAHRSupdateIMU(gyro_data.x, gyro_data.y, gyro_data.z, accel_data.x, accel_data.y, accel_data.z);
-
-
-        memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
-        memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
+	MadgwickAHRSupdateIMU(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
+        
+        ReadImage(dirname+"/color/"+idx+".jpg", *color_image_ptr);
+        ReadImage(dirname+"/depth/"+idx+".png", *depth_image_ptr);
 
         rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
 
         q = Eigen::Quaterniond(q0, q1, q2, q3);
 
         if (i > 0 ) {
-            //Eigen::Quaterniond diff = q * last_q.inverse();
-            //Eigen::Transform<double, 3, Eigen::Affine> t = Eigen::Translation3d(Eigen::Vector3d(0,0,0)) * diff.normalized().toRotationMatrix();
-            //odometry.transform_source_to_target_ = t.matrix();
-            odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+
+            Eigen::Quaterniond diff = q * last_q.inverse();
+            Eigen::Transform<double, 3, Eigen::Affine> t = Eigen::Translation3d(Eigen::Vector3d(0,0,0)) * (diff.normalized().toRotationMatrix());
+            odometry.transform_source_to_target_ = t.matrix();
+
+            //odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
 
             odometry.Initialize(rgbd_curr, rgbd_prev);
 
             auto result = odometry.ComputeMultiScale();
-            if (std::get<0>(result)) {
-                WriteLossesToLog(fout, i, std::get<2>(result));
+            if (get<0>(result)) {
+                WriteLossesToLog(fout, i, get<2>(result));
             }
-
-            //std::cout << t.matrix() << std::endl;
-            //std::cout << odometry.transform_source_to_target_ << std::endl;
 
             target_to_world = target_to_world * odometry.transform_source_to_target_;
 
@@ -261,19 +248,10 @@ int main(int argc, char * argv[]) try
             last_q = q;
         }
 
-        mutex.unlock();
+        mtx.unlock();
 
         extrinsics.FromEigen(target_to_world);
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
-
-        //if (i > 0 && i % 30 == 0) {
-        //    tsdf_volume.GetAllSubvolumes();
-        //    mesher.MarchingCubes(tsdf_volume);
-        //    WriteTriangleMeshToPLY("fragment-" + std::to_string(save_index) + ".ply", 
-        //                *mesher.mesh().Download());
-        //    //tsdf_volume.Reset();
-        //    save_index++;
-        //}
 
         rgbd_prev.CopyFrom(rgbd_curr);
         timer.Signal();
@@ -282,13 +260,13 @@ int main(int argc, char * argv[]) try
     tsdf_volume.GetAllSubvolumes();
     mesher.MarchingCubes(tsdf_volume);
 
-    WriteTriangleMeshToPLY("fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
+    WriteTriangleMeshToPLY("fragment-" + to_string(save_index) + ".ply", *mesher.mesh().Download());
 
     display.join();
 
     return EXIT_SUCCESS;
 
-} catch (const std::exception& e) {
-    std::cerr << e.what() << std::endl;
+} catch (const exception& e) {
+    cerr << e.what() << endl;
     return EXIT_FAILURE;
 }

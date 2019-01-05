@@ -59,10 +59,22 @@ set(DEPENDENCIES
 #target_link_libraries(pcl-cuda ${DEPENDENCIES})
 
 
-set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp src/MadgwickAHRS.c)
-add_executable(open3d ${OPEN3D_SOURCE})
-target_link_libraries(open3d ${DEPENDENCIES})
+#set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp src/MadgwickAHRS.c)
+#add_executable(open3d ${OPEN3D_SOURCE})
+#target_link_libraries(open3d ${DEPENDENCIES})
+#
+#set(MOTION_SOURCE src/motion.cpp src/utils.cpp src/MadgwickAHRS.c)
+#add_executable(motion ${MOTION_SOURCE})
+#target_link_libraries(motion ${DEPENDENCIES})
+#
+#set(DUMP_SOURCE src/dump.cpp src/utils.cpp src/MadgwickAHRS.c)
+#add_executable(dump ${DUMP_SOURCE})
+#target_link_libraries(dump ${DEPENDENCIES})
+#
+#set(LOAD_SOURCE src/open3d_from_file.cpp src/utils.cpp src/MadgwickAHRS.c)
+#add_executable(load ${LOAD_SOURCE})
+#target_link_libraries(load ${DEPENDENCIES})
 
-set(MOTION_SOURCE src/motion.cpp src/utils.cpp src/MadgwickAHRS.c)
-add_executable(motion ${MOTION_SOURCE})
-target_link_libraries(motion ${DEPENDENCIES})
+set(POSE_SOURCE src/load.cpp src/pose.cpp src/utils.cpp src/display.cpp)
+add_executable(pose ${POSE_SOURCE})
+target_link_libraries(pose ${DEPENDENCIES})
