@@ -112,7 +112,6 @@ void display_thread(){
     glutDisplayFunc(display);
     init();
     glutTimerFunc(100, timer, 0);
-
     glutMainLoop();
 }
 
@@ -120,7 +119,7 @@ int main(int argc, char * argv[]) try
 {
     glutInit(&argc, argv);
 
-    //std::thread display = std::thread(display_thread);
+    std::thread display = std::thread(display_thread);
 
     rs2::pipeline pipe;
     rs2::config cfg;
@@ -182,7 +181,7 @@ int main(int argc, char * argv[]) try
     }
 
     dump.close();
-    //display.join();
+    display.join();
 }
 catch (const rs2::error & e)
 {

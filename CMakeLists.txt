@@ -63,9 +63,9 @@ set(DEPENDENCIES
 #add_executable(open3d ${OPEN3D_SOURCE})
 #target_link_libraries(open3d ${DEPENDENCIES})
 #
-#set(MOTION_SOURCE src/motion.cpp src/utils.cpp src/MadgwickAHRS.c)
-#add_executable(motion ${MOTION_SOURCE})
-#target_link_libraries(motion ${DEPENDENCIES})
+set(MOTION_SOURCE src/motion.cpp src/utils.cpp src/MadgwickAHRS.c)
+add_executable(motion ${MOTION_SOURCE})
+target_link_libraries(motion ${DEPENDENCIES})
 #
 #set(DUMP_SOURCE src/dump.cpp src/utils.cpp src/MadgwickAHRS.c)
 #add_executable(dump ${DUMP_SOURCE})

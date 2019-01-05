@@ -5,7 +5,7 @@
 #define betaDef		0.05f		// 2 * proportional gain
 
 
-double invSqrt(double x);
+float invSqrt(float x);
 
 class Pose {
     Eigen::Vector3d position;
@@ -33,6 +33,7 @@ class Pose {
 
 public:
     //Initialize vectors
+    Pose();    
     Pose(int fps);    
 
     //Get the transform from the last check to now

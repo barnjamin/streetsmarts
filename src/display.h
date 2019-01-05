@@ -7,14 +7,14 @@
 
 
 class Display {
-    Pose pose;
-    std::thread display_thread;
+    Pose * pose;
+    std::thread dthread;
 
 public:
 
     // Sets up global attributes like clear color and drawing color, and sets up
     // the desired projection and modelview matrices.
-    Display(int argc, char * argv[], Pose p);
+    Display(int argc, char * argv[], Pose *p);
     virtual ~Display();
 
     void start();

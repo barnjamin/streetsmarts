@@ -26,7 +26,7 @@ int main(int argc, char * argv[])
     ifstream imufile(dirname + "/imu.csv");
 
     Pose p(30);
-    Display d(argc, argv, p);
+    Display d(argc, argv, &p);
 
     bool started = false;
     while(imufile){
@@ -55,7 +55,7 @@ int main(int argc, char * argv[])
             started = true;
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
 

@@ -1,13 +1,23 @@
+#include <iostream>
 #include <Eigen/Geometry>
 #include <vector>
 #include "pose.h"
 
 const Eigen::Vector3f gravity(0, -9.81, 0);
 
+
+Pose::Pose(){
+    int frames_per_sec = 30;
+    fps = float(frames_per_sec);
+    time_delta = 1.0/fps;
+    orientation = Eigen::Quaterniond(q0, q1, q2, q3);
+}
+
 Pose::Pose(int frames_per_sec) {
     //Initialize pose
     fps = float(frames_per_sec);
     time_delta = 1.0/fps;
+    orientation = Eigen::Quaterniond(q0, q1, q2, q3);
 }
 
 Pose::~Pose(){ }
@@ -23,6 +33,7 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro) {
     MadgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
 
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);
+
 
     // Compute accel from orientation && gravity
 
@@ -113,7 +124,7 @@ void Pose::MadgwickUpdate(double gx, double gy, double gz, double ax, double ay,
 	q3 += qDot4 * time_delta;
 
 	// Normalise quaternion
-	recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+	recipNorm = double(invSqrt(float(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3)));
 	q0 *= recipNorm;
 	q1 *= recipNorm;
 	q2 *= recipNorm;
@@ -121,12 +132,12 @@ void Pose::MadgwickUpdate(double gx, double gy, double gz, double ax, double ay,
 }
 
 // Fast inverse square-root See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
-double invSqrt(double x) {
-	double halfx = 0.5f * x;
-	double y = x;
+float invSqrt(float x) {
+	float halfx = 0.5f * x;
+	float y = x;
 	long i = *(long*)&y;
 	i = 0x5f3759df - (i>>1);
-	y = *(double*)&i;
+	y = *(float*)&i;
 	y = y * (1.5f - (halfx * y * y));
 	return y;
 }
