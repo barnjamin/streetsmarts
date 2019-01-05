@@ -18,4 +18,5 @@ public:
     virtual ~Display();
 
     void start();
+    void stop();
 };

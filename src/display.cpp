@@ -89,6 +89,10 @@ void Display::start(){
     dthread = std::thread(display_thread);
 }
 
+void Display::stop(){
+    dthread.join();
+}
+
 Display::~Display()
 { 
 }

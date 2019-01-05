@@ -27,8 +27,8 @@ int main(int argc, char * argv[])
 
     Pose p(30);
     Display d(argc, argv, &p);
+    d.start();
 
-    bool started = false;
     while(imufile){
         string s;
         if(!getline(imufile, s)) break;
@@ -50,13 +50,8 @@ int main(int argc, char * argv[])
 
         p.Update(accel, gyro);
 
-        if(!started) {
-            d.start();
-            started = true;
-        }
-
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-
+    d.stop();
 }

@@ -121,7 +121,7 @@ void Pose::MadgwickUpdate(double gx, double gy, double gz, double ax, double ay,
 	q3 += qDot4 * time_delta;
 
 	// Normalise quaternion
-	recipNorm = double(invSqrt(float(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3)));
+	recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
 	q0 *= recipNorm;
 	q1 *= recipNorm;
 	q2 *= recipNorm;
