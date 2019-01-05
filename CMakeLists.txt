@@ -67,10 +67,10 @@ set(DEPENDENCIES
 #add_executable(dump ${DUMP_SOURCE})
 #target_link_libraries(dump ${DEPENDENCIES})
 
-set(LOAD_SOURCE src/open3d_from_file.cpp src/utils.cpp src/pose.cpp src/display.cpp)
+set(LOAD_SOURCE src/load.cpp src/utils.cpp src/pose.cpp src/display.cpp)
 add_executable(load ${LOAD_SOURCE})
 target_link_libraries(load ${DEPENDENCIES})
 
-set(POSE_SOURCE src/load.cpp src/pose.cpp src/utils.cpp src/display.cpp)
+set(POSE_SOURCE src/pose_test.cpp src/pose.cpp src/utils.cpp src/display.cpp)
 add_executable(pose ${POSE_SOURCE})
 target_link_libraries(pose ${DEPENDENCIES})
