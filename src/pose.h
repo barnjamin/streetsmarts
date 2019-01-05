@@ -8,14 +8,14 @@
 float invSqrt(float x);
 
 class Pose {
-    Eigen::Vector3d position;
-    Eigen::Vector3d velocity;
+    Eigen::Vector3d pos;
+    Eigen::Vector3d vel;
 
     //Vector of positions
     std::vector<Eigen::Vector3d> path;
 
     //Vector of orientations
-    std::vector<Eigen::Vector3d> looking_at;
+    std::vector<Eigen::Quaterniond> orientations;
 
 
     //Time between frames

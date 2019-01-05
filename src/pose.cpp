@@ -3,8 +3,7 @@
 #include <vector>
 #include "pose.h"
 
-const Eigen::Vector3f gravity(0, -9.81, 0);
-
+const Eigen::Vector3d gravity(0, -9.81, 0);
 
 Pose::Pose(){
     int frames_per_sec = 30;
@@ -28,34 +27,32 @@ Eigen::Matrix4d Pose::GetTransform() {
 }
 
 void Pose::Update(std::vector<double> accel, std::vector<double> gyro) {
-    
     // Update quaternion through Madgwick filter
     MadgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
 
+    //Set Orientation obj from quat vals
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);
-
 
     // Compute accel from orientation && gravity
 
-    //auto rot = orientation.normalized().toRotationMatrix();
-
-    //auto accel_raw = Eigen::Vector3f (accel.at(0), accel.at(1), accel.at(2));
-
-    //auto accel_rot = rot * accel_raw;
-
-    //auto world_accel = accel_rot - gravity;
+    auto rot = orientation.normalized().toRotationMatrix();
+    auto accel_raw = Eigen::Vector3d (accel.at(0), accel.at(1), accel.at(2));
+    auto accel_rot = rot * accel_raw;
+    auto world_accel = accel_rot - gravity;
 
     // Compute Velocity from accel
-
-    //vel[0] = vel[0] + world_accel[0] * timedelta;
-    //vel[1] = vel[1] + world_accel[1] * timedelta;
-    //vel[2] = vel[2] + world_accel[2] * timedelta;
+    vel[0] = vel[0] + world_accel[0] * time_delta;
+    vel[1] = vel[1] + world_accel[1] * time_delta;
+    vel[2] = vel[2] + world_accel[2] * time_delta;
 
     // Compute position from velocity
-    //pos[0] = pos[0] + vel[0] * timedelta + (world_accel[0] * timedelta)/2;    
-    //pos[1] = pos[1] + vel[1] * timedelta + (world_accel[1] * timedelta)/2;    
-    //pos[2] = pos[2] + vel[2] * timedelta + (world_accel[2] * timedelta)/2;    
+    pos[0] = pos[0] + vel[0] * time_delta + (world_accel[0] * time_delta)/2;    
+    pos[1] = pos[1] + vel[1] * time_delta + (world_accel[1] * time_delta)/2;    
+    pos[2] = pos[2] + vel[2] * time_delta + (world_accel[2] * time_delta)/2;    
 
+
+    path.push_back(pos);
+    orientations.push_back(orientation);
 }
 
 void Pose::SetOrientation(Eigen::Quaterniond){
