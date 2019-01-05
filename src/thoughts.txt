@@ -1,5 +1,4 @@
 
-
 pose
     keep vector of position/velo/accel
     keep vector of transformations between

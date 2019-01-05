@@ -22,7 +22,8 @@
 #include <GL/glut.h>
 
 #include "utils.h" 
-#include "MadgwickAHRS.h" // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
+#include "pose.h"
+#include "display.h"
 
 using namespace std;
 
@@ -33,13 +34,6 @@ rs2_vector gyro;
 
 Eigen::Quaterniond q(1.0, 0.0, 0.0, 0.0);
 Eigen::Quaterniond last_q(1.0, 0.0, 0.0, 0.0);
-
-Eigen::Vector3f gravity(0, -9.81, 0);
-
-Eigen::Vector3f world_accel(0,0,0);
-Eigen::Vector3f accel_raw(0,0,0);
-Eigen::Vector3f accel_rot(0,0,0);
-Eigen::Vector3f accel_invrot(0,0,0);
 
 using namespace open3d;
 using namespace open3d::cuda;
@@ -61,80 +55,8 @@ void WriteLossesToLog(
 }
 
 
-// Clears the window and draws the torus.
-void display() {
-  
-    lock_guard<mutex> lock(mtx);
-
-    glClear(GL_COLOR_BUFFER_BIT);
-    glMatrixMode(GL_MODELVIEW);
-
-    glLoadIdentity();
-    gluLookAt(4, 6, 5, 0, 0, 0, 0, 1, 0);
-
-    auto e = q.toRotationMatrix().eulerAngles(0,1,2);
-
-    glRotatef(e[0]*180/M_PI, 1, 0, 0);
-    glRotatef(e[1]*180/M_PI, 0, 1, 0);
-    glRotatef(e[2]*180/M_PI, 0, 0, 1);
-
-    glColor3f(1.0, 1.0, 1.0);
-    glutWireTorus(0.5, 3, 15, 30);
-
-    // Draw a red x-axis, a green y-axis, and a blue z-axis.  Each of the
-    // axes are ten units long.
-    glBegin(GL_LINES);
-        glColor3f(1, 0, 0); glVertex3f(0, 0, 0); glVertex3f(10, 0, 0);
-        glColor3f(0, 1, 0); glVertex3f(0, 0, 0); glVertex3f(0, 10, 0);
-        glColor3f(0, 0, 1); glVertex3f(0, 0, 0); glVertex3f(0, 0, 10);
-    glEnd();
-
-    //glBegin(GL_LINES);
-    //    //glColor3f(0.5, 0, 0); glVertex3f(0,0,0); glVertex3f(accel_raw[0], accel_raw[1], accel_raw[2]);
-    //    //glColor3f(0, 0.5, 0); glVertex3f(0,0,0); glVertex3f(accel_rot[0], accel_rot[1], accel_rot[2]);
-    //    glColor3f(0.5, 0.5, 0.5); glVertex3f(0,0,0); glVertex3f(world_accel[0], world_accel[1], world_accel[2]);
-    //glEnd();
-
-    glFlush();
-    glutSwapBuffers();
-}
-
-void init() {
-  glClearColor(0.0, 0.0, 0.0, 1.0);
-  glColor3f(1.0, 1.0, 1.0);
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  gluPerspective(60.0, 4.0/3.0, 1, 40);
-
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  gluLookAt(4, 6, 5, 0, 0, 0, 0, 1, 0);
-}
-
-void timer(int v) {
-  glutPostRedisplay();
-  glutTimerFunc(1000/60, timer, v);
-}
-
-void display_thread(){
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowPosition(80, 80);
-    glutInitWindowSize(800, 600);
-    glutCreateWindow("Orientation");
-    glutDisplayFunc(display);
-    init();
-    glutTimerFunc(100, timer, 0);
-    glutMainLoop();
-}
-
-
 int main(int argc, char * argv[]) try
 {
-    glutInit(&argc, argv);
-
-    thread display = thread(display_thread);
-
     Config conf;
     conf.parseArgs(argc, argv);
 
@@ -187,8 +109,11 @@ int main(int argc, char * argv[]) try
 
     string dirname =  "dumps/20190105102137"; //get_latest_dump_dir();
     ifstream imufile(dirname + "/imu.csv");
+
+    Pose pose(30);
+    Display display(argc, argv, &pose);
+    display.start();
     while(imufile){
-        mtx.lock();
         string s;
         if(!getline(imufile, s)) break;
 
@@ -208,17 +133,16 @@ int main(int argc, char * argv[]) try
         vector<double> accel{atof(record.at(1).c_str()), atof(record.at(2).c_str()), atof(record.at(3).c_str())} ;
         vector<double> gyro{atof(record.at(4).c_str()), atof(record.at(5).c_str()), atof(record.at(6).c_str())} ;
 
-	MadgwickAHRSupdateIMU(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
+        pose.Update(accel, gyro);
+
         
         ReadImage(dirname+"/color/"+idx+".jpg", *color_image_ptr);
         ReadImage(dirname+"/depth/"+idx+".png", *depth_image_ptr);
 
         rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
 
-        q = Eigen::Quaterniond(q0, q1, q2, q3);
-
+        q = pose.GetOrientation();
         if (i > 0 ) {
-
             Eigen::Quaterniond diff = q * last_q.inverse();
             Eigen::Transform<double, 3, Eigen::Affine> t = Eigen::Translation3d(Eigen::Vector3d(0,0,0)) * (diff.normalized().toRotationMatrix());
             odometry.transform_source_to_target_ = t.matrix();
@@ -238,17 +162,10 @@ int main(int argc, char * argv[]) try
             Eigen::Transform<double, 3, Eigen::Affine> world_trans(target_to_world);
             Eigen::Quaterniond current_rot(world_trans.rotation());
 
-            q0 = current_rot.w();
-            q1 = current_rot.x();
-            q2 = current_rot.y();
-            q3 = current_rot.z();
+            pose.SetOrientation(current_rot);
 
-            q = Eigen::Quaterniond(q0, q1, q2, q2);
-
-            last_q = q;
+            last_q = pose.GetOrientation();
         }
-
-        mtx.unlock();
 
         extrinsics.FromEigen(target_to_world);
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
@@ -261,8 +178,8 @@ int main(int argc, char * argv[]) try
     mesher.MarchingCubes(tsdf_volume);
 
     WriteTriangleMeshToPLY("fragment-" + to_string(save_index) + ".ply", *mesher.mesh().Download());
-
-    display.join();
+    
+    display.stop();
 
     return EXIT_SUCCESS;
 

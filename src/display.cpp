@@ -6,16 +6,15 @@
 #include "display.h"
 #include <functional>
 
-Pose * gpose;
+Pose *gpose;
 
 // Clears the window and draws the torus.
 void display() {
-
     glClear(GL_COLOR_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
 
     glLoadIdentity();
-    gluLookAt(4, 6, 5, 0, 0, 0, 0, 1, 0);
+    gluLookAt(-4, 6, -5, 0, 0, 0, 0, 1, 0);
 
     auto q = gpose->GetOrientation();
     auto e = q.toRotationMatrix().eulerAngles(0,1,2);
@@ -39,26 +38,17 @@ void display() {
     glutSwapBuffers();
 }
 
-// Sets up global attributes like clear color and drawing color, and sets up
-// the desired projection and modelview matrices.
 void init() {
-  // Set the current clear color to black and the current drawing color to
-  // white.
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glColor3f(1.0, 1.0, 1.0);
 
-  // Set the camera lens to have a 60 degree (vertical) field of view, an
-  // aspect ratio of 4/3, and have everything closer than 1 unit to the
-  // camera and greater than 40 units distant clipped away.
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPerspective(60.0, 4.0/3.0, 1, 40);
 
-  // Position camera at (4, 6, 5) looking at (0, 0, 0) with the vector
-  // <0, 1, 0> pointing upward.
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  gluLookAt(4, 6, 5, 0, 0, 0, 0, 1, 0);
+  gluLookAt(-4, 6, -5, 0, 0, 0, 0, 1, 0);
 }
 
 void timer(int v) {
@@ -76,8 +66,6 @@ void display_thread(){
     glutTimerFunc(100, timer, 0);
     glutMainLoop();
 }
-
-
 
 Display::Display(int argc, char * argv[], Pose* p) : pose(p)
 {

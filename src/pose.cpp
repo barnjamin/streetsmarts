@@ -55,8 +55,13 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro) {
     orientations.push_back(orientation);
 }
 
-void Pose::SetOrientation(Eigen::Quaterniond){
-    //Noop rn
+void Pose::SetOrientation(Eigen::Quaterniond o){
+    q0 = o.w();
+    q1 = o.x();
+    q2 = o.y();
+    q3 = o.z();
+
+    orientation = Eigen::Quaterniond(q0, q1, q2, q2);
 }
 
 
