@@ -92,6 +92,7 @@ int main(int argc, char * argv[]) try
     FPSTimer timer("Process RGBD stream", conf.frames);
 
     int save_index = 0;
+
     rs2::frameset frameset;
     rs2::frame color_frame, depth_frame;
     rs2_vector accel_data, gyro_data;

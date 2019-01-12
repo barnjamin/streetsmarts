@@ -20,38 +20,36 @@ int main(int argc, char * argv[])
     Config conf;
     conf.parseArgs(argc, argv);
 
+    rs2::pipeline pipe;
+    rs2::config cfg;
+    rs2::align align(RS2_STREAM_COLOR);
+    cfg.enable_stream(RS2_STREAM_ACCEL);
+    cfg.enable_stream(RS2_STREAM_GYRO);
 
-    string dirname =  "dumps/20190105102137"; //get_latest_dump_dir();
+    rs2::pipeline_profile profile = pipe.start(cfg);
 
-    ifstream imufile(dirname + "/imu.csv");
-
-    Pose p(30);
+    Pose p(200);
     Display d(argc, argv, &p);
     d.start();
 
-    while(imufile){
-        string s;
-        if(!getline(imufile, s)) break;
+    rs2::frameset frameset;
+    rs2_vector accel_data, gyro_data;
 
-        istringstream ss( s );
-        vector <string> record;
+    while(true) {
+        frameset = pipe.wait_for_frames();
 
-        while(ss) {
-            string s;
-            if (!getline( ss, s, ',' )) break;
-            record.push_back( s );
-        }
+        auto accel_frame = frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
+        auto gyro_frame  = frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
 
-        auto idx = record.at(0);
+        accel_data = accel_frame.get_motion_data();
+        gyro_data  = gyro_frame.get_motion_data();
 
-        vector<double> accel{atof(record.at(1).c_str()), atof(record.at(2).c_str()), atof(record.at(3).c_str())} ;
-        vector<double> gyro{atof(record.at(4).c_str()), atof(record.at(5).c_str()), atof(record.at(6).c_str())} ;
-        
+        vector<double> accel{accel_data.x, accel_data.y, accel_data.z};
+        vector<double> gyro{gyro_data.x, gyro_data.y, gyro_data.z};
 
         p.Update(accel, gyro);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+        
 
     d.stop();
 }
