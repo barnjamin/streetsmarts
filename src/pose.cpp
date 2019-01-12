@@ -3,7 +3,7 @@
 #include <vector>
 #include "pose.h"
 
-const Eigen::Vector3d gravity(0, -9.81, 0);
+const Eigen::Vector3d gravity(0, -9.806, 0);
 
 Pose::Pose(){
     int frames_per_sec = 30;

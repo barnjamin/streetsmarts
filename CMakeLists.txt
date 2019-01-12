@@ -59,9 +59,9 @@ set(DEPENDENCIES
 #target_link_libraries(pcl-cuda ${DEPENDENCIES})
 
 
-#set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp src/MadgwickAHRS.c)
-#add_executable(open3d ${OPEN3D_SOURCE})
-#target_link_libraries(open3d ${DEPENDENCIES})
+set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp src/pose.cpp src/display.cpp)
+add_executable(open3d ${OPEN3D_SOURCE})
+target_link_libraries(open3d ${DEPENDENCIES})
 
 #set(DUMP_SOURCE src/dump.cpp src/utils.cpp src/MadgwickAHRS.c)
 #add_executable(dump ${DUMP_SOURCE})
