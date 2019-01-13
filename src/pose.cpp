@@ -73,22 +73,14 @@ void Pose::Improve(Eigen::Matrix4d t){
     if (path.size()>=1) {
         Eigen::Vector3d trpos(translation.x(), translation.y(), translation.z());
 
-        //Add translation to last path element
+        //Add translation to last path element to get current position
         pos = path[last_check_idx] + trpos;
 
-        std::cout << "Transform rotation: " <<  rotation.w() << "," <<  rotation.x() 
-                << "," <<  rotation.y() << ","  << rotation.z() << std::endl;
-
-        std::cout << "Before orientation: " <<  orientation.w() << "," <<  orientation.x() 
-                << "," <<  orientation.y() << ","  << orientation.z() << std::endl;
+        //Set velocity to translation/time
+        vel = trpos / time_delta;
 
         //Add current rotation to last orientation to get current orientation
         orientation = orientations[last_check_idx] * rotation;
-
-        std::cout << "After orientation: " <<  orientation.w() << "," <<  orientation.x() 
-                << "," <<  orientation.y() << ","  << orientation.z() << std::endl;
-
-        vel = trpos / time_delta;
 
         q0 = orientation.w();
         q1 = orientation.x();
@@ -103,7 +95,6 @@ void Pose::Improve(Eigen::Matrix4d t){
     path.push_back(pos);
     orientations.push_back(orientation);
 }
-
 
 // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
 void Pose::MadgwickUpdate(double gx, double gy, double gz, double ax, double ay, double az) {

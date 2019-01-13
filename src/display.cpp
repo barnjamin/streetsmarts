@@ -7,7 +7,6 @@
 #include <functional>
 
 Pose *gpose;
-bool finished;
 
 // Clears the window and draws the torus.
 void display() {
@@ -54,9 +53,7 @@ void init() {
 
 void timer(int v) {
   glutPostRedisplay();
-  if(!finished) {
-    glutTimerFunc(1000/60, timer, v);
-  }
+  glutTimerFunc(1000/60, timer, v);
 }
 
 void display_thread(){
@@ -81,7 +78,6 @@ void Display::start(){
 }
 
 void Display::stop(){
-    finished = true;
     dthread.join();
 }
 
