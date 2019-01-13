@@ -156,12 +156,14 @@ int main(int argc, char * argv[]) try
         extrinsics.FromEigen(target_to_world);
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
 
+        rgbd_prev.CopyFrom(rgbd_curr);
+
+
         mesher.MarchingCubes(tsdf_volume);
         *mesh = mesher.mesh();
         visualizer.PollEvents();
         visualizer.UpdateGeometry();
 
-        rgbd_prev.CopyFrom(rgbd_curr);
         timer.Signal();
     }
 

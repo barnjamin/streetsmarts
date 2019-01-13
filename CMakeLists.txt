@@ -66,6 +66,10 @@ set(PLAY_SOURCE src/play.cpp src/utils.cpp src/pose.cpp src/display.cpp)
 add_executable(play ${PLAY_SOURCE})
 target_link_libraries(play ${DEPENDENCIES})
 
+set(ANALYZE_SOURCE src/analyze.cpp)
+add_executable(analyze ${ANALYZE_SOURCE})
+target_link_libraries(analyze ${DEPENDENCIES})
+
 #set(POSE_SOURCE src/pose_test.cpp src/pose.cpp src/utils.cpp src/display.cpp)
 #add_executable(pose ${POSE_SOURCE})
 #target_link_libraries(pose ${DEPENDENCIES})
