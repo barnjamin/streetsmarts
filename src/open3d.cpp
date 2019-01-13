@@ -19,21 +19,6 @@ using namespace open3d::cuda;
 using namespace cv;
 using namespace std;
 
-void WriteLossesToLog(
-    std::ofstream &fout,
-    int frame_idx,
-    std::vector<std::vector<float>> &losses) {
-    assert(fout.is_open());
-
-    fout << frame_idx << "\n";
-    for (auto &losses_on_level : losses) {
-        for (auto &loss : losses_on_level) {
-            fout << loss << " ";
-        }
-        fout << "\n";
-    }
-}
-
 int main(int argc, char * argv[]) try
 {
     Config conf;
@@ -159,10 +144,7 @@ int main(int argc, char * argv[]) try
             odometry.Initialize(rgbd_curr, rgbd_prev);
 
             //Compute Odometry
-            auto result = odometry.ComputeMultiScale();
-            if (std::get<0>(result)) {
-                WriteLossesToLog(fout, i, std::get<2>(result));
-            }
+            odometry.ComputeMultiScale();
 
             //Update Target to world
             target_to_world = target_to_world * odometry.transform_source_to_target_;
@@ -174,8 +156,6 @@ int main(int argc, char * argv[]) try
         extrinsics.FromEigen(target_to_world);
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
 
-        //tsdf_volume.GetAllSubvolumes();
-
         mesher.MarchingCubes(tsdf_volume);
         *mesh = mesher.mesh();
         visualizer.PollEvents();
@@ -186,7 +166,6 @@ int main(int argc, char * argv[]) try
     }
 
     //d.stop();
-
     tsdf_volume.GetAllSubvolumes();
     mesher.MarchingCubes(tsdf_volume);
 
