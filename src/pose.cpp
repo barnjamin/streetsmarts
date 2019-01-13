@@ -5,25 +5,35 @@
 
 const Eigen::Vector3d gravity(0, -9.806, 0);
 
-Pose::Pose(){
-    int frames_per_sec = 30;
-    fps = float(frames_per_sec);
-    time_delta = 1.0/fps;
-    orientation = Eigen::Quaterniond(q0, q1, q2, q3);
-}
+//Default to 30fps
+Pose::Pose(): Pose(30) { }
 
 Pose::Pose(int frames_per_sec) {
     //Initialize pose
     fps = float(frames_per_sec);
     time_delta = 1.0/fps;
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);
+    last_check_idx = 0;
 }
 
-Pose::~Pose(){ }
-
 Eigen::Matrix4d Pose::GetTransform() {
-    // Check the last time we got a transform
-    // Find the tranform between last check and now 
+    if (path.size() <= 1) {
+        return Eigen::Matrix4d::Identity();
+    }
+
+    // Find the translation between last check and current 
+    Eigen::Translation3d t_diff(pos - path[last_check_idx]);
+
+    // Find the orientation difference between last check and current
+    Eigen::Quaterniond o_diff = (orientation * orientations[last_check_idx]);
+
+    // Combine to Create Transform
+    Eigen::Transform<double, 3, Eigen::Affine> t =  t_diff * o_diff.normalized().toRotationMatrix();
+
+    // Update last check idx
+    last_check_idx = path.size() - 1;
+
+    return t.matrix();
 }
 
 void Pose::Update(std::vector<double> accel, std::vector<double> gyro) {
@@ -33,38 +43,50 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro) {
     //Set Orientation obj from quat vals
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);
 
-    // Compute accel from orientation && gravity
-
+    // Compute world accel from orientation && gravity
     auto rot = orientation.normalized().toRotationMatrix();
     auto accel_raw = Eigen::Vector3d (accel.at(0), accel.at(1), accel.at(2));
     auto accel_rot = rot * accel_raw;
     auto world_accel = accel_rot - gravity;
 
     // Compute Velocity from accel
-    vel[0] = vel[0] + world_accel[0] * time_delta;
-    vel[1] = vel[1] + world_accel[1] * time_delta;
-    vel[2] = vel[2] + world_accel[2] * time_delta;
+    vel[0] = vel[0] + (world_accel[0] * time_delta);
+    vel[1] = vel[1] + (world_accel[1] * time_delta);
+    vel[2] = vel[2] + (world_accel[2] * time_delta);
 
     // Compute position from velocity
-    pos[0] = pos[0] + vel[0] * time_delta + (world_accel[0] * time_delta)/2;    
-    pos[1] = pos[1] + vel[1] * time_delta + (world_accel[1] * time_delta)/2;    
-    pos[2] = pos[2] + vel[2] * time_delta + (world_accel[2] * time_delta)/2;    
+    pos[0] = pos[0] + (vel[0] * time_delta) + (world_accel[0] * time_delta)/2;    
+    pos[1] = pos[1] + (vel[1] * time_delta) + (world_accel[1] * time_delta)/2;    
+    pos[2] = pos[2] + (vel[2] * time_delta) + (world_accel[2] * time_delta)/2;    
+}
 
+void Pose::Improve(Eigen::Matrix4d t){
+    Eigen::Transform<double, 3, Eigen::Affine> transform(t);
 
+    Eigen::Quaterniond rotation(transform.rotation());
+    Eigen::Translation3d translation(transform.translation());
+
+    q0 = rotation.w();
+    q1 = rotation.x();
+    q2 = rotation.y();
+    q3 = rotation.z();
+
+    orientation = Eigen::Quaterniond(q0, q1, q2, q2);
+
+    pos = Eigen::Vector3d(translation.x(), translation.y(), translation.z());
+
+    //Set velocity to the distance traveled divided by time
+    if(path.size()>=1){
+        vel = (pos - path.back()) / time_delta;
+    }
+
+    // Add our changes to the list
     path.push_back(pos);
     orientations.push_back(orientation);
 }
 
-void Pose::SetOrientation(Eigen::Quaterniond o){
-    q0 = o.w();
-    q1 = o.x();
-    q2 = o.y();
-    q3 = o.z();
 
-    orientation = Eigen::Quaterniond(q0, q1, q2, q2);
-}
-
-
+// See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
 void Pose::MadgwickUpdate(double gx, double gy, double gz, double ax, double ay, double az) {
 	double recipNorm;
 	double s0, s1, s2, s3;
@@ -143,3 +165,5 @@ float invSqrt(float x) {
 	y = y * (1.5f - (halfx * y * y));
 	return y;
 }
+
+Pose::~Pose(){ }

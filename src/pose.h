@@ -42,8 +42,8 @@ public:
     //Add the latest accel/gyro readings to pose
     void Update(std::vector<double> accel, std::vector<double> gyro);
 
-    //Used when RGBDOdometry disagrees
-    void SetOrientation(Eigen::Quaterniond orientation);
+    //Improve Current orientation using RGBDOdometry
+    void Improve(Eigen::Matrix4d transform);
 
     //Used for gl display
     Eigen::Quaterniond GetOrientation() { return orientation; }

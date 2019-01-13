@@ -103,11 +103,9 @@ int main(int argc, char * argv[]) try
         PrintError("Unable to write to log file %s, abort.\n", log_filename.c_str());
     }
 
-    Pose p(30);
-    Display d(argc, argv, &p);
-    d.start();
-
-    Eigen::Quaterniond last_q;
+    Pose pose(30);
+    //Display d(argc, argv, &pose);
+    //d.start();
 
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
     for(int i=0; i< conf.frames; i++){
@@ -116,54 +114,51 @@ int main(int argc, char * argv[]) try
         color_frame = frameset.first(RS2_STREAM_COLOR);
         depth_frame = frameset.get_depth_frame();	       
 
+        if (!depth_frame || !color_frame) { continue; }
+
         //Get processed aligned frame
         //frameset = align.process(frameset);
+        //depth_frame = conf.filter(depth_frame);
 
+        memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
+        memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
+
+        // Get IMU Values
         auto accel_frame = frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
         auto gyro_frame  = frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
 
         accel_data = accel_frame.get_motion_data();
         gyro_data  = gyro_frame.get_motion_data();
 
-        if (!depth_frame || !color_frame) { continue; }
-
         vector<double> accel{accel_data.x, accel_data.y, accel_data.z};
         vector<double> gyro{gyro_data.x, gyro_data.y, gyro_data.z};
-        p.Update(accel, gyro);
+
+        // Update Pose Estimate
+        pose.Update(accel, gyro);
         
-        //depth_frame = conf.filter(depth_frame);
-
-        memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
-        memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
-
+        //Upload images to GPU
         rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
 
         if (i > 0 ) {
-            Eigen::Quaterniond diff = p.GetOrientation() * last_q.inverse();
-            Eigen::Transform<double, 3, Eigen::Affine> t = Eigen::Translation3d(Eigen::Vector3d(0,0,0)) * diff.normalized().toRotationMatrix();
-            odometry.transform_source_to_target_ = t.matrix();
-            //odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+            //Seed transform with current estimate
+            odometry.transform_source_to_target_ =  pose.GetTransform();
 
+            //Initialize odometry with current and previous images
             odometry.Initialize(rgbd_curr, rgbd_prev);
 
+            //Compute Odometry
             auto result = odometry.ComputeMultiScale();
             if (std::get<0>(result)) {
                 WriteLossesToLog(fout, i, std::get<2>(result));
             }
 
-            //std::cout << t.matrix() << std::endl;
-            //std::cout << odometry.transform_source_to_target_ << std::endl;
-
+            //Update Target to world
             target_to_world = target_to_world * odometry.transform_source_to_target_;
 
-            //Reset Quaternion using odometry values
-            //Eigen::Transform<double, 3, Eigen::Affine> world_trans(target_to_world);
-            //Eigen::Quaterniond current_rot(world_trans.rotation());
-            //p.SetOrientation(current_rot);
-
-            last_q = p.GetOrientation();
+            //Improve Pose Estimation using odometry values
+            pose.Improve(odometry.transform_source_to_target_);
         }
-
+        
         extrinsics.FromEigen(target_to_world);
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
 
@@ -171,7 +166,7 @@ int main(int argc, char * argv[]) try
         timer.Signal();
     }
 
-    d.stop();
+    //d.stop();
 
     tsdf_volume.GetAllSubvolumes();
     mesher.MarchingCubes(tsdf_volume);

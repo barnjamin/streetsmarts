@@ -159,10 +159,7 @@ int main(int argc, char * argv[]) try
             target_to_world = target_to_world * odometry.transform_source_to_target_;
 
             //Reset Quaternion using odometry values
-            Eigen::Transform<double, 3, Eigen::Affine> world_trans(target_to_world);
-            Eigen::Quaterniond current_rot(world_trans.rotation());
-
-            pose.SetOrientation(current_rot);
+            pose.Improve(odometry.transform_source_to_target_);
 
             last_q = pose.GetOrientation();
         }
