@@ -10,7 +10,6 @@
 #include <opencv2/opencv.hpp>
 #include <Eigen/Geometry>
 
-#include "MadgwickAHRS.h" // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
 #include "utils.h" 
 
 

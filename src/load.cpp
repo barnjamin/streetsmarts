@@ -32,9 +32,6 @@ mutex mtx;
 rs2_vector accel;
 rs2_vector gyro;
 
-Eigen::Quaterniond q(1.0, 0.0, 0.0, 0.0);
-Eigen::Quaterniond last_q(1.0, 0.0, 0.0, 0.0);
-
 using namespace open3d;
 using namespace open3d::cuda;
 using namespace cv;
@@ -59,6 +56,8 @@ int main(int argc, char * argv[]) try
 {
     Config conf;
     conf.parseArgs(argc, argv);
+
+    bool doit = true;
 
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
@@ -101,13 +100,19 @@ int main(int argc, char * argv[]) try
 
     int save_index = 0;
     
-    string log_filename = "odometry_less_assoc_step_1.log";
+    string log_filename = "odometry_less_assoc_step_0.log";
+    if(doit){
+        log_filename = "odometry_less_assoc_step_1.log";
+    }
+
     ofstream fout(log_filename);
     if (!fout.is_open()) {
         PrintError("Unable to write to log file %s, abort.\n", log_filename.c_str());
     }
 
-    string dirname =  "dumps/20190105102137"; //get_latest_dump_dir();
+    //string dirname =  "dumps/20190105102137"; //get_latest_dump_dir();
+    string dirname =  "dumps/20190113095914"; //get_latest_dump_dir();
+
     ifstream imufile(dirname + "/imu.csv");
 
     Pose pose(30);
@@ -134,20 +139,18 @@ int main(int argc, char * argv[]) try
         vector<double> gyro{atof(record.at(4).c_str()), atof(record.at(5).c_str()), atof(record.at(6).c_str())} ;
 
         pose.Update(accel, gyro);
-
         
         ReadImage(dirname+"/color/"+idx+".jpg", *color_image_ptr);
         ReadImage(dirname+"/depth/"+idx+".png", *depth_image_ptr);
 
         rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
 
-        q = pose.GetOrientation();
         if (i > 0 ) {
-            Eigen::Quaterniond diff = q * last_q.inverse();
-            Eigen::Transform<double, 3, Eigen::Affine> t = Eigen::Translation3d(Eigen::Vector3d(0,0,0)) * (diff.normalized().toRotationMatrix());
-            odometry.transform_source_to_target_ = t.matrix();
-
-            //odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+            if(doit){
+                odometry.transform_source_to_target_ =  pose.GetTransform();
+            }else{
+                odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+            }
 
             odometry.Initialize(rgbd_curr, rgbd_prev);
 
@@ -160,8 +163,6 @@ int main(int argc, char * argv[]) try
 
             //Reset Quaternion using odometry values
             pose.Improve(odometry.transform_source_to_target_);
-
-            last_q = pose.GetOrientation();
         }
 
         extrinsics.FromEigen(target_to_world);
@@ -174,7 +175,8 @@ int main(int argc, char * argv[]) try
     tsdf_volume.GetAllSubvolumes();
     mesher.MarchingCubes(tsdf_volume);
 
-    WriteTriangleMeshToPLY("fragment-" + to_string(save_index) + ".ply", *mesher.mesh().Download());
+    if(doit){ WriteTriangleMeshToPLY("fragment-1.ply", *mesher.mesh().Download()); }
+    else{ WriteTriangleMeshToPLY("fragment-0.ply", *mesher.mesh().Download()); }
     
     display.stop();
 

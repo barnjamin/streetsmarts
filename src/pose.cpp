@@ -25,7 +25,7 @@ Eigen::Matrix4d Pose::GetTransform() {
     Eigen::Translation3d t_diff(pos - path[last_check_idx]);
 
     // Find the orientation difference between last check and current
-    Eigen::Quaterniond o_diff = (orientation * orientations[last_check_idx]);
+    Eigen::Quaterniond o_diff = (orientation * orientations[last_check_idx].inverse());
 
     // Combine to Create Transform
     Eigen::Transform<double, 3, Eigen::Affine> t =  t_diff * o_diff.normalized().toRotationMatrix();
@@ -61,23 +61,42 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro) {
 }
 
 void Pose::Improve(Eigen::Matrix4d t){
+    //Convert 4x4 matrix to transform
     Eigen::Transform<double, 3, Eigen::Affine> transform(t);
 
+    //Get rotation/translation elements
     Eigen::Quaterniond rotation(transform.rotation());
     Eigen::Translation3d translation(transform.translation());
 
-    q0 = rotation.w();
-    q1 = rotation.x();
-    q2 = rotation.y();
-    q3 = rotation.z();
+    // If we have a path so far, correct the current orientation/position/velocity 
+    // values to what we got from rgbd odom
+    if (path.size()>=1) {
+        Eigen::Vector3d trpos(translation.x(), translation.y(), translation.z());
 
-    orientation = Eigen::Quaterniond(q0, q1, q2, q2);
+        //Add translation to last path element
+        pos = path[last_check_idx] + trpos;
 
-    pos = Eigen::Vector3d(translation.x(), translation.y(), translation.z());
+        std::cout << "Transform rotation: " <<  rotation.w() << "," <<  rotation.x() 
+                << "," <<  rotation.y() << ","  << rotation.z() << std::endl;
 
-    //Set velocity to the distance traveled divided by time
-    if(path.size()>=1){
-        vel = (pos - path.back()) / time_delta;
+        std::cout << "Before orientation: " <<  orientation.w() << "," <<  orientation.x() 
+                << "," <<  orientation.y() << ","  << orientation.z() << std::endl;
+
+        //Add current rotation to last orientation to get current orientation
+        orientation = orientations[last_check_idx] * rotation;
+
+        std::cout << "After orientation: " <<  orientation.w() << "," <<  orientation.x() 
+                << "," <<  orientation.y() << ","  << orientation.z() << std::endl;
+
+        vel = trpos / time_delta;
+
+        q0 = orientation.w();
+        q1 = orientation.x();
+        q2 = orientation.y();
+        q3 = orientation.z();
+    }else{
+        pos = Eigen::Vector3d(translation.x(), translation.y(), translation.z());
+        orientation = rotation;
     }
 
     // Add our changes to the list
