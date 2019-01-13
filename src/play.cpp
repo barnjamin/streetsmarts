@@ -26,12 +26,6 @@
 #include "display.h"
 
 using namespace std;
-
-mutex mtx;
-
-rs2_vector accel;
-rs2_vector gyro;
-
 using namespace open3d;
 using namespace open3d::cuda;
 using namespace cv;

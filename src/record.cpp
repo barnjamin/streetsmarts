@@ -37,7 +37,7 @@ bool create_dump_dirs(std::string dirname){
 
     std::string linkdir = basedir + "/latest";
 
-    remove(linkdir.c_str())
+    remove(linkdir.c_str());
 
     if(symlink(dirname.c_str(), linkdir.c_str()) == -1){
         return false;
