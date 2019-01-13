@@ -51,16 +51,6 @@ int main(int argc, char * argv[]) try
 
     rs2::pipeline_profile profile = pipe.start(cfg);
 
-    //auto accel_stream = profile.get_stream(RS2_STREAM_ACCEL).as<rs2::motion_stream_profile>();
-    //auto gyro_stream = profile.get_stream(RS2_STREAM_GYRO).as<rs2::motion_stream_profile>();
-    //std::cout << "Accel FPS: " << accel_stream.fps() << std::endl;
-    //std::cout << "Gyro FPS: " << gyro_stream.fps() << std::endl;
-    //auto accel_intr = accel_stream.get_motion_intrinsics();
-    //auto gyro_intr = gyro_stream.get_motion_intrinsics();
-    //std::cout << accel_intr.data << std::endl;
-    //std::cout << accel_intr.noise_variances << std::endl;
-    //std::cout << accel_intr.bias_variances << std::endl;
-
     PinholeCameraIntrinsic intrinsics = get_intrinsics(profile);
     PinholeCameraIntrinsicCuda cuda_intrinsics(intrinsics);
 

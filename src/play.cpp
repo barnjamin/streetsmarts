@@ -110,8 +110,7 @@ int main(int argc, char * argv[]) try
         PrintError("Unable to write to log file %s, abort.\n", log_filename.c_str());
     }
 
-    //string dirname =  "dumps/20190105102137"; //get_latest_dump_dir();
-    string dirname =  "dumps/20190113095914"; //get_latest_dump_dir();
+    string dirname =  "dumps/latest"; 
 
     ifstream imufile(dirname + "/imu.csv");
 

@@ -4,14 +4,19 @@
 #include <iostream>
 #include <ctime>
 #include <iomanip>
+#include <unistd.h>
+#include <stdio.h>
 #include <sys/stat.h>
 
 #include <GL/glut.h>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Geometry>
+#include <IO/IO.h>
 
 #include "utils.h" 
 
+
+std::string basedir = "/home/ben/streetsmarts/build/dumps";
 
 bool create_dump_dirs(std::string dirname){
     auto colordir = dirname + "/color";
@@ -30,6 +35,14 @@ bool create_dump_dirs(std::string dirname){
         return false;
     }
 
+    std::string linkdir = basedir + "/latest";
+
+    remove(linkdir.c_str())
+
+    if(symlink(dirname.c_str(), linkdir.c_str()) == -1){
+        return false;
+    }
+
     return true;
 }
 
@@ -38,7 +51,7 @@ std::string get_dump_dir(){
     auto tm = *std::localtime(&t);
     std::ostringstream oss;
     oss << std::put_time(&tm, "%Y%m%d%H%M%S");
-    return  "dumps/" + oss.str();
+    return  basedir + "/" + oss.str();
 }
 
 int main(int argc, char * argv[]) try
@@ -67,6 +80,9 @@ int main(int argc, char * argv[]) try
 
     std::ofstream dump;
     dump.open (dirname + "/imu.csv");
+
+    open3d::PinholeCameraIntrinsic intrinsics = get_intrinsics(profile);
+    open3d::WriteIJsonConvertible(dirname + "/intrinsic.json", intrinsics);
 
     //Discard waiting for auto exposure
     //for(int x = 0; x<conf.framestart; x++) pipe.wait_for_frames();
