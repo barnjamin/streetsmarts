@@ -6,47 +6,59 @@
 
 using namespace open3d;
 
-enum DifferenceType { FLATNESS, ROUGHNESS };
+enum FilterType { FLATNESS, ROUGHNESS };
 enum GroupType {EUCLIDIAN, GAUSSIAN};
 
-
-std::shared_ptr<PointCloud> DifferenceOfNorm(PointCloud& pc, int smallr, int bigr, DifferenceType dt);
+std::shared_ptr<PointCloud> DifferenceOfNorm(PointCloud& pc, float smallr, float bigr, float thresh, FilterType dt);
 std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt);
 std::shared_ptr<PointCloud> LoadPointCloud(std::string& filename) ;
 void Visualize(std::shared_ptr<PointCloud> mesh) ;
-//void Visualize(PointCloud &mesh, std::vector<std::shared_ptr<PointCloud>> pcs) ;
 
 int main(int argc, char ** argv) 
 {
     //Load combined mesh or Stream
     std::string meshfile = "fragment-0.ply";
 
+    //Load PCD
     auto pcd = LoadPointCloud(meshfile);
 
-    Visualize(pcd); //, std::vector<std::shared_ptr<PointCloud>>());
-    
-
     //Diff of Norms 
-    auto DoN = DifferenceOfNorm(*pcd, 0.01, 0.05, FLATNESS);
+    auto DoN = DifferenceOfNorm(*pcd, 0.03, 0.10, 0.99, ROUGHNESS);
+
+    //Visualize the Downsampled points
+    Visualize(DoN);
 
     //Group points
     std::vector<std::shared_ptr<PointCloud>> objs = Group(*DoN, EUCLIDIAN);
 
     //PointNet - Learn Features of Potholes and Cracks
-
     //Annotate Locations with Transformation to center of shape (Sphere, Cube) + Type
-
 
     return 0;
 }
 
 std::shared_ptr<PointCloud> DifferenceOfNorm(
-    PointCloud& pc, int smallr, int bigr, DifferenceType dt) 
+    PointCloud& pc, float smallr, float bigr, float threshold, FilterType dt) 
 {
+    auto small_pc = PointCloud(pc);
+    auto big_pc = PointCloud(pc);
 
-    auto pc_out = std::make_shared<PointCloud>();
+    EstimateNormals(small_pc, KDTreeSearchParamRadius(smallr));
 
-    return pc_out;
+    EstimateNormals(big_pc, KDTreeSearchParamRadius(bigr));
+
+    //For each element in both normal arrays 
+    std::vector<size_t> indicies;
+    for(size_t i=0; i<pc.points_.size(); i++){
+        if(dt == FLATNESS && abs(small_pc.normals_[i].dot(big_pc.normals_[i])) > threshold){
+            indicies.push_back(i);
+        }else if(dt == ROUGHNESS && abs(small_pc.normals_[i].dot(big_pc.normals_[i])) < threshold) {
+            indicies.push_back(i);
+        }
+
+    }
+
+    return SelectDownSample(pc, indicies, false);
 }
 
 std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt) 
@@ -61,11 +73,8 @@ std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt)
 
 std::shared_ptr<PointCloud> LoadPointCloud(std::string& filename) 
 {
-    //TODO:: Combine? 
     auto pc = std::make_shared<PointCloud>();
-
     ReadPointCloud(filename, *pc, "ply");
-
     return pc;
 }
 

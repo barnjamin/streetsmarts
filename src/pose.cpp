@@ -55,9 +55,9 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro) {
     vel[2] = vel[2] + (world_accel[2] * time_delta);
 
     // Compute position from velocity
-    pos[0] = pos[0] + (vel[0] * time_delta) + (world_accel[0] * time_delta)/2;    
-    pos[1] = pos[1] + (vel[1] * time_delta) + (world_accel[1] * time_delta)/2;    
-    pos[2] = pos[2] + (vel[2] * time_delta) + (world_accel[2] * time_delta)/2;    
+    pos[0] = pos[0] + (vel[0] * time_delta) + (world_accel[0] * (time_delta*time_delta))/2;    
+    pos[1] = pos[1] + (vel[1] * time_delta) + (world_accel[1] * (time_delta*time_delta))/2;    
+    pos[2] = pos[2] + (vel[2] * time_delta) + (world_accel[2] * (time_delta*time_delta))/2;    
 }
 
 void Pose::Improve(Eigen::Matrix4d t){

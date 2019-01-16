@@ -11,20 +11,24 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 find_package(OpenCV REQUIRED)
 find_package(OpenGL)
 find_package(GLUT)
-#find_package(PCL)
+find_package(PCL)
 find_package (Eigen3)
 find_package(Open3D)
 find_package(realsense2)
+
+
 
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${Open3D_EXE_LINKER_FLAGS}")
 
-add_definitions(-DUNIX)
 add_compile_options(-Wno-deprecated-declarations)
 add_compile_options(-Wno-unused-result)
+
+add_definitions(-DUNIX)
 add_definitions(-O3)
+add_definitions(${PCL_DEFINITIONS})
 
 set(IMGUI /home/ben/librealsense/third-party/imgui/)
 aux_source_directory(${IMGUI} IMGUI_SOURCES)
@@ -38,9 +42,11 @@ include_directories(
   /usr/local/cuda/include/
   ${OPENGL_INCLUDE_DIRS}  
   ${GLUT_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 ) 
 
 link_directories(${Open3D_LIBRARY_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
 
 set(DEPENDENCIES 
 	${GLUT_LIBRARY}
@@ -51,8 +57,13 @@ set(DEPENDENCIES
 	${Open3D_LIBRARIES} 
 	Eigen3::Eigen 
 	/home/ben/Open3D/build/lib/libCuda.a
+        ${PCL_LIBRARIES} 
 )
 
+
+set(CLUSTER_SOURCE src/cluster.cpp src/utils.cpp)
+add_executable(cluster ${CLUSTER_SOURCE})
+target_link_libraries(cluster ${DEPENDENCIES})
 
 set(OPEN3D_SOURCE src/open3d.cpp src/utils.cpp src/pose.cpp src/display.cpp)
 add_executable(open3d ${OPEN3D_SOURCE})
