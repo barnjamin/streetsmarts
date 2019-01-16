@@ -40,7 +40,6 @@ cv::Mat frame_to_mat(const rs2::frame& f)
 Config::~Config() { }
 
 Config::Config() {
-    imu_src     = "/dev/ttyACM0";
     min_z       = 0.0f;
     max_z       = 5.0f;
 
@@ -72,6 +71,7 @@ Config::Config() {
     icp_leaf            = 0.15;
 
     use_imu             = true;
+    use_filter          = false;
 }
 
 void Config::parseArgs(int argc, char **argv) {
@@ -111,16 +111,16 @@ void Config::parseArgs(int argc, char **argv) {
       icp_dist = std::stof(argv[x+1]);
     }else if(flag == "--icp_leaf"){
       icp_leaf = std::stof(argv[x+1]);
-    }else if(flag == "--imu_src"){
-      imu_src = argv[x+1];
     }else if(flag == "--width"){
       width = std::stoi(argv[x+1]);
     }else if(flag == "--height"){
       height = std::stoi(argv[x+1]);
     }else if(flag == "--fps"){
       fps = std::stoi(argv[x+1]);
-    }else if(flag == "--ignore_imu"){
+    }else if(flag == "--no_imu"){
       use_imu = false;
+    }else if(flag == "--filter"){
+      use_filter = true;
     }
   }
 

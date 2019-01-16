@@ -98,18 +98,26 @@ int main(int argc, char * argv[]) try
     
     Pose pose(conf.fps);
 
+    bool success;
+    Eigen::Matrix4d delta;
+    std::vector<std::vector<float>> losses;
+
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
     for(int i=0; i< conf.frames; i++){
         frameset = pipe.wait_for_frames();
 
+        //Get processed aligned frame
+        frameset = align.process(frameset);
+
         color_frame = frameset.first(RS2_STREAM_COLOR);
         depth_frame = frameset.get_depth_frame();	       
 
+        if(conf.use_filter){
+            depth_frame = conf.filter(depth_frame);
+        }
+
         if (!depth_frame || !color_frame) { continue; }
 
-        //Get processed aligned frame
-        //frameset = align.process(frameset);
-        //depth_frame = conf.filter(depth_frame);
 
         memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
@@ -138,13 +146,15 @@ int main(int argc, char * argv[]) try
             odometry.Initialize(rgbd_curr, rgbd_prev);
 
             //Compute Odometry
-            odometry.ComputeMultiScale();
+            std::tie(success, delta, losses) = odometry.ComputeMultiScale();
 
-            //Update Target to world
-            target_to_world = target_to_world * odometry.transform_source_to_target_;
+            if(success){
+                //Update Target to world
+                target_to_world = target_to_world * odometry.transform_source_to_target_;
 
-            //Improve Pose Estimation using odometry values
-            pose.Improve(odometry.transform_source_to_target_, target_to_world);
+                //Improve Pose Estimation using odometry values
+                pose.Improve(odometry.transform_source_to_target_, target_to_world);
+            }
         }
         
         extrinsics.FromEigen(target_to_world);

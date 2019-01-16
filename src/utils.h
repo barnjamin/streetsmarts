@@ -21,8 +21,6 @@ open3d::PinholeCameraIntrinsic   get_intrinsics(rs2::pipeline_profile);
 class Config {
 public:
 
-    std::string imu_src;
-
     float min_z;
     float max_z;
 
@@ -53,6 +51,7 @@ public:
     int height;
 
     bool use_imu;
+    bool use_filter;
 
     rs2::decimation_filter dec_filter;
     rs2::spatial_filter spat_filter;
