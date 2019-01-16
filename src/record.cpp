@@ -16,7 +16,7 @@
 #include "utils.h" 
 
 
-std::string basedir = "/home/ben/streetsmarts/build/dumps";
+std::string basedir = "/home/ben/streetsmarts/dumps";
 
 bool create_dump_dirs(std::string dirname){
     auto colordir = dirname + "/color";

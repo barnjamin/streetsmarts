@@ -73,9 +73,9 @@ set(RECORD_SOURCE src/record.cpp src/utils.cpp)
 add_executable(record ${RECORD_SOURCE})
 target_link_libraries(record ${DEPENDENCIES})
 
-set(PLAY_SOURCE src/play.cpp src/utils.cpp src/pose.cpp src/display.cpp)
-add_executable(play ${PLAY_SOURCE})
-target_link_libraries(play ${DEPENDENCIES})
+set(PLAYBACK_SOURCE src/playback.cpp src/utils.cpp src/pose.cpp src/display.cpp)
+add_executable(playback ${PLAYBACK_SOURCE})
+target_link_libraries(playback ${DEPENDENCIES})
 
 set(ANALYZE_SOURCE src/analyze.cpp)
 add_executable(analyze ${ANALYZE_SOURCE})
