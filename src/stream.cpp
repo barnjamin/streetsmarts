@@ -39,6 +39,8 @@ int main(int argc, char * argv[]) try
     PinholeCameraIntrinsic intrinsics = get_intrinsics(profile);
     PinholeCameraIntrinsicCuda cuda_intrinsics(intrinsics);
 
+    PinholeCameraTrajectory trajectory;
+
     std::cout << intrinsics.width_ << " " << intrinsics.height_ << std::endl;
 
     RGBDOdometryCuda<3> odometry;
@@ -62,6 +64,7 @@ int main(int argc, char * argv[]) try
     ScalableMeshVolumeCuda<8> mesher(40000, VertexWithNormalAndColor, 6000000, 12000000);
 
     Eigen::Matrix4d target_to_world = Eigen::Matrix4d::Identity();
+
     for(int i=0; i<conf.framestart; i++){
         rs2::frameset frameset = pipe.wait_for_frames();
     }
@@ -69,28 +72,6 @@ int main(int argc, char * argv[]) try
     FPSTimer timer("Process RGBD stream", conf.frames);
 
     int save_index = 0;
-
-    //Visualizer visualizer;
-    //if (!visualizer.CreateVisualizerWindow("Sequential IC RGBD Odometry", 640, 480, 0, 0)) {
-    //    PrintWarning("Failed creating OpenGL window.\n");
-    //    return -1;
-    //}
-    //visualizer.BuildUtilities();
-    //visualizer.UpdateWindowTitle();
-
-    //std::shared_ptr<TriangleMeshCuda> mesh = std::make_shared<TriangleMeshCuda>();
-    //visualizer.AddGeometry(mesh);
-
-    //ViewParameters vp;
-    //vp.boundingbox_max_ = Eigen::Vector3d(10,10,10); 
-    //vp.boundingbox_min_ = Eigen::Vector3d(0,0,0); 
-    //vp.field_of_view_ = 60; 
-    //vp.front_ = Eigen::Vector3d(0,0,-1); 
-    //vp.lookat_ = Eigen::Vector3d(1,0,0); 
-    //vp.up_ = Eigen::Vector3d(0,-1,0); 
-    //vp.zoom_ = 0.5;
-
-    //visualizer.GetViewControl().ConvertFromViewParameters(vp);
 
     rs2::frameset frameset;
     rs2::frame color_frame, depth_frame;
@@ -159,22 +140,35 @@ int main(int argc, char * argv[]) try
         
         extrinsics.FromEigen(target_to_world);
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
+ 
+        //if (i > 0 && i % conf.fps == 0) {
+        //    tsdf_volume.GetAllSubvolumes();
+        //    mesher.MarchingCubes(tsdf_volume);
+        //    WriteTriangleMeshToPLY( "fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
+
+        //    
+        //    PinholeCameraParameters params;
+        //    params.intrinsic_ =  intrinsics;
+        //    params.extrinsic_ = target_to_world; // * last_transform.inverse();
+        //    trajectory.parameters_.emplace_back(params);
+
+        //    //last_transform = target_to_world;
+
+        //    tsdf_volume.Reset();
+
+        //    save_index++;
+        //}
+
 
         rgbd_prev.CopyFrom(rgbd_curr);
-
-        //mesher.MarchingCubes(tsdf_volume);
-        //*mesh = mesher.mesh();
-        //visualizer.PollEvents();
-        //visualizer.UpdateGeometry();
 
         timer.Signal();
     }
 
-    //d.stop();
     tsdf_volume.GetAllSubvolumes();
     mesher.MarchingCubes(tsdf_volume);
-
     WriteTriangleMeshToPLY("fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
+    WritePinholeCameraTrajectoryToLOG("trajectory.log", trajectory);
 
     return EXIT_SUCCESS;
 

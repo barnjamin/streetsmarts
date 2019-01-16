@@ -16,6 +16,10 @@ Pose::Pose(int frames_per_sec) {
     last_check_idx = 0;
 }
 
+//void Pose::Reset(){
+//    pos = Eigen::Vector3d(0,0,0);
+//}
+
 Eigen::Matrix4d Pose::GetTransform() {
     if (path.size() == 0) {
         return Eigen::Matrix4d::Identity();
