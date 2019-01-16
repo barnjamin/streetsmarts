@@ -71,6 +71,7 @@ Config::Config() {
     icp_dist            = 1.0;
     icp_leaf            = 0.15;
 
+    use_imu             = true;
 }
 
 void Config::parseArgs(int argc, char **argv) {
@@ -118,6 +119,8 @@ void Config::parseArgs(int argc, char **argv) {
       height = std::stoi(argv[x+1]);
     }else if(flag == "--fps"){
       fps = std::stoi(argv[x+1]);
+    }else if(flag == "--ignore_imu"){
+      use_imu = false;
     }
   }
 

@@ -85,8 +85,7 @@ int main(int argc, char * argv[]) try
     open3d::WriteIJsonConvertible(dirname + "/intrinsic.json", intrinsics);
 
     //Discard waiting for auto exposure
-    //for(int x = 0; x<conf.framestart; x++) pipe.wait_for_frames();
-    for(int x = 0; x<90; x++) pipe.wait_for_frames();
+    for(int x = 0; x<conf.framestart; x++) pipe.wait_for_frames();
 
     std::cout << "Reading frames..." << std::endl;
     for(int x=0; x<conf.frames; x++) {

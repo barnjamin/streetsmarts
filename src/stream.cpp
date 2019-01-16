@@ -70,39 +70,33 @@ int main(int argc, char * argv[]) try
 
     int save_index = 0;
 
-    Visualizer visualizer;
-    if (!visualizer.CreateVisualizerWindow("Sequential IC RGBD Odometry", 640, 480, 0, 0)) {
-        PrintWarning("Failed creating OpenGL window.\n");
-        return -1;
-    }
-    visualizer.BuildUtilities();
-    visualizer.UpdateWindowTitle();
+    //Visualizer visualizer;
+    //if (!visualizer.CreateVisualizerWindow("Sequential IC RGBD Odometry", 640, 480, 0, 0)) {
+    //    PrintWarning("Failed creating OpenGL window.\n");
+    //    return -1;
+    //}
+    //visualizer.BuildUtilities();
+    //visualizer.UpdateWindowTitle();
 
-    std::shared_ptr<TriangleMeshCuda> mesh = std::make_shared<TriangleMeshCuda>();
-    visualizer.AddGeometry(mesh);
+    //std::shared_ptr<TriangleMeshCuda> mesh = std::make_shared<TriangleMeshCuda>();
+    //visualizer.AddGeometry(mesh);
 
-    ViewParameters vp;
-    vp.boundingbox_max_ = Eigen::Vector3d(10,10,10); 
-    vp.boundingbox_min_ = Eigen::Vector3d(0,0,0); 
-    vp.field_of_view_ = 60; 
-    vp.front_ = Eigen::Vector3d(0,0,-1); 
-    vp.lookat_ = Eigen::Vector3d(1,0,0); 
-    vp.up_ = Eigen::Vector3d(0,-1,0); 
-    vp.zoom_ = 0.5;
+    //ViewParameters vp;
+    //vp.boundingbox_max_ = Eigen::Vector3d(10,10,10); 
+    //vp.boundingbox_min_ = Eigen::Vector3d(0,0,0); 
+    //vp.field_of_view_ = 60; 
+    //vp.front_ = Eigen::Vector3d(0,0,-1); 
+    //vp.lookat_ = Eigen::Vector3d(1,0,0); 
+    //vp.up_ = Eigen::Vector3d(0,-1,0); 
+    //vp.zoom_ = 0.5;
 
-    visualizer.GetViewControl().ConvertFromViewParameters(vp);
+    //visualizer.GetViewControl().ConvertFromViewParameters(vp);
 
     rs2::frameset frameset;
     rs2::frame color_frame, depth_frame;
     rs2_vector accel_data, gyro_data;
     
-    std::string log_filename = "odometry_less_assoc_step_" + std::to_string(1) + ".log";
-    std::ofstream fout(log_filename);
-    if (!fout.is_open()) {
-        PrintError("Unable to write to log file %s, abort.\n", log_filename.c_str());
-    }
-
-    Pose pose(30);
+    Pose pose(conf.fps);
 
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
     for(int i=0; i< conf.frames; i++){
@@ -150,7 +144,7 @@ int main(int argc, char * argv[]) try
             target_to_world = target_to_world * odometry.transform_source_to_target_;
 
             //Improve Pose Estimation using odometry values
-            pose.Improve(odometry.transform_source_to_target_);
+            //pose.Improve(odometry.transform_source_to_target_);
         }
         
         extrinsics.FromEigen(target_to_world);
@@ -158,11 +152,10 @@ int main(int argc, char * argv[]) try
 
         rgbd_prev.CopyFrom(rgbd_curr);
 
-
-        mesher.MarchingCubes(tsdf_volume);
-        *mesh = mesher.mesh();
-        visualizer.PollEvents();
-        visualizer.UpdateGeometry();
+        //mesher.MarchingCubes(tsdf_volume);
+        //*mesh = mesher.mesh();
+        //visualizer.PollEvents();
+        //visualizer.UpdateGeometry();
 
         timer.Signal();
     }
