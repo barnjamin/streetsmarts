@@ -17,7 +17,7 @@ Pose::Pose(int frames_per_sec) {
 }
 
 Eigen::Matrix4d Pose::GetTransform() {
-    if (path.size() <= 1) {
+    if (path.size() == 0) {
         return Eigen::Matrix4d::Identity();
     }
 
@@ -60,36 +60,31 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro) {
     pos[2] = pos[2] + (vel[2] * time_delta) + (world_accel[2] * (time_delta*time_delta))/2;    
 }
 
-void Pose::Improve(Eigen::Matrix4d t){
+void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
     //Convert 4x4 matrix to transform
-    Eigen::Transform<double, 3, Eigen::Affine> transform(t);
+    Eigen::Transform<double, 3, Eigen::Affine> diff(dt);
+    Eigen::Transform<double, 3, Eigen::Affine> world(wt);
 
-    //Get rotation/translation elements
-    Eigen::Quaterniond rotation(transform.rotation());
-    Eigen::Translation3d translation(transform.translation());
+    //Get rotation/translation elements in the world
+    Eigen::Quaterniond rotation(world.rotation());
+    Eigen::Translation3d translation(world.translation());
 
-    // If we have a path so far, correct the current orientation/position/velocity 
-    // values to what we got from rgbd odom
-    if (path.size()>=1) {
-        Eigen::Vector3d trpos(translation.x(), translation.y(), translation.z());
 
-        //Add translation to last path element to get current position
-        pos = path[last_check_idx] + trpos;
+    //Set velocity to translation/time
+    Eigen::Translation3d diff_trans(diff.translation());
+    Eigen::Vector3d trpos(diff_trans.x(), diff_trans.y(), diff_trans.z());
+    vel = trpos / time_delta;
 
-        //Set velocity to translation/time
-        vel = trpos / time_delta;
+    //Add translation to last path element to get current position
+    pos = Eigen::Vector3d(translation.x(), translation.y(), translation.z());
 
-        //Add current rotation to last orientation to get current orientation
-        orientation = orientations[last_check_idx] * rotation;
+    //Add current rotation to last orientation to get current orientation
+    orientation = rotation;
 
-        q0 = orientation.w();
-        q1 = orientation.x();
-        q2 = orientation.y();
-        q3 = orientation.z();
-    }else{
-        pos = Eigen::Vector3d(translation.x(), translation.y(), translation.z());
-        orientation = rotation;
-    }
+    q0 = rotation.w();
+    q1 = rotation.x();
+    q2 = rotation.y();
+    q3 = rotation.z();
 
     // Add our changes to the list
     path.push_back(pos);

@@ -144,7 +144,7 @@ int main(int argc, char * argv[]) try
             target_to_world = target_to_world * odometry.transform_source_to_target_;
 
             //Improve Pose Estimation using odometry values
-            //pose.Improve(odometry.transform_source_to_target_);
+            pose.Improve(odometry.transform_source_to_target_, target_to_world);
         }
         
         extrinsics.FromEigen(target_to_world);

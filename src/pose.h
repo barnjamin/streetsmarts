@@ -43,7 +43,7 @@ public:
     void Update(std::vector<double> accel, std::vector<double> gyro);
 
     //Improve Current orientation using RGBDOdometry
-    void Improve(Eigen::Matrix4d transform);
+    void Improve(Eigen::Matrix4d diff, Eigen::Matrix4d world);
 
     //Used for gl display
     Eigen::Quaterniond GetOrientation() { return orientation; }

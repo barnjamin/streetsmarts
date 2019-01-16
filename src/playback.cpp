@@ -150,12 +150,13 @@ int main(int argc, char * argv[]) try
             t.Stop();
             duration += t.GetDuration();
 
+
             target_to_world = target_to_world * odometry.transform_source_to_target_;
             imu_target_to_world = imu_target_to_world * pose.GetTransform();
 
             //Reset Quaternion using odometry values
             if(conf.use_imu){
-                pose.Improve(odometry.transform_source_to_target_);
+                pose.Improve(odometry.transform_source_to_target_, target_to_world);
             }
         }
 

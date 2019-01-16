@@ -66,7 +66,7 @@ add_executable(cluster ${CLUSTER_SOURCE})
 target_link_libraries(cluster ${DEPENDENCIES})
 
 set(STREAM_SOURCE src/stream.cpp src/utils.cpp src/pose.cpp src/display.cpp)
-add_executable(stream ${OPEN3D_SOURCE})
+add_executable(stream ${STREAM_SOURCE})
 target_link_libraries(stream ${DEPENDENCIES})
 
 set(RECORD_SOURCE src/record.cpp src/utils.cpp)
