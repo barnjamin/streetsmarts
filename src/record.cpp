@@ -103,7 +103,7 @@ int main(int argc, char * argv[]) try
         auto accel = aframe.get_motion_data();
         auto gyro = gframe.get_motion_data();
 
-        dump << std::to_string(x) << "," 
+        dump << std::to_string(x) << "," << std::to_string(gframe.get_timestamp()) << ","
             << accel.x << "," << accel.y << "," << accel.z  << "," 
             << gyro.x << "," << gyro.y << "," << gyro.z  << "," << std::endl;
     }

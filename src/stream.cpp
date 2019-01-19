@@ -83,6 +83,8 @@ int main(int argc, char * argv[]) try
     Eigen::Matrix4d delta;
     std::vector<std::vector<float>> losses;
 
+    double last_ts;
+
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
     for(int i=0; i< conf.frames; i++){
         frameset = pipe.wait_for_frames();
@@ -107,6 +109,7 @@ int main(int argc, char * argv[]) try
         auto accel_frame = frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
         auto gyro_frame  = frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
 
+
         accel_data = accel_frame.get_motion_data();
         gyro_data  = gyro_frame.get_motion_data();
 
@@ -114,7 +117,7 @@ int main(int argc, char * argv[]) try
         vector<double> gyro{gyro_data.x, gyro_data.y, gyro_data.z};
 
         // Update Pose Estimate
-        pose.Update(accel, gyro);
+        pose.Update(accel, gyro, gyro_frame.get_timestamp()/1000);
         
         //Upload images to GPU
         rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
@@ -158,7 +161,6 @@ int main(int argc, char * argv[]) try
 
         //    save_index++;
         //}
-
 
         rgbd_prev.CopyFrom(rgbd_curr);
 

@@ -40,9 +40,16 @@ Eigen::Matrix4d Pose::GetTransform() {
     return t.matrix();
 }
 
-void Pose::Update(std::vector<double> accel, std::vector<double> gyro) {
+void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double timestamp) {
     // Update quaternion through Madgwick filter
     MadgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
+
+    if(last_timestamp != 0){
+        time_delta = timestamp - last_timestamp;
+    }
+    last_timestamp = timestamp;
+
+    std::cout << time_delta << std::endl;
 
     //Set Orientation obj from quat vals
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);

@@ -20,6 +20,7 @@ class Pose {
 
     //Time between frames
     double time_delta;
+    double last_timestamp;
 
     //Last time GetTransform was called, used to compute transform between calls
     int last_check_idx;
@@ -40,7 +41,7 @@ public:
     Eigen::Matrix4d GetTransform();
 
     //Add the latest accel/gyro readings to pose
-    void Update(std::vector<double> accel, std::vector<double> gyro);
+    void Update(std::vector<double> accel, std::vector<double> gyro, double timestamp);
 
     //Improve Current orientation using RGBDOdometry
     void Improve(Eigen::Matrix4d diff, Eigen::Matrix4d world);

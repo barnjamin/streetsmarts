@@ -100,7 +100,7 @@ int main(int argc, char * argv[]) try
 
     ifstream imufile(dirname + "/imu.csv");
 
-    Pose pose(60);
+    Pose pose(30);
     Display display(argc, argv, &pose);
     display.start();
     Timer t;
@@ -120,13 +120,15 @@ int main(int argc, char * argv[]) try
         }
 
         auto idx = record.at(0);
+        auto ts = atof(record.at(1).c_str());
 
         i = atoi(idx.c_str());
 
-        vector<double> accel{atof(record.at(1).c_str()), atof(record.at(2).c_str()), atof(record.at(3).c_str())} ;
-        vector<double> gyro{atof(record.at(4).c_str()), atof(record.at(5).c_str()), atof(record.at(6).c_str())} ;
+        vector<double> accel{atof(record.at(2).c_str()), atof(record.at(3).c_str()), atof(record.at(4).c_str())} ;
+        vector<double> gyro{atof(record.at(5).c_str()), atof(record.at(6).c_str()), atof(record.at(7).c_str())} ;
 
-        pose.Update(accel, gyro);
+
+        pose.Update(accel, gyro, ts/1000);
         
         ReadImage(dirname+"/color/"+idx+".jpg", *color_image_ptr);
         ReadImage(dirname+"/depth/"+idx+".png", *depth_image_ptr);
