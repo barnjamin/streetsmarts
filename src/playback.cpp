@@ -78,7 +78,7 @@ int main(int argc, char * argv[]) try
     RGBDImageCuda rgbd_prev(0.1f, 4.0f, 1000.0f);
     RGBDImageCuda rgbd_curr(0.1f, 4.0f, 1000.0f);
 
-    ScalableMeshVolumeCuda<8> mesher(40000, VertexWithNormalAndColor, 6000000, 12000000);
+    ScalableMeshVolumeCuda<8> mesher(100000, VertexWithNormalAndColor, 10000000, 20000000);
 
     Eigen::Matrix4d target_to_world = Eigen::Matrix4d::Identity();
     Eigen::Matrix4d imu_target_to_world = Eigen::Matrix4d::Identity();

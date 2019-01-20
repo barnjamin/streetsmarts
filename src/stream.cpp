@@ -34,14 +34,14 @@ int main(int argc, char * argv[]) try
     cfg.enable_stream(RS2_STREAM_ACCEL);
     cfg.enable_stream(RS2_STREAM_GYRO);
 
+    PrintInfo("Initializing camera...\n");
+
     rs2::pipeline_profile profile = pipe.start(cfg);
 
     PinholeCameraIntrinsic intrinsics = get_intrinsics(profile);
     PinholeCameraIntrinsicCuda cuda_intrinsics(intrinsics);
 
     PinholeCameraTrajectory trajectory;
-
-    std::cout << intrinsics.width_ << " " << intrinsics.height_ << std::endl;
 
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsics);
@@ -61,9 +61,11 @@ int main(int argc, char * argv[]) try
     RGBDImageCuda rgbd_prev(0.1f, 4.0f, 1000.0f);
     RGBDImageCuda rgbd_curr(0.1f, 4.0f, 1000.0f);
 
-    ScalableMeshVolumeCuda<8> mesher(40000, VertexWithNormalAndColor, 6000000, 12000000);
+    ScalableMeshVolumeCuda<8> mesher(100000, VertexWithNormalAndColor, 10000000, 20000000);
 
     Eigen::Matrix4d target_to_world = Eigen::Matrix4d::Identity();
+
+    PrintInfo("Discarding first %d frames\n");
 
     for(int i=0; i<conf.framestart; i++){
         rs2::frameset frameset = pipe.wait_for_frames();
@@ -77,6 +79,10 @@ int main(int argc, char * argv[]) try
     rs2::frame color_frame, depth_frame;
     rs2_vector accel_data, gyro_data;
     
+
+    PoseGraph posegraph;
+    posegraph.nodes_.push_back(target_to_world);
+
     Pose pose(conf.fps);
 
     bool success;
@@ -138,29 +144,30 @@ int main(int argc, char * argv[]) try
 
                 //Improve Pose Estimation using odometry values
                 pose.Improve(odometry.transform_source_to_target_, target_to_world);
+
+                extrinsics.FromEigen(target_to_world);
+                tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
+            }
+
+            if (i > 0 && i % conf.fps*2 == 0) {
+                tsdf_volume.GetAllSubvolumes();
+                mesher.MarchingCubes(tsdf_volume);
+                WriteTriangleMeshToPLY( "fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
+                
+                posegraph.nodes_.push_back(PoseGraphNode(target_to_world.inverse()));
+                posegraph.edges_.push_back(PoseGraphEdge(save_index, save_index+1));
+
+                tsdf_volume.Reset();
+
+                //pose.Reset();
+
+                save_index++;
             }
         }
         
-        extrinsics.FromEigen(target_to_world);
-        tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
+
+
  
-        //if (i > 0 && i % conf.fps == 0) {
-        //    tsdf_volume.GetAllSubvolumes();
-        //    mesher.MarchingCubes(tsdf_volume);
-        //    WriteTriangleMeshToPLY( "fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
-
-        //    
-        //    PinholeCameraParameters params;
-        //    params.intrinsic_ =  intrinsics;
-        //    params.extrinsic_ = target_to_world; // * last_transform.inverse();
-        //    trajectory.parameters_.emplace_back(params);
-
-        //    //last_transform = target_to_world;
-
-        //    tsdf_volume.Reset();
-
-        //    save_index++;
-        //}
 
         rgbd_prev.CopyFrom(rgbd_curr);
 
@@ -169,8 +176,10 @@ int main(int argc, char * argv[]) try
 
     tsdf_volume.GetAllSubvolumes();
     mesher.MarchingCubes(tsdf_volume);
+
     WriteTriangleMeshToPLY("fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
-    WritePinholeCameraTrajectoryToLOG("trajectory.log", trajectory);
+
+    WritePoseGraph("pose_graph.json", posegraph);
 
     return EXIT_SUCCESS;
 

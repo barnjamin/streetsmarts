@@ -46,7 +46,7 @@ public:
     //Improve Current orientation using RGBDOdometry
     void Improve(Eigen::Matrix4d diff, Eigen::Matrix4d world);
 
-    //void Reset();
+    void Reset();
 
     //Used for gl display
     Eigen::Quaterniond GetOrientation() { return orientation; }

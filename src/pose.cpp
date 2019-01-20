@@ -16,9 +16,12 @@ Pose::Pose(int frames_per_sec) {
     last_check_idx = 0;
 }
 
-//void Pose::Reset(){
-//    pos = Eigen::Vector3d(0,0,0);
-//}
+void Pose::Reset(){
+    pos = Eigen::Vector3d(0,0,0);
+    path = std::vector<Eigen::Vector3d>();
+    orientations = std::vector<Eigen::Quaterniond>();
+    vel = Eigen::Vector3d(0,0,0);
+}
 
 Eigen::Matrix4d Pose::GetTransform() {
     if (path.size() == 0) {
@@ -52,7 +55,7 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
         time_delta = delta;
     }
 
-    std::cout << time_delta << std::endl;
+    //std::cout << time_delta << std::endl;
 
     last_timestamp = timestamp;
 
