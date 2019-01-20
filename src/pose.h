@@ -1,6 +1,8 @@
 #pragma once
 #include <Eigen/Geometry>
 #include <vector>
+#include <Core/Core.h>
+#include <Registration/PoseGraph.h>
 
 #define betaDef		0.05f		// 2 * proportional gain
 
@@ -11,12 +13,14 @@ class Pose {
     Eigen::Vector3d pos;
     Eigen::Vector3d vel;
 
+    //Pose graph for Open3d stuffs
+    open3d::PoseGraph pg;
+
     //Vector of positions
     std::vector<Eigen::Vector3d> path;
 
     //Vector of orientations
     std::vector<Eigen::Quaterniond> orientations;
-
 
     //Time between frames
     double time_delta;
@@ -31,6 +35,8 @@ class Pose {
 
     //Current orientation of the device
     Eigen::Quaterniond orientation;
+
+    void madgwickUpdate(double gx, double gy, double gz, double ax, double ay, double az);
 
 public:
     //Initialize vectors
@@ -48,10 +54,11 @@ public:
 
     void Reset();
 
+    open3d::PoseGraph GetGraph();
+
     //Used for gl display
     Eigen::Quaterniond GetOrientation() { return orientation; }
 
-    void MadgwickUpdate(double gx, double gy, double gz, double ax, double ay, double az);
 
     virtual ~Pose();
 };

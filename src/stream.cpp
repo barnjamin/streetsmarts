@@ -13,6 +13,7 @@
 #include "utils.h" 
 #include "pose.h"
 #include "display.h"
+#include "config.h"
 
 using namespace open3d;
 using namespace open3d::cuda;
@@ -50,8 +51,7 @@ int main(int argc, char * argv[]) try
 
     float voxel_length = 0.01f;
     TransformCuda extrinsics = TransformCuda::Identity();
-    ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 
-            3 * voxel_length, extrinsics);
+    ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3 * voxel_length, extrinsics);
 
     auto depth_image_ptr = std::make_shared<Image>();
     auto color_image_ptr = std::make_shared<Image>();
@@ -79,10 +79,6 @@ int main(int argc, char * argv[]) try
     rs2::frame color_frame, depth_frame;
     rs2_vector accel_data, gyro_data;
     
-
-    PoseGraph posegraph;
-    posegraph.nodes_.push_back(target_to_world);
-
     Pose pose(conf.fps);
 
     bool success;
@@ -107,14 +103,12 @@ int main(int argc, char * argv[]) try
 
         if (!depth_frame || !color_frame) { continue; }
 
-
         memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
         // Get IMU Values
         auto accel_frame = frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
         auto gyro_frame  = frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
-
 
         accel_data = accel_frame.get_motion_data();
         gyro_data  = gyro_frame.get_motion_data();
@@ -147,28 +141,23 @@ int main(int argc, char * argv[]) try
 
                 extrinsics.FromEigen(target_to_world);
                 tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
-            }
+            } 
 
-            if (i > 0 && i % conf.fps*2 == 0) {
-                tsdf_volume.GetAllSubvolumes();
-                mesher.MarchingCubes(tsdf_volume);
-                WriteTriangleMeshToPLY( "fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
-                
-                posegraph.nodes_.push_back(PoseGraphNode(target_to_world.inverse()));
-                posegraph.edges_.push_back(PoseGraphEdge(save_index, save_index+1));
+            //if (!success || (i > 0 && i % conf.fps*2 == 0)) {
+            //    tsdf_volume.GetAllSubvolumes();
 
-                tsdf_volume.Reset();
+            //    mesher.MarchingCubes(tsdf_volume);
 
-                //pose.Reset();
+            //    WriteTriangleMeshToPLY( "fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
+            //    
+            //    tsdf_volume.Reset();
 
-                save_index++;
-            }
+            //    //pose.Reset();
+
+            //    save_index++;
+            //}
         }
         
-
-
- 
-
         rgbd_prev.CopyFrom(rgbd_curr);
 
         timer.Signal();
@@ -179,7 +168,7 @@ int main(int argc, char * argv[]) try
 
     WriteTriangleMeshToPLY("fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
 
-    WritePoseGraph("pose_graph.json", posegraph);
+    WritePoseGraph("pose_graph.json", pose.GetGraph());
 
     return EXIT_SUCCESS;
 

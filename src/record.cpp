@@ -14,6 +14,7 @@
 #include <IO/IO.h>
 
 #include "utils.h" 
+#include "config.h" 
 
 
 std::string basedir = "/home/ben/streetsmarts/dumps";
@@ -60,8 +61,10 @@ int main(int argc, char * argv[]) try
     Config conf;
     conf.parseArgs(argc, argv);
 
+
     rs2::pipeline pipe;
     rs2::config cfg;
+    rs2::align align(RS2_STREAM_COLOR);
 
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
@@ -79,7 +82,9 @@ int main(int argc, char * argv[]) try
     std::cout << "Created dirs starting to read frames" << std::endl;
 
     std::ofstream dump;
-    dump.open (dirname + "/imu.csv");
+    dump.open(dirname + "/imu.csv");
+
+    conf.save(dirname + "/conf.json");
 
     open3d::PinholeCameraIntrinsic intrinsics = get_intrinsics(profile);
     open3d::WriteIJsonConvertible(dirname + "/intrinsic.json", intrinsics);
@@ -90,6 +95,8 @@ int main(int argc, char * argv[]) try
     std::cout << "Reading frames..." << std::endl;
     for(int x=0; x<conf.frames; x++) {
         auto frameset = pipe.wait_for_frames();
+
+        frameset = align.process(frameset);
 
         cv::Mat color = frame_to_mat(frameset.first(RS2_STREAM_COLOR));
         cv::Mat depth = frame_to_mat(frameset.get_depth_frame());
@@ -109,6 +116,7 @@ int main(int argc, char * argv[]) try
     }
 
     dump.close();
+
 }
 catch (const rs2::error & e)
 {

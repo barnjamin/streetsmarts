@@ -24,27 +24,12 @@
 #include "utils.h" 
 #include "pose.h"
 #include "display.h"
+#include "config.h"
 
 using namespace std;
 using namespace open3d;
 using namespace open3d::cuda;
 using namespace cv;
-
-void WriteLossesToLog(
-    ofstream &fout,
-    int frame_idx,
-    vector<vector<float>> &losses) {
-    assert(fout.is_open());
-
-    fout << frame_idx << "\n";
-    for (auto &losses_on_level : losses) {
-        for (auto &loss : losses_on_level) {
-            fout << loss << " ";
-        }
-        fout << "\n";
-    }
-}
-
 
 int main(int argc, char * argv[]) try
 {
@@ -98,7 +83,8 @@ int main(int argc, char * argv[]) try
     }
 
 
-    ifstream imufile(dirname + "/imu.csv");
+    ifstream imu_file(dirname + "/imu.csv");
+    ifstream conf_file(dirname + "/conf.json");
 
     Pose pose(30);
     Display display(argc, argv, &pose);
@@ -106,9 +92,9 @@ int main(int argc, char * argv[]) try
     Timer t;
     double duration = 0.0;
     int i = 0;
-    while(imufile){
+    while(imu_file){
         string s;
-        if(!getline(imufile, s)) break;
+        if(!getline(imu_file, s)) break;
 
         istringstream ss( s );
         vector <string> record;
@@ -186,14 +172,14 @@ int main(int argc, char * argv[]) try
 
     std::cout << "Avg Duration Odom " << duration/double(i) << std::endl;
 
-    WritePinholeCameraTrajectoryToLOG("imu-trajectory.log", imu_trajectory);
+    WritePinholeCameraTrajectory("imu-trajectory.json", imu_trajectory);
 
     if(conf.use_imu){ 
         WriteTriangleMeshToPLY("fragment-with-imu.ply", *mesher.mesh().Download()); 
-        WritePinholeCameraTrajectoryToLOG("trajectory-with-imu.log", trajectory);
+        WritePinholeCameraTrajectory("trajectory-with-imu.json", trajectory);
     } else { 
         WriteTriangleMeshToPLY("fragment-no-imu.ply", *mesher.mesh().Download()); 
-        WritePinholeCameraTrajectoryToLOG("trajectory-no-imu.log", trajectory);
+        WritePinholeCameraTrajectory("trajectory-no-imu.json", trajectory);
     }
     
     display.stop();

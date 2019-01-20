@@ -1,6 +1,8 @@
 #include <iostream>
 #include <Eigen/Geometry>
 #include <vector>
+#include <Core/Core.h>
+#include <Registration/PoseGraph.h>
 #include "pose.h"
 
 const Eigen::Vector3d gravity(0, -9.806, 0);
@@ -14,13 +16,17 @@ Pose::Pose(int frames_per_sec) {
     time_delta = 1.0/fps;
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);
     last_check_idx = 0;
+    pg.nodes_.push_back(open3d::PoseGraphNode(Eigen::Matrix4d::Identity()));
 }
 
 void Pose::Reset(){
     pos = Eigen::Vector3d(0,0,0);
+    vel = Eigen::Vector3d(0,0,0);
+
     path = std::vector<Eigen::Vector3d>();
     orientations = std::vector<Eigen::Quaterniond>();
-    vel = Eigen::Vector3d(0,0,0);
+
+    pg = open3d::PoseGraph();
 }
 
 Eigen::Matrix4d Pose::GetTransform() {
@@ -59,7 +65,7 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
 
     last_timestamp = timestamp;
 
-    MadgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
+    madgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
 
     //Set Orientation obj from quat vals
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);
@@ -82,6 +88,12 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
 }
 
 void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
+
+    // Add our changes to the posegraph 
+    auto s = pg.edges_.size();
+    pg.nodes_.push_back(open3d::PoseGraphNode(wt.inverse()));
+    pg.edges_.push_back(open3d::PoseGraphEdge(s, s+1));
+
     //Convert 4x4 matrix to transform
     Eigen::Transform<double, 3, Eigen::Affine> diff(dt);
     Eigen::Transform<double, 3, Eigen::Affine> world(wt);
@@ -89,7 +101,6 @@ void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
     //Get rotation/translation elements in the world
     Eigen::Quaterniond rotation(world.rotation());
     Eigen::Translation3d translation(world.translation());
-
 
     //Set velocity to translation/time
     Eigen::Translation3d diff_trans(diff.translation());
@@ -102,6 +113,7 @@ void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
     //Add current rotation to last orientation to get current orientation
     orientation = rotation;
 
+    //Reset quaterion values to our current rotation
     q0 = rotation.w();
     q1 = rotation.x();
     q2 = rotation.y();
@@ -112,8 +124,13 @@ void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
     orientations.push_back(orientation);
 }
 
+open3d::PoseGraph Pose::GetGraph() {
+    //TODO:: add final entry to edges/nodes?
+    return pg;
+}
+
 // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
-void Pose::MadgwickUpdate(double gx, double gy, double gz, double ax, double ay, double az) {
+void Pose::madgwickUpdate(double gx, double gy, double gz, double ax, double ay, double az) {
 	double recipNorm;
 	double s0, s1, s2, s3;
 	double qDot1, qDot2, qDot3, qDot4;
@@ -181,15 +198,5 @@ void Pose::MadgwickUpdate(double gx, double gy, double gz, double ax, double ay,
 	q3 *= recipNorm;
 }
 
-// Fast inverse square-root See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
-float invSqrt(float x) {
-	float halfx = 0.5f * x;
-	float y = x;
-	long i = *(long*)&y;
-	i = 0x5f3759df - (i>>1);
-	y = *(float*)&i;
-	y = y * (1.5f - (halfx * y * y));
-	return y;
-}
 
 Pose::~Pose(){ }

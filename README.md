@@ -3,6 +3,12 @@
 
 ```
 
+stream.cpp:
+    Kick off mesher in its own thread
+
+pose.cpp:
+    Pose::Improve - use some combination of rgbdodom + imu readings instead of overwriting completely
+
 combine.cpp:
     PoseGraph Optimization 
         For Combined Mesh? Streaming? 
