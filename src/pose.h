@@ -3,6 +3,7 @@
 #include <vector>
 #include <Core/Core.h>
 #include <Registration/PoseGraph.h>
+#include "SimpleKalmanFilter.h"
 
 #define betaDef		0.05f		// 2 * proportional gain
 
@@ -36,6 +37,10 @@ class Pose {
     //Current orientation of the device
     Eigen::Quaterniond orientation;
 
+    SimpleKalmanFilter skf_x = SimpleKalmanFilter(2,2,1);
+    SimpleKalmanFilter skf_y = SimpleKalmanFilter(2,2,1);
+    SimpleKalmanFilter skf_z = SimpleKalmanFilter(2,2,1);
+
     void madgwickUpdate(double gx, double gy, double gz, double ax, double ay, double az);
 
 public:
@@ -52,13 +57,19 @@ public:
     //Improve Current orientation using RGBDOdometry
     void Improve(Eigen::Matrix4d diff, Eigen::Matrix4d world);
 
+    //Get the difference between imu and odom 
+    std::tuple<double, double, double> Difference(Eigen::Matrix4d odom);
+
     void Reset();
+
+    void PrintState();
 
     open3d::PoseGraph GetGraph();
 
     //Used for gl display
     Eigen::Quaterniond GetOrientation() { return orientation; }
 
+    
 
     virtual ~Pose();
 };

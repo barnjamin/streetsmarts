@@ -34,6 +34,7 @@ public:
 
     bool use_imu;
     bool use_filter;
+    bool write_losses;
 
     rs2::decimation_filter dec_filter;
     rs2::spatial_filter spat_filter;

@@ -4,6 +4,7 @@
 #include <Core/Core.h>
 #include <Registration/PoseGraph.h>
 #include "pose.h"
+#include <math.h>
 
 const Eigen::Vector3d gravity(0, -9.806, 0);
 
@@ -16,6 +17,7 @@ Pose::Pose(int frames_per_sec) {
     time_delta = 1.0/fps;
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);
     last_check_idx = 0;
+
     pg.nodes_.push_back(open3d::PoseGraphNode(Eigen::Matrix4d::Identity()));
 }
 
@@ -29,19 +31,47 @@ void Pose::Reset(){
     pg = open3d::PoseGraph();
 }
 
+std::tuple<double, double, double> Pose::Difference(Eigen::Matrix4d odom){
+
+    if(path.size()== 0) {
+        return std::make_tuple(0.0, 0.0, 0.0);
+    }
+    Eigen::Transform<double, 3, Eigen::Affine> o_trans(odom);
+
+    //Get difference of rotation elements in the world
+    Eigen::Quaterniond odom_rotation(o_trans.rotation());
+    Eigen::Quaterniond imu_rotation = (orientation * orientations[last_check_idx].inverse());
+    Eigen::Quaterniond or_diff = imu_rotation * odom_rotation.inverse();
+    Eigen::Vector3d qmag = or_diff.norm() * Eigen::Vector3d(1,1,1);
+    double qdiff = abs(log(qmag.dot(qmag)/3.0));
+     
+    //Get difference of translation elements
+    Eigen::Vector3d odom_translation(o_trans.translation());
+    Eigen::Vector3d imu_translation(pos - path[last_check_idx]);
+    Eigen::Vector3d dist = imu_translation - odom_translation;
+    double tdiff = dist.dot(dist);
+
+    //Get difference of velocity 
+    Eigen::Vector3d veldiff = vel - (odom_translation / time_delta);
+    double vdiff = veldiff.dot(veldiff);
+
+    return std::make_tuple(qdiff, tdiff, vdiff);
+}
+
 Eigen::Matrix4d Pose::GetTransform() {
-    if (path.size() == 0) {
+    if(path.size()== 0) {
         return Eigen::Matrix4d::Identity();
     }
-
     // Find the translation between last check and current 
     Eigen::Translation3d t_diff(pos - path[last_check_idx]);
+
+    //std::cout << t_diff.x() << " " << t_diff.y() << " "<< t_diff.z() << std::endl;
 
     // Find the orientation difference between last check and current
     Eigen::Quaterniond o_diff = (orientation * orientations[last_check_idx].inverse());
 
     // Combine to Create Transform
-    Eigen::Transform<double, 3, Eigen::Affine> t =  t_diff * o_diff.normalized().toRotationMatrix();
+    Eigen::Transform<double, 3, Eigen::Affine> t =  t_diff   * o_diff.normalized().toRotationMatrix();
 
     // Update last check idx
     last_check_idx = path.size() - 1;
@@ -49,6 +79,11 @@ Eigen::Matrix4d Pose::GetTransform() {
     return t.matrix();
 }
 
+void Pose::PrintState(){
+    std::cout << "Vel: " << vel << std::endl;
+    std::cout << "Pos: " << pos << std::endl;
+    std::cout << "Quat: " << orientation.w() << " " << orientation.x() << " " << orientation.y() << " "<< orientation.z() << std::endl;
+}
 void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double timestamp) {
     // Update quaternion through Madgwick filter
     if(last_timestamp != 0){
@@ -60,8 +95,6 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
 
         time_delta = delta;
     }
-
-    //std::cout << time_delta << std::endl;
 
     last_timestamp = timestamp;
 
@@ -76,19 +109,20 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     auto accel_rot = rot * accel_raw;
     auto world_accel = accel_rot - gravity;
 
+    // Compute position from velocity
+    pos[0] = pos[0] + (vel[0] * time_delta) + (world_accel[0] * (time_delta*time_delta))/2;    
+    pos[1] = pos[1] + (vel[1] * time_delta) + (world_accel[1] * (time_delta*time_delta))/2;    
+    pos[2] = pos[2] + (vel[2] * time_delta) + (world_accel[2] * (time_delta*time_delta))/2;    
+
+    //std::cout << "World accel: " << world_accel << std::cout;
     // Compute Velocity from accel
     vel[0] = vel[0] + (world_accel[0] * time_delta);
     vel[1] = vel[1] + (world_accel[1] * time_delta);
     vel[2] = vel[2] + (world_accel[2] * time_delta);
 
-    // Compute position from velocity
-    pos[0] = pos[0] + (vel[0] * time_delta) + (world_accel[0] * (time_delta*time_delta))/2;    
-    pos[1] = pos[1] + (vel[1] * time_delta) + (world_accel[1] * (time_delta*time_delta))/2;    
-    pos[2] = pos[2] + (vel[2] * time_delta) + (world_accel[2] * (time_delta*time_delta))/2;    
 }
 
 void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
-
     // Add our changes to the posegraph 
     auto s = pg.edges_.size();
     pg.nodes_.push_back(open3d::PoseGraphNode(wt.inverse()));
@@ -105,6 +139,7 @@ void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
     //Set velocity to translation/time
     Eigen::Translation3d diff_trans(diff.translation());
     Eigen::Vector3d trpos(diff_trans.x(), diff_trans.y(), diff_trans.z());
+    //std::cout << trpos << std::endl;
     vel = trpos / time_delta;
 
     //Add translation to last path element to get current position
@@ -197,6 +232,5 @@ void Pose::madgwickUpdate(double gx, double gy, double gz, double ax, double ay,
 	q2 *= recipNorm;
 	q3 *= recipNorm;
 }
-
 
 Pose::~Pose(){ }

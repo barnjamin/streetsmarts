@@ -36,6 +36,7 @@ Config::Config() {
 
     use_imu             = true;
     use_filter          = false;
+    write_losses        = false;
 }
 
 Config::Config(std::string fname) {
@@ -123,6 +124,8 @@ void Config::parseArgs(int argc, char **argv) {
       use_imu = false;
     }else if(flag == "--filter"){
       use_filter = true;
+    }else if(flag == "--losses"){
+      write_losses = true;
     }
   }
 

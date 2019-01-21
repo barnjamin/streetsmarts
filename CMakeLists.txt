@@ -61,26 +61,26 @@ set(DEPENDENCIES
 )
 
 
-set(CLUSTER_SOURCE src/cluster.cpp src/utils.cpp src/config.cpp)
+set(CLUSTER_SOURCE src/cluster.cpp src/utils.cpp src/config.cpp src/SimpleKalmanFilter.cpp)
 add_executable(cluster ${CLUSTER_SOURCE})
 target_link_libraries(cluster ${DEPENDENCIES})
 
-set(STREAM_SOURCE src/stream.cpp src/utils.cpp src/pose.cpp src/display.cpp src/config.cpp)
+set(STREAM_SOURCE src/stream.cpp src/utils.cpp src/pose.cpp src/display.cpp src/config.cpp src/SimpleKalmanFilter.cpp)
 add_executable(stream ${STREAM_SOURCE})
 target_link_libraries(stream ${DEPENDENCIES})
 
-set(RECORD_SOURCE src/record.cpp src/utils.cpp src/config.cpp)
+set(RECORD_SOURCE src/record.cpp src/utils.cpp src/config.cpp src/SimpleKalmanFilter.cpp)
 add_executable(record ${RECORD_SOURCE})
 target_link_libraries(record ${DEPENDENCIES})
 
-set(PLAYBACK_SOURCE src/playback.cpp src/utils.cpp src/pose.cpp src/display.cpp src/config.cpp)
+set(PLAYBACK_SOURCE src/playback.cpp src/utils.cpp src/pose.cpp src/display.cpp src/config.cpp src/SimpleKalmanFilter.cpp)
 add_executable(playback ${PLAYBACK_SOURCE})
 target_link_libraries(playback ${DEPENDENCIES})
 
-set(ANALYZE_SOURCE src/analyze.cpp src/config.cpp)
+set(ANALYZE_SOURCE src/analyze.cpp src/config.cpp src/SimpleKalmanFilter.cpp)
 add_executable(analyze ${ANALYZE_SOURCE})
 target_link_libraries(analyze ${DEPENDENCIES})
 
-set(COMBINE_SOURCE src/combine.cpp src/utils.cpp src/config.cpp)
+set(COMBINE_SOURCE src/combine.cpp src/utils.cpp src/config.cpp src/SimpleKalmanFilter.cpp)
 add_executable(combine ${COMBINE_SOURCE})
 target_link_libraries(combine ${DEPENDENCIES})
