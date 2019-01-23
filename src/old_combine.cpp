@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
 
     PinholeCameraTrajectory trajectory;
     ReadPinholeCameraTrajectory("/home/ben/streetsmarts/build/new-trajectory.json", trajectory);
+    //ReadPinholeCameraTrajectory("/home/ben/streetsmarts/build/trajectory.json", trajectory);
 
     std::vector<std::shared_ptr<const Geometry>> pcds;
 

@@ -19,7 +19,12 @@ combine.cpp:
 
 
 pose.cpp:
-    Pose::Improve - use some combination of rgbdodom + imu readings instead of overwriting completely
+
+    holy shit im dumb
+
+    need to predict transformation to see odom based on what the camera is looking at not where it is
+    same with pose::improve, should math out the movement of the camera based on the transform of what its looking at
+
 
     
 analyze.cpp:
