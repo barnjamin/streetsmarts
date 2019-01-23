@@ -5,7 +5,7 @@
 #include <Registration/PoseGraph.h>
 #include "SimpleKalmanFilter.h"
 
-#define betaDef		0.05f		// 2 * proportional gain
+#define betaDef		0.08f // 2 * proportional gain
 
 
 float invSqrt(float x);
@@ -47,6 +47,7 @@ public:
     //Initialize vectors
     Pose();    
     Pose(int fps);    
+    virtual ~Pose();
 
     //Get the transform from the last check to now
     Eigen::Matrix4d GetTransform();
@@ -60,16 +61,15 @@ public:
     //Get the difference between imu and odom 
     std::tuple<double, double, double> Difference(Eigen::Matrix4d odom);
 
+    //Reset the pose estimation
     void Reset();
 
+    //
     void PrintState();
 
+    //Return the aggregated pose graph
     open3d::PoseGraph GetGraph();
 
     //Used for gl display
     Eigen::Quaterniond GetOrientation() { return orientation; }
-
-    
-
-    virtual ~Pose();
 };

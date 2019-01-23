@@ -92,3 +92,7 @@ target_link_libraries(old_combine ${DEPENDENCIES})
 set(ICP_SOURCE src/ICP.cpp src/utils.cpp src/config.cpp src/pose.cpp src/SimpleKalmanFilter.cpp)
 add_executable(icp ${ICP_SOURCE})
 target_link_libraries(icp ${DEPENDENCIES})
+
+set(CALLBACK_SOURCE src/rs-callback.cpp src/utils.cpp src/config.cpp src/pose.cpp src/SimpleKalmanFilter.cpp src/display.cpp)
+add_executable(callback ${CALLBACK_SOURCE})
+target_link_libraries(callback ${DEPENDENCIES})

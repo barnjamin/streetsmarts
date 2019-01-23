@@ -43,7 +43,7 @@ Eigen::Matrix4d Pose::GetTransform() {
     Eigen::Quaterniond o_diff = (orientation * orientations[last_check_idx].inverse());
 
     // Combine to Create Transform
-    Eigen::Transform<double, 3, Eigen::Affine> t =  t_diff   * o_diff.normalized().toRotationMatrix();
+    Eigen::Transform<double, 3, Eigen::Affine> t =  t_diff * o_diff.normalized().toRotationMatrix();
 
     // Update last check idx
     last_check_idx = path.size() - 1;
@@ -135,16 +135,18 @@ std::tuple<double, double, double> Pose::Difference(Eigen::Matrix4d odom){
 
     Eigen::Transform<double, 3, Eigen::Affine> o_trans(odom);
 
+    Eigen::Transform<double, 3, Eigen::Affine> i_trans(GetTransform());
+
     //Get difference of rotation elements in the world
     Eigen::Quaterniond odom_rotation(o_trans.rotation());
-    Eigen::Quaterniond imu_rotation = (orientation * orientations[last_check_idx].inverse());
+    Eigen::Quaterniond imu_rotation(i_trans.rotation());
     Eigen::Quaterniond or_diff = imu_rotation * odom_rotation.inverse();
     Eigen::Vector3d qmag = or_diff.norm() * Eigen::Vector3d(1,1,1);
-    double qdiff = abs(log(qmag.dot(qmag)/3.0));
+    double qdiff = qmag.dot(qmag)/3.0;
      
     //Get difference of translation elements
     Eigen::Vector3d odom_translation(o_trans.translation());
-    Eigen::Vector3d imu_translation(pos - path[last_check_idx]);
+    Eigen::Vector3d imu_translation(i_trans.translation());
     Eigen::Vector3d dist = imu_translation - odom_translation;
     double tdiff = dist.dot(dist);
 

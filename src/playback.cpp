@@ -69,12 +69,11 @@ int main(int argc, char * argv[]) try
     Eigen::Matrix4d target_to_world = Eigen::Matrix4d::Identity();
     
 
-
     ofstream fout;
     if(conf.write_losses){
-        string log_filename = "odometry_less_assoc_step_raw.log";
+        string log_filename = "odom_losses_raw.log";
         if(conf.use_imu){
-            log_filename = "odometry_less_assoc_step_imu.log";
+            log_filename = "odom_losses_imu.log";
         }
 
         fout  = ofstream(log_filename);
@@ -129,14 +128,13 @@ int main(int argc, char * argv[]) try
             rgbd_prev.CopyFrom(rgbd_curr);
             continue;
         }
+
         
-        Eigen::Matrix4d tranny = Eigen::Matrix4d::Identity();
         if(conf.use_imu){
-            tranny = pose.GetTransform();
+            odometry.transform_source_to_target_ = pose.GetTransform();
+        }else{
+            odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
         }
-
-        odometry.transform_source_to_target_ =  tranny;
-
 
         odometry.Initialize(rgbd_curr, rgbd_prev);
 
@@ -144,6 +142,17 @@ int main(int argc, char * argv[]) try
         std::tie(success, delta, losses) = odometry.ComputeMultiScale();
         t.Stop();
         duration += t.GetDuration();
+
+        if(i%conf.fps==0){
+            double qd, td, vd;
+            std::tie(qd, td, vd) = pose.Difference(odometry.transform_source_to_target_);
+
+            std::cout << "QD: "<< qd << std::endl;
+            std::cout << "TD: "<< td << std::endl;
+            std::cout << "VD: "<< vd << std::endl;
+        }
+
+        //if(i == 10){ return 0; }
 
         if (conf.write_losses) {
             WriteLossesToLog(fout, i, losses);
@@ -173,18 +182,14 @@ int main(int argc, char * argv[]) try
         trajectory.parameters_.emplace_back(params);
 
         timer.Signal();
-        i++;
     }
     std::cout << "Took: " << duration/i << "ms Per frame" <<std::endl;
 
     tsdf_volume.GetAllSubvolumes();
     mesher.MarchingCubes(tsdf_volume);
 
-
     std::string suffix = "no-imu";
-    if(conf.use_imu){ 
-        suffix = "imu";
-    }
+    if(conf.use_imu){ suffix = "imu"; }
 
     WriteTriangleMeshToPLY("fragment-"+suffix+".ply", *mesher.mesh().Download()); 
 
