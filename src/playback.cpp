@@ -176,36 +176,19 @@ int main(int argc, char * argv[]) try
             WriteLossesToLog(fout, i, losses);
         }
 
-        //Compare Pose Suggested 
-
         if(!success) {
-
-        /*
-
-            When we've computed transform, animate transformation onto other image
-
-            compare transform suggested with odom computed where pose && computed differ by a lot
-
-            compute distance in translation and quaterion difference from odom pose
-            
-            approve/decline
-            
-        */
-            
             rgbd_prev.CopyFrom(rgbd_curr);
             continue;
         }
 
-        double qd, td, vd;
-        std::tie(qd, td, vd) = pose.Difference(odometry.transform_source_to_target_);
-
         //pose.PrintState();
+
+        //double qd, td, vd;
+        //std::tie(qd, td, vd) = pose.Difference(odometry.transform_source_to_target_);
         //std::cout << i << "," << qd << ","<< td << "," << vd << std::endl;
 
         //Draw Estimated Pose transform vs Odom transform 
-         
         //std::shared_ptr<RGBDImage> curr = CreateRGBDImageFromColorAndDepth(*depth_image_ptr, *color_image_ptr);
-
         //auto imu_pc = CreatePointCloudFromRGBDImage(*curr, intrinsics, tranny);
         //imu_pc->PaintUniformColor(Eigen::Vector3d(0.5,0,0));
 
@@ -219,11 +202,6 @@ int main(int argc, char * argv[]) try
         //visualizer.PollEvents();
         //visualizer.UpdateGeometry(); 
 
-
-        //std::cout << qd  << std::endl;
-        //std::cout << td  << std::endl;
-        //std::cout << vd  << std::endl;
-
         target_to_world = target_to_world * odometry.transform_source_to_target_;
 
         //Reset Quaternion using odometry values
@@ -233,7 +211,6 @@ int main(int argc, char * argv[]) try
 
         extrinsics.FromEigen(target_to_world);
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
-
 
         //if (i > 0 && int(i % conf.fps/2) == 0) {
         //    //std::cout << "Frame: " << i << std::endl << std::endl << std::endl;

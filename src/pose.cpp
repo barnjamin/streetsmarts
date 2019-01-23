@@ -63,7 +63,7 @@ Eigen::Matrix4d Pose::GetTransform() {
         return Eigen::Matrix4d::Identity();
     }
     // Find the translation between last check and current 
-    Eigen::Translation3d t_diff(pos - path[last_check_idx]);
+    Eigen::Translation3d t_diff((pos - path[last_check_idx])/2);
 
     //std::cout << t_diff.x() << " " << t_diff.y() << " "<< t_diff.z() << std::endl;
 
@@ -76,7 +76,7 @@ Eigen::Matrix4d Pose::GetTransform() {
     // Update last check idx
     last_check_idx = path.size() - 1;
 
-    return t.matrix();
+    return t.matrix().inverse();
 }
 
 void Pose::PrintState(){
@@ -114,7 +114,6 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     pos[1] = pos[1] + (vel[1] * time_delta) + (world_accel[1] * (time_delta*time_delta))/2;    
     pos[2] = pos[2] + (vel[2] * time_delta) + (world_accel[2] * (time_delta*time_delta))/2;    
 
-    //std::cout << "World accel: " << world_accel << std::cout;
     // Compute Velocity from accel
     vel[0] = vel[0] + (world_accel[0] * time_delta);
     vel[1] = vel[1] + (world_accel[1] * time_delta);
@@ -128,19 +127,18 @@ void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
     pg.nodes_.push_back(open3d::PoseGraphNode(wt.inverse()));
     pg.edges_.push_back(open3d::PoseGraphEdge(s, s+1));
 
+    //From source=>target to target=>source
+    dt = dt.inverse().eval();
+
+    //From target=>world to world=>target
+    wt = wt.inverse().eval();
+
     //Convert 4x4 matrix to transform
-    Eigen::Transform<double, 3, Eigen::Affine> diff(dt);
     Eigen::Transform<double, 3, Eigen::Affine> world(wt);
 
     //Get rotation/translation elements in the world
     Eigen::Quaterniond rotation(world.rotation());
     Eigen::Translation3d translation(world.translation());
-
-    //Set velocity to translation/time
-    Eigen::Translation3d diff_trans(diff.translation());
-    Eigen::Vector3d trpos(diff_trans.x(), diff_trans.y(), diff_trans.z());
-    //std::cout << trpos << std::endl;
-    vel = trpos / time_delta;
 
     //Add translation to last path element to get current position
     pos = Eigen::Vector3d(translation.x(), translation.y(), translation.z());
@@ -153,6 +151,12 @@ void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
     q1 = rotation.x();
     q2 = rotation.y();
     q3 = rotation.z();
+
+    //Set velocity to translation/time
+    Eigen::Transform<double, 3, Eigen::Affine> diff(dt);
+    Eigen::Translation3d diff_trans(diff.translation());
+    Eigen::Vector3d trpos(diff_trans.x(), diff_trans.y(), diff_trans.z());
+    vel = trpos / time_delta;
 
     // Add our changes to the list
     path.push_back(pos);

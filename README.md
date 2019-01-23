@@ -4,14 +4,23 @@
 ```
 
 stream.cpp:
-    Kick off mesher in its own thread
+    When to save file -- X Seconds, X frames, Some gap or inconsistency
+
+    Kick off mesher in its own thread?
+
+combine.cpp:
+    Combine Using ICP 
+
+    Generate PoseGraph
+
+    Generate TSDF of whole scan
+
+    What is PoseGraph Optimizer?
+
 
 pose.cpp:
     Pose::Improve - use some combination of rgbdodom + imu readings instead of overwriting completely
 
-combine.cpp:
-    PoseGraph Optimization 
-        For Combined Mesh? Streaming? 
     
 analyze.cpp:
     Load Point Cloud - Combined or Stream

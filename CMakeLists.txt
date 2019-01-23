@@ -81,6 +81,14 @@ set(ANALYZE_SOURCE src/analyze.cpp src/config.cpp src/SimpleKalmanFilter.cpp)
 add_executable(analyze ${ANALYZE_SOURCE})
 target_link_libraries(analyze ${DEPENDENCIES})
 
-set(COMBINE_SOURCE src/combine.cpp src/utils.cpp src/config.cpp src/SimpleKalmanFilter.cpp)
+set(COMBINE_SOURCE src/combine.cpp src/utils.cpp src/config.cpp)
 add_executable(combine ${COMBINE_SOURCE})
 target_link_libraries(combine ${DEPENDENCIES})
+
+set(OLD_COMBINE_SOURCE src/old_combine.cpp src/utils.cpp src/config.cpp)
+add_executable(old_combine ${OLD_COMBINE_SOURCE})
+target_link_libraries(old_combine ${DEPENDENCIES})
+
+set(ICP_SOURCE src/ICP.cpp src/utils.cpp src/config.cpp src/pose.cpp src/SimpleKalmanFilter.cpp)
+add_executable(icp ${ICP_SOURCE})
+target_link_libraries(icp ${DEPENDENCIES})

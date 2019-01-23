@@ -92,14 +92,23 @@ int main(int argc, char * argv[]) try
     //Discard waiting for auto exposure
     for(int x = 0; x<conf.framestart; x++) pipe.wait_for_frames();
 
+    rs2::frame color_frame, depth_frame;
+
     std::cout << "Reading frames..." << std::endl;
     for(int x=0; x<conf.frames; x++) {
         auto frameset = pipe.wait_for_frames();
 
         frameset = align.process(frameset);
 
-        cv::Mat color = frame_to_mat(frameset.first(RS2_STREAM_COLOR));
-        cv::Mat depth = frame_to_mat(frameset.get_depth_frame());
+        color_frame = frameset.first(RS2_STREAM_COLOR);
+        depth_frame = frameset.get_depth_frame();	       
+
+        if(conf.use_filter){
+            depth_frame = conf.filter(depth_frame);
+        }
+
+        cv::Mat color = frame_to_mat(color_frame);
+        cv::Mat depth = frame_to_mat(depth_frame);
 
         cv::imwrite(dirname+"/color/"+std::to_string(x)+".jpg", color);
         cv::imwrite(dirname+"/depth/"+std::to_string(x)+".png", depth);

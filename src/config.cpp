@@ -9,7 +9,7 @@ Config::Config() {
 
     fps      	= 30;
     frames      = 180;
-    framestart  = 10; //Number of frames to discard at the start
+    framestart  = 30; //Number of frames to discard at the start
 
     width 	= 640;
     height 	= 480;
@@ -20,7 +20,6 @@ Config::Config() {
     spat_d      = 25;
     temp_a      = 0.5;
     temp_d      = 50;
-
 
     depth_to_disparity = rs2::disparity_transform(true);
     disparity_to_depth = rs2::disparity_transform(false);
