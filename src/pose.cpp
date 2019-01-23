@@ -18,6 +18,9 @@ Pose::Pose(int frames_per_sec) {
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);
     last_check_idx = 0;
 
+    pos = Eigen::Vector3d(0,0,0);
+    vel = Eigen::Vector3d(0,0,0);
+
     pg.nodes_.push_back(open3d::PoseGraphNode(Eigen::Matrix4d::Identity()));
 }
 
@@ -56,13 +59,10 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     if(last_timestamp > 1){
         auto delta = timestamp - last_timestamp;
 
-        if (delta == 0) {
-            return;
-        }
+        if (delta == 0) { return; }
 
         time_delta = delta;
     }
-
     last_timestamp = timestamp;
 
     madgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
@@ -87,9 +87,9 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     vel[2] = vel[2] + (world_accel[2] * time_delta);
 }
 
-void Pose::Improve(Eigen::Matrix4d camera_transform){
+void Pose::Improve(Eigen::Matrix4d cam_trans){
     //From world=>camera to camera=>world
-    camera_transform = camera_transform.inverse().eval();
+    auto camera_transform = cam_trans.inverse().eval();
 
     // Add our changes to the posegraph 
     auto s = pg.edges_.size();

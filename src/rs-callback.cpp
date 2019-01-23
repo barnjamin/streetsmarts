@@ -30,11 +30,6 @@ int main(int argc, char * argv[]) try
     cfg.enable_stream(RS2_STREAM_ACCEL);
     cfg.enable_stream(RS2_STREAM_GYRO);
 
-
-    // Define frame callback
-    // The callback is executed on a sensor thread and can be called simultaneously from multiple sensors
-    // Therefore any modification to common memory should be done under lock
-
     Pose pose(200);
 
     rs2_vector accel_data, gyro_data;
@@ -46,9 +41,19 @@ int main(int argc, char * argv[]) try
     {
         std::lock_guard<std::mutex> lock(mutex);
         if (rs2::frameset fs = frame.as<rs2::frameset>()) {
-            // Depth/Color  
-            //for (const rs2::frame& f : fs)
-            //    std::cout << "frameset frame: " << f.get_profile().unique_id() << std::endl;
+            //frameset = align.process(frameset);
+
+            //color_frame = frameset.first(RS2_STREAM_COLOR);
+            //depth_frame = frameset.get_depth_frame();	       
+
+            //if(conf.use_filter){
+            //    depth_frame = conf.filter(depth_frame);
+            //}
+
+            //if (!depth_frame || !color_frame) { continue; }
+
+
+
 
         } else { //Gyro/Accel
             if(frame.get_profile().stream_type() == RS2_STREAM_ACCEL){

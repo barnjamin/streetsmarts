@@ -87,6 +87,7 @@ int main(int argc, char * argv[]) try
     ifstream imu_file(dirname + "/imu.csv");
 
     Pose pose(30);
+    Display d(argc, argv, &pose);
     Timer t;
     double duration = 0.0;
     int i = 0;
@@ -96,6 +97,7 @@ int main(int argc, char * argv[]) try
     Eigen::Matrix4d delta;
     std::vector<std::vector<float>> losses;
 
+    d.start();
     while(imu_file){
         string s;
         if(!getline(imu_file, s)) break;
@@ -193,6 +195,7 @@ int main(int argc, char * argv[]) try
 
     WriteTriangleMeshToPLY("fragment-"+suffix+".ply", *mesher.mesh().Download()); 
 
+    d.stop();
     //WritePinholeCameraTrajectoryToLOG("trajectory-"+suffix+".log", trajectory);
     //WritePinholeCameraTrajectory("trajectory-"+suffix+".log", trajectory);
     //WriteIJsonConvertible("pose-graph-"+suffix+".json", pose.GetGraph());

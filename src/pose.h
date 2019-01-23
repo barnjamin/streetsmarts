@@ -5,7 +5,7 @@
 #include <Registration/PoseGraph.h>
 #include "SimpleKalmanFilter.h"
 
-#define betaDef		0.08f // 2 * proportional gain
+#define betaDef		0.05f // 2 * proportional gain
 
 
 float invSqrt(float x);
@@ -72,4 +72,5 @@ public:
 
     //Used for gl display
     Eigen::Quaterniond GetOrientation() { return orientation; }
+    Eigen::Vector3d GetPosition() { return pos; }
 };

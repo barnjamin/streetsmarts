@@ -68,27 +68,27 @@ int main(int argc, char * argv[]) try
     
     FPSTimer timer("Process RGBD stream", conf.frames);
 
-    Visualizer visualizer;
-    if (!visualizer.CreateVisualizerWindow("Sequential IC RGBD Odometry", 1920, 1080, 0, 0)) {
-        PrintWarning("Failed creating OpenGL window.\n");
-        return -1;
-    }
-    visualizer.BuildUtilities();
-    visualizer.UpdateWindowTitle();
+    //Visualizer visualizer;
+    //if (!visualizer.CreateVisualizerWindow("Sequential IC RGBD Odometry", 1920, 1080, 0, 0)) {
+    //    PrintWarning("Failed creating OpenGL window.\n");
+    //    return -1;
+    //}
+    //visualizer.BuildUtilities();
+    //visualizer.UpdateWindowTitle();
 
     std::shared_ptr<TriangleMeshCuda> mesh = std::make_shared<TriangleMeshCuda>();
-    visualizer.AddGeometry(mesh);
+    //visualizer.AddGeometry(mesh);
 
-    ViewParameters vp;
-    vp.boundingbox_max_ = Eigen::Vector3d(10,10,10); 
-    vp.boundingbox_min_ = Eigen::Vector3d(0,0,0); 
-    vp.field_of_view_ = 60; 
-    vp.front_ = Eigen::Vector3d(0,0,-1); 
-    vp.lookat_ = Eigen::Vector3d(1,0,0); 
-    vp.up_ = Eigen::Vector3d(0,-1,0); 
-    vp.zoom_ = 0.5;
+    //ViewParameters vp;
+    //vp.boundingbox_max_ = Eigen::Vector3d(10,10,10); 
+    //vp.boundingbox_min_ = Eigen::Vector3d(0,0,0); 
+    //vp.field_of_view_ = 60; 
+    //vp.front_ = Eigen::Vector3d(0,0,-1); 
+    //vp.lookat_ = Eigen::Vector3d(1,0,0); 
+    //vp.up_ = Eigen::Vector3d(0,-1,0); 
+    //vp.zoom_ = 0.5;
 
-    visualizer.GetViewControl().ConvertFromViewParameters(vp);
+    //visualizer.GetViewControl().ConvertFromViewParameters(vp);
 
 
     int save_index = 0;
@@ -97,7 +97,9 @@ int main(int argc, char * argv[]) try
     rs2::frame color_frame, depth_frame;
     rs2_vector accel_data, gyro_data;
     
+    
     Pose pose(conf.fps);
+
 
     bool success;
     Eigen::Matrix4d delta;
@@ -107,6 +109,9 @@ int main(int argc, char * argv[]) try
 
     PrintInfo("Discarding first %d frames\n", conf.framestart);
     for(int i=0; i<conf.framestart; i++) rs2::frameset frameset = pipe.wait_for_frames(); 
+
+    Display d(argc, argv, &pose);
+    d.start();
 
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
     //for(int i = 0; i<1e8; i++){
@@ -128,6 +133,15 @@ int main(int argc, char * argv[]) try
         memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
+
+        //Upload images to GPU
+        rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
+
+        if(i==0) {
+            rgbd_prev.CopyFrom(rgbd_curr);
+            continue;
+        }
+
         // Get IMU Values
         auto accel_frame = frameset.first(RS2_STREAM_ACCEL).as<rs2::motion_frame>();
         auto gyro_frame  = frameset.first(RS2_STREAM_GYRO).as<rs2::motion_frame>();
@@ -140,14 +154,6 @@ int main(int argc, char * argv[]) try
 
         // Update Pose Estimate
         pose.Update(accel, gyro, gyro_frame.get_timestamp()/1000);
-        
-        //Upload images to GPU
-        rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
-
-        if(i==0) {
-            rgbd_prev.CopyFrom(rgbd_curr);
-            continue;
-        }
 
         //Seed transform with current estimate
         if(conf.use_imu){
@@ -162,13 +168,13 @@ int main(int argc, char * argv[]) try
         //Compute Odometry
         std::tie(success, delta, losses) = odometry.ComputeMultiScale();
 
+
+        //double qd, td, vd;
+        //std::tie(qd, td, vd) = pose.Difference(odometry.transform_source_to_target_);
+        //PrintInfo("Qd: %.6f Td: %.6f Vd: %.6f\n", qd, td, vd);
+
         if(!success){
-
-            //WriteTriangleMeshToPLY( "fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
-            //tsdf_volume.Reset();
-            //i = 0;
-            //save_index++;
-
+            return 0;
             rgbd_prev.CopyFrom(rgbd_curr);
             continue;
         }
@@ -176,34 +182,31 @@ int main(int argc, char * argv[]) try
         //Update Target to world
         target_to_world = target_to_world * odometry.transform_source_to_target_;
 
+        //Integrate
+        extrinsics.FromEigen(target_to_world);
+        tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
+
         //Improve Pose Estimation using odometry values
         if(conf.use_imu){
             pose.Improve(target_to_world);
         }
 
-        //Integrate
-        extrinsics.FromEigen(target_to_world);
-        tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
+       // if (i % conf.fps == 0) {
+       //     tsdf_volume.GetAllSubvolumes();
 
-        if (i % conf.fps == 0) {
-            tsdf_volume.GetAllSubvolumes();
+       //     mesher.MarchingCubes(tsdf_volume);
+       //     *mesh = mesher.mesh();
 
-            mesher.MarchingCubes(tsdf_volume);
-            *mesh = mesher.mesh();
+       //     visualizer.PollEvents();
+       //     visualizer.UpdateGeometry(); 
 
-            visualizer.PollEvents();
-            visualizer.UpdateGeometry(); 
-
-            if(i % (conf.fps*3) == 0){
-                WriteTriangleMeshToPLY( "fragment-" + std::to_string(save_index) + ".ply", *(mesh->Download()));
-
-                tsdf_volume.Reset();
-                save_index++;
-            }
-
-            //pose.Reset();
-        }
-        
+       //     if(i % (conf.fps*3) == 0){
+       //         WriteTriangleMeshToPLY( "fragment-" 
+       //               + std::to_string(save_index) + ".ply", *(mesh->Download()));
+       //         tsdf_volume.Reset();
+       //         save_index++;
+       //     }
+       // }
 
         PinholeCameraParameters params;
         params.intrinsic_ =  intrinsics;
@@ -222,6 +225,8 @@ int main(int argc, char * argv[]) try
 
     WritePoseGraph("pose_graph.json", pose.GetGraph());
     WritePinholeCameraTrajectory("trajectory.json", trajectory);
+
+    d.stop();
 
     return EXIT_SUCCESS;
 

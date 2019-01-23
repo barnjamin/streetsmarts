@@ -16,6 +16,7 @@ void display() {
     glLoadIdentity();
     gluLookAt(-4, 6, -5, 0, 0, 0, 0, 1, 0);
 
+    auto p = gpose->GetPosition();
     auto q = gpose->GetOrientation();
     auto e = q.toRotationMatrix().eulerAngles(0,1,2);
 
@@ -23,8 +24,10 @@ void display() {
     glRotatef(e[1]*180/M_PI, 0, 1, 0);
     glRotatef(e[2]*180/M_PI, 0, 0, 1);
 
+    glTranslated(p[0], p[1], p[2]);
+
     glColor3f(1.0, 1.0, 1.0);
-    glutWireTorus(0.5, 3, 15, 30);
+    glutWireTorus(0.05, 1, 5, 10);
 
     // Draw a red x-axis, a green y-axis, and a blue z-axis.  Each of the
     // axes are ten units long.
