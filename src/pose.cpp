@@ -31,34 +31,6 @@ void Pose::Reset(){
     pg = open3d::PoseGraph();
 }
 
-std::tuple<double, double, double> Pose::Difference(Eigen::Matrix4d odom){
-
-    if(path.size()== 0) {
-        return std::make_tuple(0.0, 0.0, 0.0);
-    }
-
-    Eigen::Transform<double, 3, Eigen::Affine> o_trans(odom);
-
-    //Get difference of rotation elements in the world
-    Eigen::Quaterniond odom_rotation(o_trans.rotation());
-    Eigen::Quaterniond imu_rotation = (orientation * orientations[last_check_idx].inverse());
-    Eigen::Quaterniond or_diff = imu_rotation * odom_rotation.inverse();
-    Eigen::Vector3d qmag = or_diff.norm() * Eigen::Vector3d(1,1,1);
-    double qdiff = abs(log(qmag.dot(qmag)/3.0));
-     
-    //Get difference of translation elements
-    Eigen::Vector3d odom_translation(o_trans.translation());
-    Eigen::Vector3d imu_translation(pos - path[last_check_idx]);
-    Eigen::Vector3d dist = imu_translation - odom_translation;
-    double tdiff = dist.dot(dist);
-
-    //Get difference of velocity 
-    Eigen::Vector3d veldiff = vel - (odom_translation / time_delta);
-    double vdiff = veldiff.dot(veldiff);
-
-    return std::make_tuple(qdiff, tdiff, vdiff);
-}
-
 Eigen::Matrix4d Pose::GetTransform() {
     if(path.size()== 0) {
         return Eigen::Matrix4d::Identity();
@@ -79,11 +51,6 @@ Eigen::Matrix4d Pose::GetTransform() {
     return t.matrix().inverse();
 }
 
-void Pose::PrintState(){
-    std::cout << "Vel: " << vel << std::endl;
-    std::cout << "Pos: " << pos << std::endl;
-    std::cout << "Quat: " << orientation.w() << " " << orientation.x() << " " << orientation.y() << " "<< orientation.z() << std::endl;
-}
 void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double timestamp) {
     // Update quaternion through Madgwick filter
     if(last_timestamp > 1){
@@ -120,37 +87,32 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     vel[2] = vel[2] + (world_accel[2] * time_delta);
 }
 
-void Pose::Improve(Eigen::Matrix4d world_transform){
-
+void Pose::Improve(Eigen::Matrix4d camera_transform){
     //From world=>camera to camera=>world
-    auto camera_transform = world_transform.inverse().eval();
+    camera_transform = camera_transform.inverse().eval();
 
     // Add our changes to the posegraph 
     auto s = pg.edges_.size();
     pg.nodes_.push_back(open3d::PoseGraphNode(camera_transform));
-    pg.edges_.push_back(open3d::PoseGraphEdge(s, s+1));
+    pg.edges_.push_back(open3d::PoseGraphEdge(s-1, s));
 
     //Convert 4x4 matrix to transform
     Eigen::Transform<double, 3, Eigen::Affine> camera(camera_transform);
 
-    //Get rotation/translation elements in the world
-    Eigen::Quaterniond rotation(camera.rotation());
-    Eigen::Translation3d translation(camera.translation());
-
-    //Add translation to last path element to get current position
-    pos = Eigen::Vector3d(translation.x(), translation.y(), translation.z());
+    //Set position to the translation component of the inverse world translation 
+    pos = camera.translation();
 
     //Add current rotation to last orientation to get current orientation
-    orientation = rotation;
+    orientation = camera.rotation();
 
     //Reset quaterion values to our current rotation
-    q0 = rotation.w();
-    q1 = rotation.x();
-    q2 = rotation.y();
-    q3 = rotation.z();
+    q0 = orientation.w();
+    q1 = orientation.x();
+    q2 = orientation.y();
+    q3 = orientation.z();
 
-    //Set velocity to translation/time since last element added
     if(path.size()>0){
+        //Set velocity to translation/time since last element added
         Eigen::Vector3d trpos = pos - path.back();
         vel = trpos / time_delta;
     }
@@ -163,6 +125,40 @@ void Pose::Improve(Eigen::Matrix4d world_transform){
 open3d::PoseGraph Pose::GetGraph() {
     //TODO:: add final entry to edges/nodes?
     return pg;
+}
+
+std::tuple<double, double, double> Pose::Difference(Eigen::Matrix4d odom){
+
+    if(path.size()== 0) {
+        return std::make_tuple(0.0, 0.0, 0.0);
+    }
+
+    Eigen::Transform<double, 3, Eigen::Affine> o_trans(odom);
+
+    //Get difference of rotation elements in the world
+    Eigen::Quaterniond odom_rotation(o_trans.rotation());
+    Eigen::Quaterniond imu_rotation = (orientation * orientations[last_check_idx].inverse());
+    Eigen::Quaterniond or_diff = imu_rotation * odom_rotation.inverse();
+    Eigen::Vector3d qmag = or_diff.norm() * Eigen::Vector3d(1,1,1);
+    double qdiff = abs(log(qmag.dot(qmag)/3.0));
+     
+    //Get difference of translation elements
+    Eigen::Vector3d odom_translation(o_trans.translation());
+    Eigen::Vector3d imu_translation(pos - path[last_check_idx]);
+    Eigen::Vector3d dist = imu_translation - odom_translation;
+    double tdiff = dist.dot(dist);
+
+    //Get difference of velocity 
+    Eigen::Vector3d veldiff = vel - (odom_translation / time_delta);
+    double vdiff = veldiff.dot(veldiff);
+
+    return std::make_tuple(qdiff, tdiff, vdiff);
+}
+
+void Pose::PrintState(){
+    std::cout << "Vel: " << vel << std::endl;
+    std::cout << "Pos: " << pos << std::endl;
+    std::cout << "Quat: " << orientation.w() << " " << orientation.x() << " " << orientation.y() << " "<< orientation.z() << std::endl;
 }
 
 // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms

@@ -77,54 +77,74 @@ Config::Config(std::string fname) {
 }
 
 void Config::parseArgs(int argc, char **argv) {
-  for(int x=1; x<argc; x+=2){
+  for(int x=1; x<argc; x++){
     std::string flag (argv[x]);
     if(flag == "--minz"){
-       min_z = std::stof(argv[x+1]);
+        min_z = std::stof(argv[x+1]);
+        x+=1;
     } else if(flag == "--maxz"){
-       max_z = std::stof(argv[x+1]);
+        max_z = std::stof(argv[x+1]);
+        x+=1;
     }else if(flag ==  "--frames"){
-      frames = std::stoi(argv[x+1]);
+        frames = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag ==  "--fstart"){
-      framestart = std::stoi(argv[x+1]);
+        framestart = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag ==  "--dec-mag"){
-      dec_mag = std::stoi(argv[x+1]);
+        dec_mag = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag ==  "--spat-mag"){
-      spat_mag = std::stoi(argv[x+1]);
+        spat_mag = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag ==  "--spat-a"){
-      spat_a = std::stof(argv[x+1]);
+        spat_a = std::stof(argv[x+1]);
+        x+=1;
     }else if(flag ==  "--spat-d"){
-      spat_d = std::stoi(argv[x+1]);
+        spat_d = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag ==  "--temp-a"){
-      temp_a = std::stof(argv[x+1]);
+        temp_a = std::stof(argv[x+1]);
+        x+=1;
     }else if(flag ==  "--temp-d"){
-      temp_d = std::stoi(argv[x+1]);
+        temp_d = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag == "--don_small"){
-      don_small = std::stof(argv[x+1]);
+        don_small = std::stof(argv[x+1]);
+        x+=1;
     }else if(flag == "--don_large"){
-      don_large = std::stof(argv[x+1]);
+        don_large = std::stof(argv[x+1]);
+        x+=1;
     }else if(flag == "--don_thresh"){
-      threshold = std::stof(argv[x+1]);
+        threshold = std::stof(argv[x+1]);
+        x+=1;
     }else if(flag == "--don_rad"){
-      segradius = std::stof(argv[x+1]);
+        segradius = std::stof(argv[x+1]);
+        x+=1;
     }else if(flag == "--icp_iters"){
-      icp_iters = std::stoi(argv[x+1]);
+        icp_iters = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag == "--icp_dist"){
-      icp_dist = std::stof(argv[x+1]);
+        icp_dist = std::stof(argv[x+1]);
+        x+=1;
     }else if(flag == "--icp_leaf"){
-      icp_leaf = std::stof(argv[x+1]);
+        icp_leaf = std::stof(argv[x+1]);
+        x+=1;
     }else if(flag == "--width"){
-      width = std::stoi(argv[x+1]);
+        width = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag == "--height"){
-      height = std::stoi(argv[x+1]);
+        height = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag == "--fps"){
-      fps = std::stoi(argv[x+1]);
+        fps = std::stoi(argv[x+1]);
+        x+=1;
     }else if(flag == "--no_imu"){
-      use_imu = false;
+        use_imu = false;
     }else if(flag == "--filter"){
-      use_filter = true;
+        use_filter = true;
     }else if(flag == "--losses"){
-      write_losses = true;
+        write_losses = true;
     }
   }
 

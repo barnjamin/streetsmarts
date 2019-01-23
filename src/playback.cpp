@@ -68,37 +68,7 @@ int main(int argc, char * argv[]) try
 
     Eigen::Matrix4d target_to_world = Eigen::Matrix4d::Identity();
     
-    FPSTimer timer("Process RGBD stream", conf.frames);
 
-    int save_index = 0;
-    
-    //Visualizer visualizer;
-    //if (!visualizer.CreateVisualizerWindow("Sequential IC RGBD Odometry", 1920, 1080, 0, 0)) {
-    //    PrintWarning("Failed creating OpenGL window.\n");
-    //    return -1;
-    //}
-    //visualizer.BuildUtilities();
-    //visualizer.UpdateWindowTitle();
-
-    //std::shared_ptr<TriangleMeshCuda> mesh = std::make_shared<TriangleMeshCuda>();
-    //std::shared_ptr<PointCloud> imu_pc = std::make_shared<PointCloud>();
-    //std::shared_ptr<PointCloud> odom_pc = std::make_shared<PointCloud>();
-    //std::shared_ptr<PointCloud> plain_pc = std::make_shared<PointCloud>();
-
-    //visualizer.AddGeometry(imu_pc);
-    //visualizer.AddGeometry(odom_pc);
-    //visualizer.AddGeometry(plain_pc);
-
-    //ViewParameters vp;
-    //vp.boundingbox_max_ = Eigen::Vector3d(10,10,10); 
-    //vp.boundingbox_min_ = Eigen::Vector3d(0,0,0); 
-    //vp.field_of_view_ = 60; 
-    //vp.front_ = Eigen::Vector3d(0,0,-1); 
-    //vp.lookat_ = Eigen::Vector3d(1,0,0); 
-    //vp.up_ = Eigen::Vector3d(0,-1,0); 
-    //vp.zoom_ = 0.5;
-
-    //visualizer.GetViewControl().ConvertFromViewParameters(vp);
 
     ofstream fout;
     if(conf.write_losses){
@@ -113,6 +83,7 @@ int main(int argc, char * argv[]) try
         }
     }
 
+    FPSTimer timer("Process RGBD stream", conf.frames);
 
     ifstream imu_file(dirname + "/imu.csv");
 
@@ -120,6 +91,7 @@ int main(int argc, char * argv[]) try
     Timer t;
     double duration = 0.0;
     int i = 0;
+    int save_index = 0;
 
     bool success;
     Eigen::Matrix4d delta;
@@ -165,9 +137,13 @@ int main(int argc, char * argv[]) try
 
         odometry.transform_source_to_target_ =  tranny;
 
+
         odometry.Initialize(rgbd_curr, rgbd_prev);
 
+        t.Start();
         std::tie(success, delta, losses) = odometry.ComputeMultiScale();
+        t.Stop();
+        duration += t.GetDuration();
 
         if (conf.write_losses) {
             WriteLossesToLog(fout, i, losses);
@@ -189,25 +165,6 @@ int main(int argc, char * argv[]) try
             pose.Improve(target_to_world);
         }
 
-        //if (i > 0 && int(i % conf.fps/2) == 0) {
-        //    //std::cout << "Frame: " << i << std::endl << std::endl << std::endl;
-
-        //    //tsdf_volume.GetAllSubvolumes();
-
-        //    //mesher.MarchingCubes(tsdf_volume);
-        //    //*mesh = mesher.mesh();
-        //    //visualizer.PollEvents();
-        //    //visualizer.UpdateGeometry(); 
-
-        //    //WriteTriangleMeshToPLY( "fragment-" + std::to_string(save_index) + ".ply", *mesher.mesh().Download());
-        //    
-        //    //tsdf_volume.Reset();
-
-        //    //pose.Reset();
-
-        //    //save_index++;
-        //}
-
         rgbd_prev.CopyFrom(rgbd_curr);
 
         PinholeCameraParameters params;
@@ -216,7 +173,9 @@ int main(int argc, char * argv[]) try
         trajectory.parameters_.emplace_back(params);
 
         timer.Signal();
+        i++;
     }
+    std::cout << "Took: " << duration/i << "ms Per frame" <<std::endl;
 
     tsdf_volume.GetAllSubvolumes();
     mesher.MarchingCubes(tsdf_volume);
