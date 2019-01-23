@@ -68,7 +68,7 @@ int main(int argc, char * argv[]) try
 
     Eigen::Matrix4d target_to_world = Eigen::Matrix4d::Identity();
     
-    //FPSTimer timer("Process RGBD stream", conf.frames);
+    FPSTimer timer("Process RGBD stream", conf.frames);
 
     int save_index = 0;
     
@@ -143,12 +143,8 @@ int main(int argc, char * argv[]) try
 
         i = atoi(idx.c_str());
 
-
-        //if(i>300) { break; }
-
         vector<double> accel{atof(record.at(2).c_str()), atof(record.at(3).c_str()), atof(record.at(4).c_str())} ;
         vector<double> gyro{atof(record.at(5).c_str()), atof(record.at(6).c_str()), atof(record.at(7).c_str())} ;
-
 
         pose.Update(accel, gyro, ts/1000);
         
@@ -166,6 +162,7 @@ int main(int argc, char * argv[]) try
         if(conf.use_imu){
             tranny = pose.GetTransform();
         }
+
         odometry.transform_source_to_target_ =  tranny;
 
         odometry.Initialize(rgbd_curr, rgbd_prev);
@@ -177,40 +174,20 @@ int main(int argc, char * argv[]) try
         }
 
         if(!success) {
+            return 0;
             rgbd_prev.CopyFrom(rgbd_curr);
             continue;
         }
 
-        //pose.PrintState();
-
-        //double qd, td, vd;
-        //std::tie(qd, td, vd) = pose.Difference(odometry.transform_source_to_target_);
-        //std::cout << i << "," << qd << ","<< td << "," << vd << std::endl;
-
-        //Draw Estimated Pose transform vs Odom transform 
-        //std::shared_ptr<RGBDImage> curr = CreateRGBDImageFromColorAndDepth(*depth_image_ptr, *color_image_ptr);
-        //auto imu_pc = CreatePointCloudFromRGBDImage(*curr, intrinsics, tranny);
-        //imu_pc->PaintUniformColor(Eigen::Vector3d(0.5,0,0));
-
-        //auto odom_pc = CreatePointCloudFromRGBDImage(*curr, intrinsics, odometry.transform_source_to_target_);
-        //odom_pc->PaintUniformColor(Eigen::Vector3d(0,0,0.5));
-
-        //auto plain_pc = CreatePointCloudFromRGBDImage(*curr, intrinsics, Eigen::Matrix4d::Identity());
-        //plain_pc->PaintUniformColor(Eigen::Vector3d(0,0.5,0));
-        //DrawGeometries({imu_pc, odom_pc, plain_pc});
-
-        //visualizer.PollEvents();
-        //visualizer.UpdateGeometry(); 
-
         target_to_world = target_to_world * odometry.transform_source_to_target_;
-
-        //Reset Quaternion using odometry values
-        if(conf.use_imu){
-            pose.Improve(odometry.transform_source_to_target_, target_to_world);
-        }
 
         extrinsics.FromEigen(target_to_world);
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
+
+        //Reset Quaternion using odometry values
+        if(conf.use_imu){
+            pose.Improve(target_to_world);
+        }
 
         //if (i > 0 && int(i % conf.fps/2) == 0) {
         //    //std::cout << "Frame: " << i << std::endl << std::endl << std::endl;
@@ -238,7 +215,7 @@ int main(int argc, char * argv[]) try
         params.extrinsic_ = target_to_world;
         trajectory.parameters_.emplace_back(params);
 
-        //timer.Signal();
+        timer.Signal();
     }
 
     tsdf_volume.GetAllSubvolumes();

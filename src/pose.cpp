@@ -36,6 +36,7 @@ std::tuple<double, double, double> Pose::Difference(Eigen::Matrix4d odom){
     if(path.size()== 0) {
         return std::make_tuple(0.0, 0.0, 0.0);
     }
+
     Eigen::Transform<double, 3, Eigen::Affine> o_trans(odom);
 
     //Get difference of rotation elements in the world
@@ -62,10 +63,9 @@ Eigen::Matrix4d Pose::GetTransform() {
     if(path.size()== 0) {
         return Eigen::Matrix4d::Identity();
     }
-    // Find the translation between last check and current 
-    Eigen::Translation3d t_diff((pos - path[last_check_idx])/2);
 
-    //std::cout << t_diff.x() << " " << t_diff.y() << " "<< t_diff.z() << std::endl;
+    // Find the translation between last check and current 
+    Eigen::Translation3d t_diff(pos - path[last_check_idx]);
 
     // Find the orientation difference between last check and current
     Eigen::Quaterniond o_diff = (orientation * orientations[last_check_idx].inverse());
@@ -86,7 +86,7 @@ void Pose::PrintState(){
 }
 void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double timestamp) {
     // Update quaternion through Madgwick filter
-    if(last_timestamp != 0){
+    if(last_timestamp > 1){
         auto delta = timestamp - last_timestamp;
 
         if (delta == 0) {
@@ -118,27 +118,24 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     vel[0] = vel[0] + (world_accel[0] * time_delta);
     vel[1] = vel[1] + (world_accel[1] * time_delta);
     vel[2] = vel[2] + (world_accel[2] * time_delta);
-
 }
 
-void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
+void Pose::Improve(Eigen::Matrix4d world_transform){
+
+    //From world=>camera to camera=>world
+    auto camera_transform = world_transform.inverse().eval();
+
     // Add our changes to the posegraph 
     auto s = pg.edges_.size();
-    pg.nodes_.push_back(open3d::PoseGraphNode(wt.inverse()));
+    pg.nodes_.push_back(open3d::PoseGraphNode(camera_transform));
     pg.edges_.push_back(open3d::PoseGraphEdge(s, s+1));
 
-    //From source=>target to target=>source
-    dt = dt.inverse().eval();
-
-    //From target=>world to world=>target
-    wt = wt.inverse().eval();
-
     //Convert 4x4 matrix to transform
-    Eigen::Transform<double, 3, Eigen::Affine> world(wt);
+    Eigen::Transform<double, 3, Eigen::Affine> camera(camera_transform);
 
     //Get rotation/translation elements in the world
-    Eigen::Quaterniond rotation(world.rotation());
-    Eigen::Translation3d translation(world.translation());
+    Eigen::Quaterniond rotation(camera.rotation());
+    Eigen::Translation3d translation(camera.translation());
 
     //Add translation to last path element to get current position
     pos = Eigen::Vector3d(translation.x(), translation.y(), translation.z());
@@ -152,11 +149,11 @@ void Pose::Improve(Eigen::Matrix4d dt, Eigen::Matrix4d wt){
     q2 = rotation.y();
     q3 = rotation.z();
 
-    //Set velocity to translation/time
-    Eigen::Transform<double, 3, Eigen::Affine> diff(dt);
-    Eigen::Translation3d diff_trans(diff.translation());
-    Eigen::Vector3d trpos(diff_trans.x(), diff_trans.y(), diff_trans.z());
-    vel = trpos / time_delta;
+    //Set velocity to translation/time since last element added
+    if(path.size()>0){
+        Eigen::Vector3d trpos = pos - path.back();
+        vel = trpos / time_delta;
+    }
 
     // Add our changes to the list
     path.push_back(pos);

@@ -178,7 +178,7 @@ int main(int argc, char * argv[]) try
 
         //Improve Pose Estimation using odometry values
         if(conf.use_imu){
-            pose.Improve(odometry.transform_source_to_target_, target_to_world);
+            pose.Improve(target_to_world);
         }
 
         //Integrate

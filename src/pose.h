@@ -55,7 +55,7 @@ public:
     void Update(std::vector<double> accel, std::vector<double> gyro, double timestamp);
 
     //Improve Current orientation using RGBDOdometry
-    void Improve(Eigen::Matrix4d diff, Eigen::Matrix4d world);
+    void Improve(Eigen::Matrix4d world_transform);
 
     //Get the difference between imu and odom 
     std::tuple<double, double, double> Difference(Eigen::Matrix4d odom);
