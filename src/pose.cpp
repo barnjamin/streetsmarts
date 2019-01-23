@@ -85,6 +85,7 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     vel[0] = vel[0] + (world_accel[0] * time_delta);
     vel[1] = vel[1] + (world_accel[1] * time_delta);
     vel[2] = vel[2] + (world_accel[2] * time_delta);
+
 }
 
 void Pose::Improve(Eigen::Matrix4d cam_trans){
@@ -123,12 +124,12 @@ void Pose::Improve(Eigen::Matrix4d cam_trans){
 }
 
 open3d::PoseGraph Pose::GetGraph() {
-    //TODO:: add final entry to edges/nodes?
+    //TODO: add final entry to edges/nodes?
+
     return pg;
 }
 
 std::tuple<double, double, double> Pose::Difference(Eigen::Matrix4d odom){
-
     if(path.size()== 0) {
         return std::make_tuple(0.0, 0.0, 0.0);
     }

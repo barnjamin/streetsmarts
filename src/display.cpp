@@ -24,7 +24,7 @@ void display() {
     glRotatef(e[1]*180/M_PI, 0, 1, 0);
     glRotatef(e[2]*180/M_PI, 0, 0, 1);
 
-    glTranslated(p[0], p[1], p[2]);
+    glTranslated(p[0]*10, p[1]*10, p[2]*10);
 
     glColor3f(1.0, 1.0, 1.0);
     glutWireTorus(0.05, 1, 5, 10);

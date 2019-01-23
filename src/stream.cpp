@@ -100,7 +100,6 @@ int main(int argc, char * argv[]) try
     
     Pose pose(conf.fps);
 
-
     bool success;
     Eigen::Matrix4d delta;
     std::vector<std::vector<float>> losses;
@@ -114,8 +113,8 @@ int main(int argc, char * argv[]) try
     d.start();
 
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
-    //for(int i = 0; i<1e8; i++){
-    for(int i = 0; i<conf.frames; i++){
+    for(int i = 0; i<1e8; i++){
+    //for(int i = 0; i<conf.frames; i++){
         frameset = pipe.wait_for_frames();
 
         //Get processed aligned frame
@@ -168,7 +167,6 @@ int main(int argc, char * argv[]) try
         //Compute Odometry
         std::tie(success, delta, losses) = odometry.ComputeMultiScale();
 
-
         //double qd, td, vd;
         //std::tie(qd, td, vd) = pose.Difference(odometry.transform_source_to_target_);
         //PrintInfo("Qd: %.6f Td: %.6f Vd: %.6f\n", qd, td, vd);
@@ -181,6 +179,7 @@ int main(int argc, char * argv[]) try
 
         //Update Target to world
         target_to_world = target_to_world * odometry.transform_source_to_target_;
+        //target_to_world = target_to_world * delta;
 
         //Integrate
         extrinsics.FromEigen(target_to_world);
@@ -225,8 +224,6 @@ int main(int argc, char * argv[]) try
 
     WritePoseGraph("pose_graph.json", pose.GetGraph());
     WritePinholeCameraTrajectory("trajectory.json", trajectory);
-
-    d.stop();
 
     return EXIT_SUCCESS;
 
