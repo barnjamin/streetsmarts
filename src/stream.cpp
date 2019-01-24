@@ -148,7 +148,7 @@ int main(int argc, char * argv[]) try
         accel_data = accel_frame.get_motion_data();
         gyro_data  = gyro_frame.get_motion_data();
 
-        vector<double> accel{accel_data.x, accel_data.y, accel_data.z};
+        vector<double> accel{accel_data.x, accel_data.y, accel_data.z - 2.0};
         vector<double> gyro{gyro_data.x, gyro_data.y, gyro_data.z};
 
         // Update Pose Estimate
@@ -179,7 +179,6 @@ int main(int argc, char * argv[]) try
 
         //Update Target to world
         target_to_world = target_to_world * odometry.transform_source_to_target_;
-        //target_to_world = target_to_world * delta;
 
         //Integrate
         extrinsics.FromEigen(target_to_world);

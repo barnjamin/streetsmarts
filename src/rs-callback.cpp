@@ -59,7 +59,7 @@ int main(int argc, char * argv[]) try
             if(frame.get_profile().stream_type() == RS2_STREAM_ACCEL){
                 std::cout << "Accel frame: " << frame.get_profile().unique_id() << std::endl;
                 accel_data = frame.as<rs2::motion_frame>().get_motion_data();
-                accel = {accel_data.x, accel_data.y, accel_data.z};
+                accel = {accel_data.x, accel_data.y, accel_data.z-2.0};
             }else{
                 std::cout << "Gyro frame: " << frame.get_profile().unique_id() << std::endl;
                 gyro_data = frame.as<rs2::motion_frame>().get_motion_data();

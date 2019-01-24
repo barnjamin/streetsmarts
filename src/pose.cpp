@@ -73,8 +73,13 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     // Compute world accel from orientation && gravity
     auto rot = orientation.normalized().toRotationMatrix();
     auto accel_raw = Eigen::Vector3d (accel.at(0), accel.at(1), accel.at(2));
+
+    //std::cout << "Raw: \n" << accel_raw << std::endl << std::endl;
+
     auto accel_rot = rot * accel_raw;
     auto world_accel = accel_rot - gravity;
+
+    //std::cout << "World: \n" << world_accel << std::endl << std::endl;
 
     // Compute position from velocity
     pos[0] = pos[0] + (vel[0] * time_delta) + (world_accel[0] * (time_delta*time_delta))/2;    
@@ -88,9 +93,9 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
 
 }
 
-void Pose::Improve(Eigen::Matrix4d cam_trans){
+void Pose::Improve(Eigen::Matrix4d camera_transform){
     //From world=>camera to camera=>world
-    auto camera_transform = cam_trans.inverse().eval();
+    camera_transform = camera_transform.inverse().eval();
 
     // Add our changes to the posegraph 
     auto s = pg.edges_.size();
