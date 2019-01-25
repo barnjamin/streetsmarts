@@ -51,6 +51,7 @@ public:
 
     //Get the transform from the last check to now
     Eigen::Matrix4d GetTransform();
+    Eigen::Matrix4d GetWorldTransform();
 
     //Add the latest accel/gyro readings to pose
     void Update(std::vector<double> accel, std::vector<double> gyro, double timestamp);

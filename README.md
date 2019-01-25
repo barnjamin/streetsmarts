@@ -2,9 +2,10 @@
 
 
 ```
-
 stream.cpp:
     When to save file -- X Seconds, X frames, Some gap or inconsistency
+
+    Handle frames in callback for higher frequency imu handling
 
     Kick off mesher in its own thread?
 
@@ -24,6 +25,7 @@ pose.cpp:
 
     need to predict transformation to see odom based on what the camera is looking at not where it is
     same with pose::improve, should math out the movement of the camera based on the transform of what its looking at
+
 
 
     

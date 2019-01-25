@@ -54,13 +54,18 @@ Eigen::Matrix4d Pose::GetTransform() {
     return t.matrix().inverse();
 }
 
+Eigen::Matrix4d Pose::GetWorldTransform() {
+    // Combine to Create Transform
+    Eigen::Transform<double, 3, Eigen::Affine> t =  Eigen::Translation3d(pos) * orientation.normalized().toRotationMatrix();
+
+    return t.matrix();
+}
+
 void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double timestamp) {
     // Update quaternion through Madgwick filter
     if(last_timestamp > 1){
         auto delta = timestamp - last_timestamp;
-
         if (delta == 0) { return; }
-
         time_delta = delta;
     }
     last_timestamp = timestamp;
@@ -94,8 +99,10 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
 }
 
 void Pose::Improve(Eigen::Matrix4d camera_transform){
+
     //From world=>camera to camera=>world
     camera_transform = camera_transform.inverse().eval();
+
 
     // Add our changes to the posegraph 
     auto s = pg.edges_.size();
@@ -105,10 +112,15 @@ void Pose::Improve(Eigen::Matrix4d camera_transform){
     //Convert 4x4 matrix to transform
     Eigen::Transform<double, 3, Eigen::Affine> camera(camera_transform);
 
+    Eigen::Transform<double, 3, Eigen::Affine> imu(GetWorldTransform());
+
+    auto idk = Eigen::Vector3d(imu.translation()) - Eigen::Vector3d(camera.translation());
+    std::cout <<  idk[0] << std::endl;
+
     //Set position to the translation component of the inverse world translation 
     pos = camera.translation();
 
-    //Add current rotation to last orientation to get current orientation
+    //Set orientation to the cameras rotation
     orientation = camera.rotation();
 
     //Reset quaterion values to our current rotation
@@ -118,6 +130,8 @@ void Pose::Improve(Eigen::Matrix4d camera_transform){
     q3 = orientation.z();
 
     if(path.size()>0){
+
+
         //Set velocity to translation/time since last element added
         Eigen::Vector3d trpos = pos - path.back();
         vel = trpos / time_delta;

@@ -57,11 +57,9 @@ int main(int argc, char * argv[]) try
 
         } else { //Gyro/Accel
             if(frame.get_profile().stream_type() == RS2_STREAM_ACCEL){
-                std::cout << "Accel frame: " << frame.get_profile().unique_id() << std::endl;
                 accel_data = frame.as<rs2::motion_frame>().get_motion_data();
                 accel = {accel_data.x, accel_data.y, accel_data.z-2.0};
             }else{
-                std::cout << "Gyro frame: " << frame.get_profile().unique_id() << std::endl;
                 gyro_data = frame.as<rs2::motion_frame>().get_motion_data();
                 gyro = {gyro_data.x, gyro_data.y, gyro_data.z};
                 pose.Update(accel, gyro, frame.as<rs2::motion_frame>().get_timestamp()/1000);
@@ -77,9 +75,7 @@ int main(int argc, char * argv[]) try
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-
         std::lock_guard<std::mutex> lock(mutex);
-        std::cout << "hi" << std::endl;
     }
     d.stop();
 

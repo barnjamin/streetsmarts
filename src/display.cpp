@@ -14,11 +14,23 @@ void display() {
     glMatrixMode(GL_MODELVIEW);
 
     glLoadIdentity();
-    gluLookAt(-4, 6, -5, 0, 0, 0, 0, 1, 0);
+    gluLookAt(1, 0, 5, 0, 0, 0, 0, -1, 0);
 
     auto p = gpose->GetPosition();
     auto q = gpose->GetOrientation();
     auto e = q.toRotationMatrix().eulerAngles(0,1,2);
+
+    glBegin(GL_LINES);
+    glColor4f(0.4f, 0.4f, 0.4f, 1.f);
+    // Render "floor" grid
+    for (int i = 0; i <= 8; i++)
+    {
+        glVertex3i(i - 4, 1, 0);
+        glVertex3i(i - 4, 1, 8);
+        glVertex3i(-4, 1, i);
+        glVertex3i(4, 1, i);
+    }
+    glEnd();
 
     glRotatef(e[0]*180/M_PI, 1, 0, 0);
     glRotatef(e[1]*180/M_PI, 0, 1, 0);

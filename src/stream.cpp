@@ -49,7 +49,7 @@ int main(int argc, char * argv[]) try
     odometry.SetParameters(OdometryOption());
     odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
 
-    float voxel_length = 0.05f;
+    float voxel_length = 0.03f;
     TransformCuda extrinsics = TransformCuda::Identity();
     ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3 * voxel_length, extrinsics);
 
@@ -109,12 +109,12 @@ int main(int argc, char * argv[]) try
     PrintInfo("Discarding first %d frames\n", conf.framestart);
     for(int i=0; i<conf.framestart; i++) rs2::frameset frameset = pipe.wait_for_frames(); 
 
-    Display d(argc, argv, &pose);
-    d.start();
+    //Display d(argc, argv, &pose);
+    //d.start();
 
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
-    for(int i = 0; i<1e8; i++){
-    //for(int i = 0; i<conf.frames; i++){
+    //for(int i = 0; i<1e8; i++){
+    for(int i = 0; i<conf.frames; i++){
         frameset = pipe.wait_for_frames();
 
         //Get processed aligned frame
@@ -172,7 +172,7 @@ int main(int argc, char * argv[]) try
         //PrintInfo("Qd: %.6f Td: %.6f Vd: %.6f\n", qd, td, vd);
 
         if(!success){
-            return 0;
+            break;
             rgbd_prev.CopyFrom(rgbd_curr);
             continue;
         }
@@ -189,22 +189,26 @@ int main(int argc, char * argv[]) try
             pose.Improve(target_to_world);
         }
 
-       // if (i % conf.fps == 0) {
-       //     tsdf_volume.GetAllSubvolumes();
 
-       //     mesher.MarchingCubes(tsdf_volume);
-       //     *mesh = mesher.mesh();
+        if(i % (conf.fps*3) == 0){
+            tsdf_volume.GetAllSubvolumes();
 
-       //     visualizer.PollEvents();
-       //     visualizer.UpdateGeometry(); 
+            mesher.MarchingCubes(tsdf_volume);
+            *mesh = mesher.mesh();
 
-       //     if(i % (conf.fps*3) == 0){
-       //         WriteTriangleMeshToPLY( "fragment-" 
-       //               + std::to_string(save_index) + ".ply", *(mesh->Download()));
-       //         tsdf_volume.Reset();
-       //         save_index++;
-       //     }
-       // }
+            //visualizer.PollEvents();
+            //visualizer.UpdateGeometry(); 
+
+            //Convert mesh to point cloud
+            //ICP point cloud using last save extrinciscs 
+            //Add to world point cloud with 
+
+            WriteTriangleMeshToPLY( "fragment-" 
+                  + std::to_string(save_index) + ".ply", *(mesh->Download()));
+
+            tsdf_volume.Reset();
+            save_index++;
+        }
 
         PinholeCameraParameters params;
         params.intrinsic_ =  intrinsics;
