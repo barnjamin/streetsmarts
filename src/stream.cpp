@@ -73,7 +73,7 @@ int main(int argc, char * argv[]) try
     rs2::frame color_frame, depth_frame;
     rs2_vector accel_data, gyro_data;
     
-    Pose pose(conf.fps);
+    Pose pose(conf.fps, imu_extrinsic(profile));
 
     bool success;
     Eigen::Matrix4d delta;

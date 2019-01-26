@@ -8,6 +8,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "utils.h"
+#include <Eigen/Geometry>
 
 
 // Convert rs2::frame to cv::Mat
@@ -52,6 +53,29 @@ open3d::PinholeCameraIntrinsic get_intrinsics(rs2::pipeline_profile prof)
             intrin.fx, intrin.fy, intrin.ppx, intrin.ppy);
 
     return intrinsics;
+}
+
+Eigen::Matrix4d imu_extrinsic(rs2::pipeline_profile prof) 
+{
+
+    auto depth_stream = prof.get_stream(RS2_STREAM_COLOR)
+                                 .as<rs2::video_stream_profile>();
+
+    auto motion_stream = prof.get_stream(RS2_STREAM_GYRO);
+    auto a = motion_stream.get_extrinsics_to(depth_stream);
+
+    Eigen::Translation3d t(a.translation[0], a.translation[1], a.translation[2]);
+
+    Eigen::Matrix3d mat;
+    mat << a.rotation[0], a.rotation[1], a.rotation[2],
+            a.rotation[3], a.rotation[4], a.rotation[5],
+            a.rotation[6], a.rotation[7], a.rotation[8];
+
+    Eigen::Quaterniond q(mat);
+
+    Eigen::Transform<double, 3, Eigen::Affine> ext = t * q.normalized().toRotationMatrix();
+
+    return ext.matrix();
 }
 
 

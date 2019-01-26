@@ -9,14 +9,18 @@
 const Eigen::Vector3d gravity(0, -9.806, 0);
 
 //Default to 30fps
-Pose::Pose(): Pose(30) { }
+Pose::Pose(): Pose(30, Eigen::Matrix4d::Identity()) { }
 
-Pose::Pose(int frames_per_sec) {
+Pose::Pose(int frames_per_sec): Pose(frames_per_sec, Eigen::Matrix4d::Identity()) {}
+
+Pose::Pose(int frames_per_sec, Eigen::Matrix4d extrinsic) {
     //Initialize pose
     fps = float(frames_per_sec);
     time_delta = 1.0/fps;
     orientation = Eigen::Quaterniond(q0, q1, q2, q3);
     last_check_idx = 0;
+
+    imu_extrinsic = extrinsic;
 
     pos = Eigen::Vector3d(0,0,0);
     vel = Eigen::Vector3d(0,0,0);
@@ -51,7 +55,7 @@ Eigen::Matrix4d Pose::GetTransform() {
     // Update last check idx
     last_check_idx = path.size() - 1;
 
-    return t.matrix().inverse();
+    return (t.matrix() * imu_extrinsic).inverse();
 }
 
 Eigen::Matrix4d Pose::GetWorldTransform() {
@@ -99,6 +103,8 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
 
 void Pose::Improve(Eigen::Matrix4d camera_transform){
 
+
+    camera_transform = camera_transform * imu_extrinsic.inverse();
     // Add our changes to the posegraph 
     //auto s = pg.edges_.size();
     //pg.nodes_.push_back(open3d::PoseGraphNode(camera_transform));

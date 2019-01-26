@@ -22,6 +22,9 @@ class Pose {
     //Vector of orientations
     std::vector<Eigen::Quaterniond> orientations;
 
+
+    Eigen::Matrix4d imu_extrinsic;
+
     //Time between frames
     double time_delta;
     double last_timestamp;
@@ -42,6 +45,7 @@ public:
     //Initialize vectors
     Pose();    
     Pose(int fps);    
+    Pose(int fps, Eigen::Matrix4d extrinsic);    
     virtual ~Pose();
 
     //Get the transform from the last check to now
