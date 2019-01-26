@@ -107,12 +107,7 @@ void Pose::Improve(Eigen::Matrix4d camera_transform){
     //Convert 4x4 matrix to transform
     Eigen::Transform<double, 3, Eigen::Projective> camera(camera_transform);
 
-    //Eigen::Transform<double, 3, Eigen::Projective> imu(GetWorldTransform());
-    //auto idk = Eigen::Vector3d(imu.translation()) - Eigen::Vector3d(camera.translation());
-    //std::cout << "Diff: " << idk[0] << " " << idk[1] << " " << idk[2] << std::endl;
-
     //Set position to the translation component of the inverse world translation 
-    //pos = camera.linear().inverse() * (camera.translation() * -1);
     pos = camera.translation();
 
     //Set orientation to the cameras rotation

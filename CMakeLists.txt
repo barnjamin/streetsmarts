@@ -85,6 +85,10 @@ set(COMBINE_SOURCE src/combine.cpp src/utils.cpp src/config.cpp)
 add_executable(combine ${COMBINE_SOURCE})
 target_link_libraries(combine ${DEPENDENCIES})
 
+set(SMART_SOURCE src/smart.cpp src/utils.cpp src/config.cpp src/pose.cpp src/display.cpp)
+add_executable(smart ${SMART_SOURCE})
+target_link_libraries(smart ${DEPENDENCIES})
+
 set(CALLBACK_SOURCE src/rs-callback.cpp src/utils.cpp src/config.cpp src/pose.cpp src/display.cpp)
 add_executable(callback ${CALLBACK_SOURCE})
 target_link_libraries(callback ${DEPENDENCIES})
