@@ -46,7 +46,7 @@ Eigen::Matrix4d Pose::GetTransform() {
     Eigen::Quaterniond o_diff = (orientation * orientations[last_check_idx].inverse());
 
     // Combine to Create Transform
-    Eigen::Transform<double, 3, Eigen::Affine> t =  t_diff * o_diff.normalized().toRotationMatrix();
+    Eigen::Transform<double, 3, Eigen::Projective> t =  t_diff * o_diff.normalized().toRotationMatrix();
 
     // Update last check idx
     last_check_idx = path.size() - 1;
@@ -56,7 +56,7 @@ Eigen::Matrix4d Pose::GetTransform() {
 
 Eigen::Matrix4d Pose::GetWorldTransform() {
     // Combine to Create Transform
-    Eigen::Transform<double, 3, Eigen::Affine> t =  Eigen::Translation3d(pos) * orientation.normalized().toRotationMatrix();
+    Eigen::Transform<double, 3, Eigen::Projective> t =  Eigen::Translation3d(pos) * orientation.normalized().toRotationMatrix();
 
     return t.matrix();
 }
@@ -86,7 +86,7 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
 
     //std::cout << "World: \n" << world_accel << std::endl << std::endl;
 
-    // Compute position from velocity
+    // Compute position from velocity && accel (use last vel calc)
     pos[0] = pos[0] + (vel[0] * time_delta) + (world_accel[0] * (time_delta*time_delta))/2;    
     pos[1] = pos[1] + (vel[1] * time_delta) + (world_accel[1] * (time_delta*time_delta))/2;    
     pos[2] = pos[2] + (vel[2] * time_delta) + (world_accel[2] * (time_delta*time_delta))/2;    
@@ -95,29 +95,24 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     vel[0] = vel[0] + (world_accel[0] * time_delta);
     vel[1] = vel[1] + (world_accel[1] * time_delta);
     vel[2] = vel[2] + (world_accel[2] * time_delta);
-
 }
 
 void Pose::Improve(Eigen::Matrix4d camera_transform){
 
-    //From world=>camera to camera=>world
-    camera_transform = camera_transform.inverse().eval();
-
-
     // Add our changes to the posegraph 
-    auto s = pg.edges_.size();
-    pg.nodes_.push_back(open3d::PoseGraphNode(camera_transform));
-    pg.edges_.push_back(open3d::PoseGraphEdge(s-1, s));
+    //auto s = pg.edges_.size();
+    //pg.nodes_.push_back(open3d::PoseGraphNode(camera_transform));
+    //pg.edges_.push_back(open3d::PoseGraphEdge(s-1, s));
 
     //Convert 4x4 matrix to transform
-    Eigen::Transform<double, 3, Eigen::Affine> camera(camera_transform);
+    Eigen::Transform<double, 3, Eigen::Projective> camera(camera_transform);
 
-    Eigen::Transform<double, 3, Eigen::Affine> imu(GetWorldTransform());
-
-    auto idk = Eigen::Vector3d(imu.translation()) - Eigen::Vector3d(camera.translation());
-    std::cout <<  idk[0] << std::endl;
+    //Eigen::Transform<double, 3, Eigen::Projective> imu(GetWorldTransform());
+    //auto idk = Eigen::Vector3d(imu.translation()) - Eigen::Vector3d(camera.translation());
+    //std::cout << "Diff: " << idk[0] << " " << idk[1] << " " << idk[2] << std::endl;
 
     //Set position to the translation component of the inverse world translation 
+    //pos = camera.linear().inverse() * (camera.translation() * -1);
     pos = camera.translation();
 
     //Set orientation to the cameras rotation
@@ -130,8 +125,6 @@ void Pose::Improve(Eigen::Matrix4d camera_transform){
     q3 = orientation.z();
 
     if(path.size()>0){
-
-
         //Set velocity to translation/time since last element added
         Eigen::Vector3d trpos = pos - path.back();
         vel = trpos / time_delta;
@@ -153,9 +146,9 @@ std::tuple<double, double, double> Pose::Difference(Eigen::Matrix4d odom){
         return std::make_tuple(0.0, 0.0, 0.0);
     }
 
-    Eigen::Transform<double, 3, Eigen::Affine> o_trans(odom);
+    Eigen::Transform<double, 3, Eigen::Projective> o_trans(odom);
 
-    Eigen::Transform<double, 3, Eigen::Affine> i_trans(GetTransform());
+    Eigen::Transform<double, 3, Eigen::Projective> i_trans(GetTransform());
 
     //Get difference of rotation elements in the world
     Eigen::Quaterniond odom_rotation(o_trans.rotation());

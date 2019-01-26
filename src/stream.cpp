@@ -25,7 +25,7 @@ int main(int argc, char * argv[]) try
     Config conf;
     conf.parseArgs(argc, argv);
 
-    // Declare RealSense pipeline, encapsulating the actual device and sensors
+    PrintInfo("Initializing camera...\n");
     rs2::pipeline pipe;
     rs2::config cfg;
     rs2::align align(RS2_STREAM_COLOR);
@@ -34,8 +34,6 @@ int main(int argc, char * argv[]) try
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
     cfg.enable_stream(RS2_STREAM_ACCEL);
     cfg.enable_stream(RS2_STREAM_GYRO);
-
-    PrintInfo("Initializing camera...\n");
 
     rs2::pipeline_profile profile = pipe.start(cfg);
 
@@ -65,38 +63,15 @@ int main(int argc, char * argv[]) try
 
     Eigen::Matrix4d target_to_world = Eigen::Matrix4d::Identity();
 
-    
     FPSTimer timer("Process RGBD stream", conf.frames);
 
-    //Visualizer visualizer;
-    //if (!visualizer.CreateVisualizerWindow("Sequential IC RGBD Odometry", 1920, 1080, 0, 0)) {
-    //    PrintWarning("Failed creating OpenGL window.\n");
-    //    return -1;
-    //}
-    //visualizer.BuildUtilities();
-    //visualizer.UpdateWindowTitle();
-
     std::shared_ptr<TriangleMeshCuda> mesh = std::make_shared<TriangleMeshCuda>();
-    //visualizer.AddGeometry(mesh);
-
-    //ViewParameters vp;
-    //vp.boundingbox_max_ = Eigen::Vector3d(10,10,10); 
-    //vp.boundingbox_min_ = Eigen::Vector3d(0,0,0); 
-    //vp.field_of_view_ = 60; 
-    //vp.front_ = Eigen::Vector3d(0,0,-1); 
-    //vp.lookat_ = Eigen::Vector3d(1,0,0); 
-    //vp.up_ = Eigen::Vector3d(0,-1,0); 
-    //vp.zoom_ = 0.5;
-
-    //visualizer.GetViewControl().ConvertFromViewParameters(vp);
-
 
     int save_index = 0;
 
     rs2::frameset frameset;
     rs2::frame color_frame, depth_frame;
     rs2_vector accel_data, gyro_data;
-    
     
     Pose pose(conf.fps);
 
@@ -109,8 +84,8 @@ int main(int argc, char * argv[]) try
     PrintInfo("Discarding first %d frames\n", conf.framestart);
     for(int i=0; i<conf.framestart; i++) rs2::frameset frameset = pipe.wait_for_frames(); 
 
-    //Display d(argc, argv, &pose);
-    //d.start();
+    Display d(argc, argv, &pose);
+    d.start();
 
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
     //for(int i = 0; i<1e8; i++){

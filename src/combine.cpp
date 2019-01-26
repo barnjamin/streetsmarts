@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     SetVerbosityLevel(VerbosityLevel::VerboseAlways);
 
     PinholeCameraTrajectory trajectory;
-    ReadPinholeCameraTrajectory("/home/ben/streetsmarts/build/new-trajectory.json", trajectory);
+    ReadPinholeCameraTrajectory("/home/ben/streetsmarts/build/trajectory.json", trajectory);
 
     std::shared_ptr<PointCloud> pcd;
 
@@ -61,7 +61,8 @@ int main(int argc, char *argv[])
 
     //DrawGeometriesWithCustomAnimation(pcds);
 
-    WritePointCloud("final.pcd", *pcd);
+    std::shared_ptr<PointCloud> final_pcd = open3d::VoxelDownSample(*pcd, 0.01);
+    WritePointCloud("final.pcd", *final_pcd);
 
 
     return 0;
