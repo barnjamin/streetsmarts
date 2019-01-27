@@ -30,6 +30,24 @@ int main(int argc, char * argv[]) try
     rs2::config cfg;
     rs2::align align(RS2_STREAM_COLOR);
 
+
+    // First, create a rs2::context.
+    // The context represents the current platform with respect to connected devices
+    //rs2::context ctx;
+    //std::string rcam("RGB Camera");
+    //// Using the context we can get all connected devices in a device list
+    //auto sensors = ctx.query_all_sensors();
+    //for(rs2::sensor sensor: sensors){
+    //    if (sensor.supports(RS2_CAMERA_INFO_NAME)){
+    //        std::string name = sensor.get_info(RS2_CAMERA_INFO_NAME);
+    //        if(name.compare(rcam) == 0){
+    //            sensor.set_option(RS2_OPTION_EXPOSURE, 600);
+    //            sensor.set_option(RS2_OPTION_WHITE_BALANCE, 600);
+    //        }
+    //    }
+    //}
+
+
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
     cfg.enable_stream(RS2_STREAM_ACCEL);
@@ -123,7 +141,7 @@ int main(int argc, char * argv[]) try
         accel_data = accel_frame.get_motion_data();
         gyro_data  = gyro_frame.get_motion_data();
 
-        vector<double> accel{accel_data.x, accel_data.y, accel_data.z - 2.0};
+        vector<double> accel{accel_data.x, accel_data.y, accel_data.z};
         vector<double> gyro{gyro_data.x, gyro_data.y, gyro_data.z};
 
         // Update Pose Estimate
@@ -165,7 +183,7 @@ int main(int argc, char * argv[]) try
         }
 
 
-        if(i % (conf.fps*3) == 0){
+        if(i % int(conf.fps/2) == 0){
             tsdf_volume.GetAllSubvolumes();
 
             mesher.MarchingCubes(tsdf_volume);

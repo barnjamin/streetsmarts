@@ -2,6 +2,7 @@
 #include <IO/IO.h>
 #include <Visualization/Visualization.h>
 #include <vector>
+#include <math.h>
 
 
 using namespace open3d;
@@ -17,13 +18,13 @@ void Visualize(std::shared_ptr<PointCloud> mesh) ;
 int main(int argc, char ** argv) 
 {
     //Load combined mesh or Stream
-    std::string meshfile = "fragment-0.ply";
+    std::string pcd_file = "final.pcd";
 
     //Load PCD
-    auto pcd = LoadPointCloud(meshfile);
+    auto pcd = LoadPointCloud(pcd_file);
 
     //Diff of Norms 
-    auto DoN = DifferenceOfNorm(*pcd, 0.03, 0.10, 0.99, ROUGHNESS);
+    auto DoN = DifferenceOfNorm(*pcd, 0.05, 0.25, 0.99, FLATNESS);
 
     //Visualize the Downsampled points
     Visualize(DoN);
@@ -50,9 +51,9 @@ std::shared_ptr<PointCloud> DifferenceOfNorm(
     //For each element in both normal arrays 
     std::vector<size_t> indicies;
     for(size_t i=0; i<pc.points_.size(); i++){
-        if(dt == FLATNESS && abs(small_pc.normals_[i].dot(big_pc.normals_[i])) > threshold){
+        if(dt == FLATNESS && sqrt(small_pc.normals_[i].dot(big_pc.normals_[i])) > threshold){
             indicies.push_back(i);
-        }else if(dt == ROUGHNESS && abs(small_pc.normals_[i].dot(big_pc.normals_[i])) < threshold) {
+        }else if(dt == ROUGHNESS && sqrt(small_pc.normals_[i].dot(big_pc.normals_[i])) < threshold) {
             indicies.push_back(i);
         }
 
@@ -74,7 +75,7 @@ std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt)
 std::shared_ptr<PointCloud> LoadPointCloud(std::string& filename) 
 {
     auto pc = std::make_shared<PointCloud>();
-    ReadPointCloud(filename, *pc, "ply");
+    ReadPointCloud(filename, *pc, "pcd");
     return pc;
 }
 

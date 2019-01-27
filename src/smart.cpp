@@ -157,7 +157,7 @@ int main(int argc, char * argv[]) try
         } else { //Gyro/Accel
             if(frame.get_profile().stream_type() == RS2_STREAM_ACCEL){
                 accel_data = frame.as<rs2::motion_frame>().get_motion_data();
-                accel = {accel_data.x, accel_data.y, accel_data.z-2.0};
+                accel = {accel_data.x, accel_data.y, accel_data.z};
             }else{
                 gyro_data = frame.as<rs2::motion_frame>().get_motion_data();
                 gyro = {gyro_data.x, gyro_data.y, gyro_data.z};

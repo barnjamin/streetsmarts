@@ -74,6 +74,9 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     }
     last_timestamp = timestamp;
 
+
+    //accel[2] -= 1.2;
+
     madgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
 
     //Set Orientation obj from quat vals
@@ -83,7 +86,7 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     auto rot = orientation.normalized().toRotationMatrix();
     auto accel_raw = Eigen::Vector3d (accel.at(0), accel.at(1), accel.at(2));
 
-    //std::cout << "Raw: \n" << accel_raw << std::endl << std::endl;
+    std::cout << "Raw: \n" << accel_raw << std::endl << std::endl;
 
     auto accel_rot = rot * accel_raw;
     auto world_accel = accel_rot - gravity;
@@ -91,9 +94,9 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     //std::cout << "World: \n" << world_accel << std::endl << std::endl;
 
     // Compute position from velocity && accel (use last vel calc)
-    pos[0] = pos[0] + (vel[0] * time_delta) + (world_accel[0] * (time_delta*time_delta))/2;    
-    pos[1] = pos[1] + (vel[1] * time_delta) + (world_accel[1] * (time_delta*time_delta))/2;    
-    pos[2] = pos[2] + (vel[2] * time_delta) + (world_accel[2] * (time_delta*time_delta))/2;    
+    pos[0] = pos[0] + (vel[0] * time_delta) + 0.5*(world_accel[0] * (time_delta*time_delta));    
+    pos[1] = pos[1] + (vel[1] * time_delta) + 0.5*(world_accel[1] * (time_delta*time_delta));    
+    pos[2] = pos[2] + (vel[2] * time_delta) + 0.5*(world_accel[2] * (time_delta*time_delta));    
 
     // Compute Velocity from accel
     vel[0] = vel[0] + (world_accel[0] * time_delta);
@@ -102,8 +105,6 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
 }
 
 void Pose::Improve(Eigen::Matrix4d camera_transform){
-
-
     camera_transform = camera_transform * imu_extrinsic.inverse();
     // Add our changes to the posegraph 
     //auto s = pg.edges_.size();

@@ -4,8 +4,7 @@
 #include <Core/Core.h>
 #include <Registration/PoseGraph.h>
 
-#define betaDef		0.05f // 2 * proportional gain
-
+#define betaDef		0.25f // 2 * proportional gain
 
 float invSqrt(float x);
 

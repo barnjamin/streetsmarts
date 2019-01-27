@@ -41,10 +41,10 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        open3d::cuda::RegistrationCuda registration(TransformationEstimationType::PointToPoint);
+        open3d::cuda::RegistrationCuda registration(TransformationEstimationType::PointToPlane);
         registration.Initialize(*source, *target, 0.07f);
 
-        int max_iter = 30;
+        int max_iter = 10;
         for (int i = 0; i < max_iter; ++i) {
              registration.DoSingleIteration(i);
         }
@@ -61,8 +61,10 @@ int main(int argc, char *argv[])
 
     //DrawGeometriesWithCustomAnimation(pcds);
 
-    std::shared_ptr<PointCloud> final_pcd = open3d::VoxelDownSample(*pcd, 0.01);
-    WritePointCloud("final.pcd", *final_pcd);
+    std::shared_ptr<PointCloud> final_pcd = open3d::VoxelDownSample(*pcd, 0.03);
+    auto stat_outliers = RemoveStatisticalOutliers(*final_pcd, 300, 0.9);
+
+    WritePointCloud("final.pcd", *(std::get<0>(stat_outliers)));
 
 
     return 0;
