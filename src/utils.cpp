@@ -9,7 +9,20 @@
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "utils.h"
 #include <Eigen/Geometry>
+#include <Visualization/Visualization.h>
 
+
+void VisualizeRegistration(const open3d::PointCloud &source,
+                           const open3d::PointCloud &target,
+                           const Eigen::Matrix4d &Transformation) {
+    using namespace open3d;
+    std::shared_ptr<PointCloud> source_transformed_ptr(new PointCloud);
+    std::shared_ptr<PointCloud> target_ptr(new PointCloud);
+    *source_transformed_ptr = source;
+    *target_ptr = target;
+    source_transformed_ptr->Transform(Transformation);
+    DrawGeometries({source_transformed_ptr, target_ptr}, "Registration result");
+}
 
 // Convert rs2::frame to cv::Mat
 cv::Mat frame_to_mat(const rs2::frame& f)

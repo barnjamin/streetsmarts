@@ -183,7 +183,7 @@ int main(int argc, char * argv[]) try
         }
 
 
-        if(i % int(conf.fps/2) == 0){
+        if(i % int(conf.fps) == 0){
             tsdf_volume.GetAllSubvolumes();
 
             mesher.MarchingCubes(tsdf_volume);

@@ -23,6 +23,7 @@ cv::Mat     frame_to_mat(const rs2::frame& f);
 float       get_depth_scale(rs2::device dev);
 open3d::PinholeCameraIntrinsic   get_intrinsics(rs2::pipeline_profile); 
 Eigen::Matrix4d imu_extrinsic(rs2::pipeline_profile);
+void VisualizeRegistration(const open3d::PointCloud &source, const open3d::PointCloud &target, const Eigen::Matrix4d &Transformation);
 
 void WriteLossesToLog(std::ofstream &fout, int frame_idx, std::vector<std::vector<float>> &losses);
 

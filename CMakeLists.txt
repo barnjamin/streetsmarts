@@ -92,3 +92,7 @@ target_link_libraries(smart ${DEPENDENCIES})
 set(CALLBACK_SOURCE src/rs-callback.cpp src/utils.cpp src/config.cpp src/pose.cpp src/display.cpp)
 add_executable(callback ${CALLBACK_SOURCE})
 target_link_libraries(callback ${DEPENDENCIES})
+
+set(REGISTER_SOURCE src/register.cpp src/utils.cpp src/config.cpp src/pose.cpp src/display.cpp)
+add_executable(register ${REGISTER_SOURCE})
+target_link_libraries(register ${DEPENDENCIES})
