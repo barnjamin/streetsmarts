@@ -60,6 +60,10 @@ cd build
 cmake ..
 make
 ./bin/stream --fps 60 --frames 360
-
 Visualizer mesh fragment-0.ply
+
+./bin/combine
+Visualizer pointcloud final.pcd
+
+
 ```
