@@ -28,30 +28,14 @@ int main(int argc, char * argv[]) try
     PrintInfo("Initializing camera...\n");
     rs2::pipeline pipe;
     rs2::config cfg;
+
+    //rs2::align align(RS2_STREAM_DEPTH);
     rs2::align align(RS2_STREAM_COLOR);
-
-
-    // First, create a rs2::context.
-    // The context represents the current platform with respect to connected devices
-    //rs2::context ctx;
-    //std::string rcam("RGB Camera");
-    //// Using the context we can get all connected devices in a device list
-    //auto sensors = ctx.query_all_sensors();
-    //for(rs2::sensor sensor: sensors){
-    //    if (sensor.supports(RS2_CAMERA_INFO_NAME)){
-    //        std::string name = sensor.get_info(RS2_CAMERA_INFO_NAME);
-    //        if(name.compare(rcam) == 0){
-    //            sensor.set_option(RS2_OPTION_EXPOSURE, 600);
-    //            sensor.set_option(RS2_OPTION_WHITE_BALANCE, 600);
-    //        }
-    //    }
-    //}
-
 
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
-    cfg.enable_stream(RS2_STREAM_ACCEL);
-    cfg.enable_stream(RS2_STREAM_GYRO);
+    cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
+    cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
 
     rs2::pipeline_profile profile = pipe.start(cfg);
 
@@ -102,8 +86,8 @@ int main(int argc, char * argv[]) try
     PrintInfo("Discarding first %d frames\n", conf.framestart);
     for(int i=0; i<conf.framestart; i++) rs2::frameset frameset = pipe.wait_for_frames(); 
 
-    Display d(argc, argv, &pose);
-    d.start();
+    //Display d(argc, argv, &pose);
+    //d.start();
 
     PrintInfo("Starting to read frames, reading %d frames\n", conf.frames);
     //for(int i = 0; i<1e8; i++){
@@ -124,7 +108,6 @@ int main(int argc, char * argv[]) try
 
         memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
-
 
         //Upload images to GPU
         rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
@@ -159,15 +142,12 @@ int main(int argc, char * argv[]) try
 
         //Compute Odometry
         std::tie(success, delta, losses) = odometry.ComputeMultiScale();
-
-        //double qd, td, vd;
-        //std::tie(qd, td, vd) = pose.Difference(odometry.transform_source_to_target_);
-        //PrintInfo("Qd: %.6f Td: %.6f Vd: %.6f\n", qd, td, vd);
+        auto info = odometry.ComputeInformationMatrix();
 
         if(!success){
             break;
-            rgbd_prev.CopyFrom(rgbd_curr);
-            continue;
+            //rgbd_prev.CopyFrom(rgbd_curr);
+            //continue;
         }
 
         //Update Target to world
@@ -179,9 +159,8 @@ int main(int argc, char * argv[]) try
 
         //Improve Pose Estimation using odometry values
         if(conf.use_imu){
-            pose.Improve(target_to_world);
+            pose.Improve(odometry.transform_source_to_target_, target_to_world, info);
         }
-
 
         if(i % int(conf.fps) == 0){
             tsdf_volume.GetAllSubvolumes();

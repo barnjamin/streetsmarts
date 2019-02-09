@@ -71,7 +71,7 @@ open3d::PinholeCameraIntrinsic get_intrinsics(rs2::pipeline_profile prof)
 Eigen::Matrix4d imu_extrinsic(rs2::pipeline_profile prof) 
 {
 
-    auto depth_stream = prof.get_stream(RS2_STREAM_COLOR)
+    auto depth_stream = prof.get_stream(RS2_STREAM_DEPTH)
                                  .as<rs2::video_stream_profile>();
 
     auto motion_stream = prof.get_stream(RS2_STREAM_GYRO);

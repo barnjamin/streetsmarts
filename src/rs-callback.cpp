@@ -100,9 +100,9 @@ int main(int argc, char * argv[]) try
 
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
-    cfg.enable_stream(RS2_STREAM_ACCEL);
-    cfg.enable_stream(RS2_STREAM_GYRO);
 
+    cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
+    cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
 
     // First, create a rs2::context.
     // The context represents the current platform with respect to connected devices
@@ -124,8 +124,8 @@ int main(int argc, char * argv[]) try
     rs2_vector accel_data, gyro_data;
     std::vector<double> accel;
     std::vector<double> gyro;
-    //Display d(argc, argv, &pose);
-    //d.start();
+    Display d(argc, argv, &pose);
+    d.start();
     auto callback = [&](const rs2::frame& frame)
     {
         std::lock_guard<std::mutex> lock(mutex);

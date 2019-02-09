@@ -55,7 +55,7 @@ Eigen::Matrix4d Pose::GetTransform() {
     // Update last check idx
     last_check_idx = path.size() - 1;
 
-    return (t.matrix() * imu_extrinsic).inverse();
+    return (t.matrix() * imu_extrinsic.inverse()).inverse();
 }
 
 Eigen::Matrix4d Pose::GetWorldTransform() {
@@ -74,7 +74,6 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     }
     last_timestamp = timestamp;
 
-
     //accel[2] -= 1.2;
 
     madgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
@@ -86,7 +85,7 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     auto rot = orientation.normalized().toRotationMatrix();
     auto accel_raw = Eigen::Vector3d (accel.at(0), accel.at(1), accel.at(2));
 
-    std::cout << "Raw: \n" << accel_raw << std::endl << std::endl;
+    //std::cout << "Raw: \n" << accel_raw << std::endl << std::endl;
 
     auto accel_rot = rot * accel_raw;
     auto world_accel = accel_rot - gravity;
@@ -104,13 +103,14 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
     vel[2] = vel[2] + (world_accel[2] * time_delta);
 }
 
-void Pose::Improve(Eigen::Matrix4d camera_transform){
-    camera_transform = camera_transform * imu_extrinsic.inverse();
-    // Add our changes to the posegraph 
-    //auto s = pg.edges_.size();
-    //pg.nodes_.push_back(open3d::PoseGraphNode(camera_transform));
-    //pg.edges_.push_back(open3d::PoseGraphEdge(s-1, s));
+void Pose::Improve(Eigen::Matrix4d transform, Eigen::Matrix4d camera_transform, Eigen::Matrix6d info){
 
+    // Add our changes to the posegraph 
+    auto s = pg.edges_.size();
+    pg.nodes_.push_back(open3d::PoseGraphNode(camera_transform.inverse()));
+    pg.edges_.push_back(open3d::PoseGraphEdge(s-1, s, transform, info));
+
+    camera_transform = camera_transform * imu_extrinsic.inverse();
     //Convert 4x4 matrix to transform
     Eigen::Transform<double, 3, Eigen::Projective> camera(camera_transform);
 
@@ -138,8 +138,6 @@ void Pose::Improve(Eigen::Matrix4d camera_transform){
 }
 
 open3d::PoseGraph Pose::GetGraph() {
-    //TODO: add final entry to edges/nodes?
-
     return pg;
 }
 

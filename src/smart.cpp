@@ -116,6 +116,7 @@ int main(int argc, char * argv[]) try
 
             //Compute Odometry
             std::tie(success, delta, losses) = odometry.ComputeMultiScale();
+            Eigen::Matrix6d info = odometry.ComputeInformationMatrix();
 
             if(!success){
                 i++;
@@ -133,7 +134,7 @@ int main(int argc, char * argv[]) try
 
             //Improve Pose Estimation using odometry values
             if(conf.use_imu){
-                pose.Improve(target_to_world);
+                pose.Improve(odometry.transform_source_to_target_, target_to_world, info);
             }
 
             if(i % (conf.fps*2) == 0){

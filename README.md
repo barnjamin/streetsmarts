@@ -2,6 +2,22 @@
 
 
 ```
+Front End
+    Generate Initial Pose Graph and Fragments
+
+Back End
+    Optimize PoseGraph to generate submap 
+    Update Pose Correction to Improve Estimation
+    Incorporate submap to map
+
+Detector
+    Find discontinuity of color and normals on road surface 
+    Annotate with prediction of impairment type    
+```
+
+
+
+```
 stream.cpp:
     When to save file -- X Seconds, X frames, Some gap or inconsistency
 
@@ -12,22 +28,14 @@ stream.cpp:
 combine.cpp:
     Combine Using ICP 
 
-    Generate PoseGraph
+    Improve PoseGraph
 
     Generate TSDF of whole scan
 
-    What is PoseGraph Optimizer?
-
-
 pose.cpp:
+    Add Correction Factors && EKF
 
-    holy shit im dumb
-
-    need to predict transformation to see odom based on what the camera is looking at not where it is
-    same with pose::improve, should math out the movement of the camera based on the transform of what its looking at
-
-
-
+    Generate Pose Graph 
     
 analyze.cpp:
     Load Point Cloud - Combined or Stream
@@ -40,9 +48,7 @@ analyze.cpp:
     
     Annotate Impairments - Locations with Transformation to center of shape (Sphere, Cube) + Type
 
-
 ```
-
 
 
 
@@ -56,5 +62,4 @@ make
 ./bin/stream --fps 60 --frames 360
 
 Visualizer mesh fragment-0.ply
-
 ```

@@ -142,19 +142,9 @@ int main(int argc, char * argv[]) try
 
         t.Start();
         std::tie(success, delta, losses) = odometry.ComputeMultiScale();
+        Eigen::Matrix6d info = odometry.ComputeInformationMatrix();
         t.Stop();
         duration += t.GetDuration();
-
-        if(i%conf.fps==0){
-            double qd, td, vd;
-            std::tie(qd, td, vd) = pose.Difference(odometry.transform_source_to_target_);
-
-            std::cout << "QD: "<< qd << std::endl;
-            std::cout << "TD: "<< td << std::endl;
-            std::cout << "VD: "<< vd << std::endl;
-        }
-
-        //if(i == 10){ return 0; }
 
         if (conf.write_losses) {
             WriteLossesToLog(fout, i, losses);
@@ -173,7 +163,7 @@ int main(int argc, char * argv[]) try
 
         //Reset Quaternion using odometry values
         if(conf.use_imu){
-            pose.Improve(target_to_world);
+            pose.Improve(odometry.transform_source_to_target_, target_to_world, info);
         }
 
         rgbd_prev.CopyFrom(rgbd_curr);
