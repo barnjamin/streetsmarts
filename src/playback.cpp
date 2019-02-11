@@ -39,7 +39,6 @@ int main(int argc, char * argv[]) try
     conf.parseArgs(argc, argv);
     //Config conf(dirname + "/conf.json");
 
-
     PinholeCameraIntrinsic intrinsics;
     ReadIJsonConvertible(dirname + "/intrinsic.json", intrinsics);
     PinholeCameraIntrinsicCuda cuda_intrinsics(intrinsics);
@@ -131,7 +130,6 @@ int main(int argc, char * argv[]) try
             continue;
         }
 
-        
         if(conf.use_imu){
             odometry.transform_source_to_target_ = pose.GetTransform();
         }else{
@@ -161,17 +159,11 @@ int main(int argc, char * argv[]) try
         extrinsics.FromEigen(target_to_world);
         tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
 
-        //Reset Quaternion using odometry values
         if(conf.use_imu){
             pose.Improve(odometry.transform_source_to_target_, target_to_world, info);
         }
 
         rgbd_prev.CopyFrom(rgbd_curr);
-
-        PinholeCameraParameters params;
-        params.intrinsic_ =  intrinsics;
-        params.extrinsic_ = target_to_world;
-        trajectory.parameters_.emplace_back(params);
 
         timer.Signal();
     }
@@ -184,13 +176,8 @@ int main(int argc, char * argv[]) try
     if(conf.use_imu){ suffix = "imu"; }
 
     WriteTriangleMeshToPLY("fragment-"+suffix+".ply", *mesher.mesh().Download()); 
+    WritePoseGraph("pose_graph.json", pose.GetGraph());
 
-    d.stop();
-    //WritePinholeCameraTrajectoryToLOG("trajectory-"+suffix+".log", trajectory);
-    //WritePinholeCameraTrajectory("trajectory-"+suffix+".log", trajectory);
-    //WriteIJsonConvertible("pose-graph-"+suffix+".json", pose.GetGraph());
-    //WriteIJsonConvertable("all-graph-"+suffix+".json", pose.GetGraph());
-    
     return EXIT_SUCCESS;
 
 } catch (const exception& e) {

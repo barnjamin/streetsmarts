@@ -104,31 +104,31 @@ void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double ti
 }
 
 void Pose::Improve(Eigen::Matrix4d transform, Eigen::Matrix4d camera_transform, Eigen::Matrix6d info){
-
     // Add our changes to the posegraph 
     auto s = pg.edges_.size();
     pg.nodes_.push_back(open3d::PoseGraphNode(camera_transform.inverse()));
     pg.edges_.push_back(open3d::PoseGraphEdge(s-1, s, transform, info));
 
-    camera_transform = camera_transform * imu_extrinsic.inverse();
+    //camera_transform = camera_transform * imu_extrinsic.inverse();
     //Convert 4x4 matrix to transform
-    Eigen::Transform<double, 3, Eigen::Projective> camera(camera_transform);
+    //Eigen::Transform<double, 3, Eigen::Projective> camera(camera_transform);
+    Eigen::Transform<double, 3, Eigen::Projective> odom(transform);
 
     //Set position to the translation component of the inverse world translation 
-    pos = camera.translation();
+    //pos = camera.translation();
 
     //Set orientation to the cameras rotation
-    orientation = camera.rotation();
+    //orientation = camera.rotation();
 
-    //Reset quaterion values to our current rotation
-    q0 = orientation.w();
-    q1 = orientation.x();
-    q2 = orientation.y();
-    q3 = orientation.z();
+    ////Reset quaterion values to our current rotation
+    //q0 = orientation.w();
+    //q1 = orientation.x();
+    //q2 = orientation.y();
+    //q3 = orientation.z();
 
     if(path.size()>0){
         //Set velocity to translation/time since last element added
-        Eigen::Vector3d trpos = pos - path.back();
+        Eigen::Vector3d trpos = odom.translation();
         vel = trpos / time_delta;
     }
 

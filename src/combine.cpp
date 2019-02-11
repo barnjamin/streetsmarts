@@ -20,68 +20,63 @@ int main(int argc, char *argv[])
     PoseGraph pose_graph;
     ReadPoseGraph("/home/ben/streetsmarts/build/pose_graph.json", pose_graph);
 
-    //open3d::PoseGraph pg;
-    //pg.nodes_.push_back(open3d::PoseGraphNode(Eigen::Matrix4d::Identity()));
-    //auto s = pg.edges_.size();
+    std::vector<std::shared_ptr<PointCloud>> pcds;
 
-    //std::vector<std::shared_ptr<PointCloud>> pcds;
+    std::shared_ptr<PointCloud> source_origin;
+    std::shared_ptr<PointCloud> source, target;
+    for (size_t i = 0; i < trajectory.parameters_.size(); i++) {
 
-    //std::shared_ptr<PointCloud> source_origin;
-    //std::shared_ptr<PointCloud> source, target;
-    //for (size_t i = 0; i < trajectory.parameters_.size(); i++) {
+        char buff[DEFAULT_IO_BUFFER_SIZE];
+        sprintf(buff, "/home/ben/streetsmarts/build/fragment-%d.ply", (int)i);
 
-    //    char buff[DEFAULT_IO_BUFFER_SIZE];
-    //    sprintf(buff, "/home/ben/streetsmarts/build/fragment-%d.ply", (int)i);
-
-    //    if (!filesystem::FileExists(buff)) {
-    //        continue;
-    //    }
+        if (!filesystem::FileExists(buff)) {
+            continue;
+        }
 
 
-    //    source_origin = CreatePointCloudFromFile(buff);
-    //    source_origin->Transform(trajectory.parameters_[i].extrinsic_);
-    //    open3d::EstimateNormals(*source_origin, open3d::KDTreeSearchParamHybrid(0.1, 30));
-    //    std::shared_ptr<PointCloud> source_down = open3d::VoxelDownSample(*source_origin, 0.05);
+        source_origin = CreatePointCloudFromFile(buff);
+        source_origin->Transform(trajectory.parameters_[i].extrinsic_);
+        open3d::EstimateNormals(*source_origin, open3d::KDTreeSearchParamHybrid(0.1, 30));
+        std::shared_ptr<PointCloud> source_down = open3d::VoxelDownSample(*source_origin, 0.05);
 
-    //    auto stat_outliers = RemoveStatisticalOutliers(*source_down, 500, 0.05);
-    //    std::shared_ptr<PointCloud> source =  std::get<0>(stat_outliers);
+        auto stat_outliers = RemoveStatisticalOutliers(*source_down, 500, 0.05);
+        std::shared_ptr<PointCloud> source =  std::get<0>(stat_outliers);
 
-    //    std::cout << "fragment-"<< i << " has: " << source->points_.size() << std::endl;
+        std::cout << "fragment-"<< i << " has: " << source->points_.size() << std::endl;
 
-    //    if(i==0){
-    //        pcd = source_origin;
-    //        target = source;
-    //        continue;
-    //    }
+        if(i==0){
+            pcd = source_origin;
+            target = source;
+            continue;
+        }
 
-    //    int max_iter = 3;
-    //    open3d::cuda::RegistrationResultCuda result;
+        int max_iter = 3;
+        open3d::cuda::RegistrationResultCuda result;
 
-    //    open3d::cuda::RegistrationCuda registration(TransformationEstimationType::PointToPlane);
-    //    registration.Initialize(*source, *target, 0.07f);
-    //    for (int iter = 0; iter < max_iter; ++iter) {
-    //        result = registration.DoSingleIteration(i);
-    //    }
+        open3d::cuda::RegistrationCuda registration(TransformationEstimationType::PointToPlane);
+        registration.Initialize(*source, *target, 0.07f);
+        for (int iter = 0; iter < max_iter; ++iter) {
+            result = registration.DoSingleIteration(i);
+        }
 
-    //    auto odom = (trajectory.parameters_[i].extrinsic_ * result.transformation_);
-    //    pg.nodes_.push_back(open3d::PoseGraphNode(odom.inverse()));
-    //    pg.edges_.push_back(open3d::PoseGraphEdge(i-1, i, result.transformation_));
+        auto odom = (trajectory.parameters_[i].extrinsic_ * result.transformation_);
+        pg.nodes_.push_back(open3d::PoseGraphNode(odom.inverse()));
+        pg.edges_.push_back(open3d::PoseGraphEdge(i-1, i, result.transformation_));
 
-    //    //std::cout <<std::endl << trajectory.parameters_[i].extrinsic_ <<std::endl << result.transformation_ << std::endl << std::endl;
+        //std::cout <<std::endl << trajectory.parameters_[i].extrinsic_ <<std::endl << result.transformation_ << std::endl << std::endl;
 
-    //    //source->Transform(result.transformation_);
+        //source->Transform(result.transformation_);
 
+        //extrinsics.FromEigen(target_to_world);
+        //tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
 
-    //    //extrinsics.FromEigen(target_to_world);
-    //    //tsdf_volume.Integrate(rgbd_curr, cuda_intrinsics, extrinsics);
+        source_origin->Transform(result.transformation_);
+        *pcd += *source_origin;
 
-    //    source_origin->Transform(result.transformation_);
-    //    *pcd += *source_origin;
+        pcds.push_back(source);
 
-    //    pcds.push_back(source);
-
-    //    target = source;
-    //}
+        target = source;
+    }
 
 
     ////char buff[DEFAULT_IO_BUFFER_SIZE];
