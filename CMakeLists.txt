@@ -17,8 +17,6 @@ find_package(Open3D)
 find_package(realsense2)
 
 
-
-
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${Open3D_EXE_LINKER_FLAGS}")
@@ -47,6 +45,7 @@ include_directories(
 
 link_directories(${Open3D_LIBRARY_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
+link_directories(${OpenCV_LIBS})
 
 set(DEPENDENCIES 
 	${GLUT_LIBRARY}
@@ -77,4 +76,12 @@ target_link_libraries(playback ${DEPENDENCIES})
 set(COMBINE_SOURCE src/combine.cpp src/utils.cpp src/config.cpp)
 add_executable(combine ${COMBINE_SOURCE})
 target_link_libraries(combine ${DEPENDENCIES})
+
+set(ANALYZE_SOURCE src/analyze.cpp src/utils.cpp src/config.cpp)
+add_executable(analyze ${ANALYZE_SOURCE})
+target_link_libraries(analyze ${DEPENDENCIES})
+
+set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
+add_executable(kitti ${KITTI_SOURCE})
+target_link_libraries(kitti ${DEPENDENCIES})
 

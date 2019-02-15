@@ -18,13 +18,15 @@ void Visualize(std::shared_ptr<PointCloud> mesh) ;
 int main(int argc, char ** argv) 
 {
     //Load combined mesh or Stream
-    std::string pcd_file = "final.pcd";
+    std::string pcd_file = "/home/ben/data.pcd";
 
     //Load PCD
     auto pcd = LoadPointCloud(pcd_file);
 
+    pcd = VoxelDownSample(*pcd, 0.02);
+
     //Diff of Norms 
-    auto DoN = DifferenceOfNorm(*pcd, 0.05, 0.25, 0.99, FLATNESS);
+    auto DoN = DifferenceOfNorm(*pcd, 0.03, 0.15, 0.85, FLATNESS);
 
     //Visualize the Downsampled points
     Visualize(DoN);
@@ -45,18 +47,25 @@ std::shared_ptr<PointCloud> DifferenceOfNorm(
     auto big_pc = PointCloud(pc);
 
     EstimateNormals(small_pc, KDTreeSearchParamRadius(smallr));
-
     EstimateNormals(big_pc, KDTreeSearchParamRadius(bigr));
+
+    small_pc.NormalizeNormals();
+    big_pc.NormalizeNormals();
 
     //For each element in both normal arrays 
     std::vector<size_t> indicies;
     for(size_t i=0; i<pc.points_.size(); i++){
-        if(dt == FLATNESS && sqrt(small_pc.normals_[i].dot(big_pc.normals_[i])) > threshold){
+        Eigen::Vector3d diff = (small_pc.normals_[i] - big_pc.normals_[i]) / 2.0;
+
+        std::cout<< diff.norm() << std::endl;
+
+        //pc.colors_[i] = Eigen::Vector3d(diff[0], diff[1], diff[2]); 
+
+        if(dt == FLATNESS &&  diff.norm() > threshold){
             indicies.push_back(i);
-        }else if(dt == ROUGHNESS && sqrt(small_pc.normals_[i].dot(big_pc.normals_[i])) < threshold) {
+        }else if(dt == ROUGHNESS && diff.norm() < threshold) {
             indicies.push_back(i);
         }
-
     }
 
     return SelectDownSample(pc, indicies, false);
