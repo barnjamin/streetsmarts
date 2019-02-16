@@ -4,7 +4,6 @@
 #include <vector>
 #include <math.h>
 
-
 using namespace open3d;
 
 enum FilterType { FLATNESS, ROUGHNESS };
@@ -17,19 +16,27 @@ void Visualize(std::shared_ptr<PointCloud> mesh) ;
 
 int main(int argc, char ** argv) 
 {
-    //Load combined mesh or Stream
-    std::string pcd_file = "/home/ben/data.pcd";
-
-    //Load PCD
-    auto pcd = LoadPointCloud(pcd_file);
+    auto pcd = std::make_shared<PointCloud>();
+    if (ReadPointCloud(argv[1], *pcd)) {
+        PrintWarning("Successfully read %s\n", argv[2]);
+    } else {
+        PrintError("Failed to read %s\n\n", argv[2]);
+        return 1;
+    }
 
     pcd = VoxelDownSample(*pcd, 0.02);
 
     //Diff of Norms 
-    auto DoN = DifferenceOfNorm(*pcd, 0.03, 0.15, 0.85, FLATNESS);
+    auto DoN = DifferenceOfNorm(*pcd, 0.03, 0.5, 0.85, FLATNESS);
 
-    //Visualize the Downsampled points
-    Visualize(DoN);
+    Eigen::Matrix4d side_by_side;
+    side_by_side << 1,0,0,10,
+                    0,1,0,0,
+                    0,0,1,0,
+                    0,0,0,1;
+    pcd->Transform(side_by_side);
+
+    DrawGeometries({pcd, DoN});
 
     //Group points
     std::vector<std::shared_ptr<PointCloud>> objs = Group(*DoN, EUCLIDIAN);
@@ -52,23 +59,29 @@ std::shared_ptr<PointCloud> DifferenceOfNorm(
     small_pc.NormalizeNormals();
     big_pc.NormalizeNormals();
 
+    SetGlobalColorMap(ColorMap::ColorMapOption::Jet);
+    auto color_map_ptr = GetGlobalColorMap();
+
     //For each element in both normal arrays 
     std::vector<size_t> indicies;
     for(size_t i=0; i<pc.points_.size(); i++){
-        Eigen::Vector3d diff = (small_pc.normals_[i] - big_pc.normals_[i]) / 2.0;
+        Eigen::Vector3d diff = (big_pc.normals_[i] - small_pc.normals_[i]) / 2.0;
 
-        std::cout<< diff.norm() << std::endl;
+        auto delta  = diff.norm();
 
-        //pc.colors_[i] = Eigen::Vector3d(diff[0], diff[1], diff[2]); 
-
-        if(dt == FLATNESS &&  diff.norm() > threshold){
-            indicies.push_back(i);
-        }else if(dt == ROUGHNESS && diff.norm() < threshold) {
-            indicies.push_back(i);
+        if (i%100000 == 0 ) {
+            std::cout << "Diff: " << delta << std::endl;
         }
+
+        big_pc.colors_[i] =  color_map_ptr->GetColor(delta*10);
+        //if(dt == FLATNESS &&  diff.norm() > threshold){
+           // indicies.push_back(i);
+        //}else if(dt == ROUGHNESS && diff.norm() < threshold) {
+            //indicies.push_back(i);
+        //}
     }
 
-    return SelectDownSample(pc, indicies, false);
+    return SelectDownSample(big_pc, indicies, true);
 }
 
 std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt) 
@@ -92,6 +105,5 @@ std::shared_ptr<PointCloud> LoadPointCloud(std::string& filename)
 //void Visualize(PointCloud &mesh, std::vector<std::shared_ptr<PointCloud>> pcs) 
 void Visualize(std::shared_ptr<PointCloud> mesh) 
 {
-    DrawGeometries({mesh});
 }
 

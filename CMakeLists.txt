@@ -85,3 +85,6 @@ set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
 add_executable(kitti ${KITTI_SOURCE})
 target_link_libraries(kitti ${DEPENDENCIES})
 
+set(VISUALIZE_SOURCE src/visualize_height.cpp src/utils.cpp src/config.cpp)
+add_executable(height ${VISUALIZE_SOURCE})
+target_link_libraries(height ${DEPENDENCIES})
