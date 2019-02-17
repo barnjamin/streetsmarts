@@ -11,9 +11,7 @@ enum GroupType {EUCLIDIAN, GAUSSIAN};
 
 std::shared_ptr<PointCloud> DifferenceOfNorm(PointCloud& pc, float smallr, float bigr, float low_thresh, float high_thresh, FilterType dt);
 std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt);
-std::shared_ptr<PointCloud> LoadPointCloud(std::string& filename) ;
 std::shared_ptr<LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max);
-void Visualize(std::shared_ptr<PointCloud> mesh) ;
 
 int main(int argc, char ** argv) 
 {
@@ -53,7 +51,7 @@ int main(int argc, char ** argv)
 
     std::vector<std::shared_ptr<PointCloud>> pc_chunks;
 
-    int chunks = 500;
+    int chunks = 200;
     double diff = max_val/double(chunks);
     for(int i=0; i<chunks; i++) {
 
@@ -89,21 +87,20 @@ int main(int argc, char ** argv)
         }
 
         Eigen::Vector3d trim_min(min[0], min[1], min[2]);
-        trim_min[max_idx] = min[max_idx] + 0.8;
+        trim_min[max_idx] = min[max_idx] + 0.9;
 
         Eigen::Vector3d trim_max(max[0], max[1], max[2]);
-        trim_max[max_idx] = max[max_idx] - 0.8;
+        trim_max[max_idx] = max[max_idx] - 0.9;
 
         pc = CropPointCloud(*pc, trim_min, trim_max);
         *trimmed_pc += *pc;
     }
 
+    WritePointCloud("trimmed.pcd", *trimmed_pc);
     std::cout << "Finished trimming"<<std::endl;
 
-    //DrawGeometries(geoms);
-
     //Diff of Norms 
-    auto DoN = DifferenceOfNorm(*trimmed_pc, 0.03, 0.5, 0.025, 0.2, WITHIN_RANGE);
+    auto DoN = DifferenceOfNorm(*trimmed_pc, 0.03, 0.5, 0.032, 0.1, WITHIN_RANGE);
 
 
     Eigen::Matrix4d side_by_side;
@@ -114,8 +111,6 @@ int main(int argc, char ** argv)
     trimmed_pc->Transform(side_by_side);
 
     WritePointCloud("downsampled.pcd", *DoN);
-
-    DrawGeometries({trimmed_pc, DoN});
 
     //Group points
     std::vector<std::shared_ptr<PointCloud>> objs = Group(*DoN, EUCLIDIAN);
@@ -192,7 +187,6 @@ std::shared_ptr<PointCloud> DifferenceOfNorm(
 }
 
 std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt) 
-
 {
     //for (auto &c : cloud_ptr->colors_) {
     //    c = color_map_ptr->GetColor(index);
@@ -201,18 +195,6 @@ std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt)
     return std::vector<std::shared_ptr<PointCloud>>();
 }
 
-std::shared_ptr<PointCloud> LoadPointCloud(std::string& filename) 
-{
-    auto pc = std::make_shared<PointCloud>();
-    ReadPointCloud(filename, *pc, "pcd");
-    return pc;
-}
-
-
-//void Visualize(PointCloud &mesh, std::vector<std::shared_ptr<PointCloud>> pcs) 
-void Visualize(std::shared_ptr<PointCloud> mesh) 
-{
-}
 
 std::shared_ptr<LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max){
     double maxx = max[0];
