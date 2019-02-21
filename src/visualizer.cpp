@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 
     Eigen::Matrix4d below;
     below << 1,0,0,0,
-             0,1,0,0.1,
+             0,1,0,0.001,
              0,0,1,0,
              0,0,0,1;
 

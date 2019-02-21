@@ -11,6 +11,7 @@ enum GroupType {EUCLIDIAN, GAUSSIAN};
 
 std::shared_ptr<PointCloud> DifferenceOfNorm(PointCloud& pc, float smallr, float bigr, float low_thresh, float high_thresh, FilterType dt);
 std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt);
+std::shared_ptr<PointCloud> TrimLongitudinalAxis(PointCloud& pc, float width, int slices);
 std::shared_ptr<LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max);
 
 int main(int argc, char ** argv) 
@@ -28,80 +29,14 @@ int main(int argc, char ** argv)
 
     pcd = VoxelDownSample(*pcd, 0.02);
 
-    geoms.push_back(pcd);
-
-    Eigen::Vector3d max = pcd->GetMaxBound();
-    Eigen::Vector3d min = pcd->GetMinBound();
-
-    auto bb = LineSetFromBBox(min, max);
-
-    geoms.push_back(bb);
-
-    double max_val = 0;
-    int max_idx = 0;
-    for(int i=0; i<3; i++){
-        double delta = abs(max[i] - min[i]);
-        if(delta > max_val){
-            max_val = delta;
-            max_idx = i;
-        } 
-    }
-
-    std::cout << "Longitudinal axis distance: "<<max_val<< " idx: " <<max_idx<<std::endl;
-
-    std::vector<std::shared_ptr<PointCloud>> pc_chunks;
-
-    int chunks = 200;
-    double diff = max_val/double(chunks);
-    for(int i=0; i<chunks; i++) {
-
-        Eigen::Vector3d chunk_min(min[0], min[1], min[2]);
-        chunk_min[max_idx] = min[max_idx] + double(i) * diff ;
-
-        Eigen::Vector3d chunk_max(max[0], max[1], max[2]);
-        chunk_max[max_idx] = min[max_idx] + double(i+1)*diff;
-
-        auto chunk_bb = LineSetFromBBox(chunk_min, chunk_max);
-
-        pc_chunks.push_back(CropPointCloud(*pcd, chunk_min, chunk_max));
-        
-        geoms.push_back(chunk_bb);
-    }
-    
-    std::shared_ptr<PointCloud> trimmed_pc = std::make_shared<PointCloud>();
-    for(int i=0; i<pc_chunks.size(); i++){
-        auto pc = pc_chunks[i];
-        Eigen::Vector3d max = pc->GetMaxBound();
-        Eigen::Vector3d min = pc->GetMinBound();
-
-        auto gg = LineSetFromBBox(min, max);
-
-        double max_val = 0;
-        int max_idx = 0;
-        for(int i=0; i<3; i++){
-            double delta = abs(max[i] - min[i]);
-            if(delta > max_val){
-                max_val = delta;
-                max_idx = i;
-            } 
-        }
-
-        Eigen::Vector3d trim_min(min[0], min[1], min[2]);
-        trim_min[max_idx] = min[max_idx] + 0.9;
-
-        Eigen::Vector3d trim_max(max[0], max[1], max[2]);
-        trim_max[max_idx] = max[max_idx] - 0.9;
-
-        pc = CropPointCloud(*pc, trim_min, trim_max);
-        *trimmed_pc += *pc;
-    }
-
+    auto trimmed_pc = TrimLongitudinalAxis(*pcd, 0.0, 200);
     WritePointCloud("trimmed.pcd", *trimmed_pc);
-    std::cout << "Finished trimming"<<std::endl;
 
     //Diff of Norms 
-    auto DoN = DifferenceOfNorm(*trimmed_pc, 0.03, 0.5, 0.032, 0.1, WITHIN_RANGE);
+    auto DoN = DifferenceOfNorm(*trimmed_pc, 0.03, 0.5, 0.025, 0.15, WITHIN_RANGE);
+    //auto DoN = DifferenceOfNorm(*pcd, 0.03, 0.5, 0.025, 0.2, OUTSIDE_RANGE);
 
+    geoms.push_back(DoN);
 
     Eigen::Matrix4d side_by_side;
     side_by_side << 1,0,0,10,
@@ -109,14 +44,10 @@ int main(int argc, char ** argv)
                     0,0,1,0,
                     0,0,0,1;
     trimmed_pc->Transform(side_by_side);
+    geoms.push_back(trimmed_pc);
 
+    DrawGeometries(geoms);
     WritePointCloud("downsampled.pcd", *DoN);
-
-    //Group points
-    std::vector<std::shared_ptr<PointCloud>> objs = Group(*DoN, EUCLIDIAN);
-
-    //PointNet - Learn Features of Potholes and Cracks
-    //Annotate Locations with Transformation to center of shape (Sphere, Cube) + Type
 
     return 0;
 }
@@ -234,4 +165,78 @@ std::shared_ptr<LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d ma
     }
 
     return bb;
+}
+
+
+std::shared_ptr<PointCloud> TrimLongitudinalAxis(PointCloud& pcd, float width, int slices) 
+{
+
+    Eigen::Vector3d max = pcd.GetMaxBound();
+    Eigen::Vector3d min = pcd.GetMinBound();
+
+    auto bb = LineSetFromBBox(min, max);
+
+    //geoms.push_back(bb);
+
+    double max_val = 0;
+    int max_idx = 0;
+    for(int i=0; i<3; i++){
+        double delta = abs(max[i] - min[i]);
+        if(delta > max_val){
+            max_val = delta;
+            max_idx = i;
+        } 
+    }
+
+    std::cout << "Longitudinal axis distance: "<<max_val<< " idx: " <<max_idx<<std::endl;
+
+    std::vector<std::shared_ptr<PointCloud>> pc_chunks;
+
+    double diff = max_val/double(slices);
+    for(int i=0; i<slices; i++) {
+
+        Eigen::Vector3d chunk_min(min[0], min[1], min[2]);
+        chunk_min[max_idx] = min[max_idx] + double(i) * diff ;
+
+        Eigen::Vector3d chunk_max(max[0], max[1], max[2]);
+        chunk_max[max_idx] = min[max_idx] + double(i+1)*diff;
+
+        auto chunk_bb = LineSetFromBBox(chunk_min, chunk_max);
+
+        pc_chunks.push_back(CropPointCloud(pcd, chunk_min, chunk_max));
+        
+        //geoms.push_back(chunk_bb);
+    }
+    
+    std::shared_ptr<PointCloud> trimmed_pc = std::make_shared<PointCloud>();
+    for(int i=0; i<pc_chunks.size(); i++){
+        auto pc = pc_chunks[i];
+        Eigen::Vector3d max = pc->GetMaxBound();
+        Eigen::Vector3d min = pc->GetMinBound();
+
+        auto gg = LineSetFromBBox(min, max);
+
+        double max_val = 0;
+        int max_idx = 0;
+        for(int i=0; i<3; i++){
+            double delta = abs(max[i] - min[i]);
+            if(delta > max_val){
+                max_val = delta;
+                max_idx = i;
+            } 
+        }
+
+        Eigen::Vector3d trim_min(min[0], min[1], min[2]);
+        trim_min[max_idx] = min[max_idx] + width;
+
+        Eigen::Vector3d trim_max(max[0], max[1], max[2]);
+        trim_max[max_idx] = max[max_idx] - width;
+
+        pc = CropPointCloud(*pc, trim_min, trim_max);
+        *trimmed_pc += *pc;
+    }
+
+    return trimmed_pc;
+
+
 }
