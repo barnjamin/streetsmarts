@@ -168,15 +168,7 @@ int main(int argc, char * argv[]) try
             mesher.MarchingCubes(tsdf_volume);
             *mesh = mesher.mesh();
 
-            //visualizer.PollEvents();
-            //visualizer.UpdateGeometry(); 
-
-            //Convert mesh to point cloud
-            //ICP point cloud using last save extrinciscs 
-            //Add to world point cloud with 
-
-            WriteTriangleMeshToPLY( "fragment-" 
-                  + std::to_string(save_index) + ".ply", *(mesh->Download()));
+            WriteTriangleMeshToPLY( "fragment-" + std::to_string(save_index) + ".ply", *(mesh->Download()));
 
             tsdf_volume.Reset();
             save_index++;
