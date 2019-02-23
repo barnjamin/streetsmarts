@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"time"
 )
 
 type DataType string
@@ -31,6 +32,8 @@ var (
 	client = &http.Client{}
 
 	compress = flag.Bool("compress", false, "Whether or not to apply draco compression")
+
+	finished = false
 )
 
 func main() {
@@ -55,47 +58,78 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		// TODO: Kick off program to capture rgbd images and generate fragments
-		cmd := exec.Command("/home/ben/streetsmarts/build/bin/capture", session)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			log.Fatalf("Failed to run command")
-		}
-		log.Printf("Output: %s", out)
+
+		log.Printf("Kicking off data capture")
+
+		time.Sleep(3 * time.Second)
+
+		//cmd := exec.Command("/home/ben/streetsmarts/build/bin/capture", session)
+		//out, err := cmd.CombinedOutput()
+		//if err != nil {
+		//	log.Fatalf("Failed to run command")
+		//}
+		//log.Printf("Output: %s", out)
 	}()
 
 	// Watch for new files and upload them to server
-	WatchDir(session, FRAGMENT)
-	WatchDir(session, POSE)
-	//WatchDir(session, IMU)
-	//WatchDir(session, GPS)
+	log.Printf("Watching directories")
+	WatchDir(session, FRAGMENT, file_wg)
+	WatchDir(session, POSE, file_wg)
+	//WatchDir(session, IMU, file_wg)
+	//WatchDir(session, GPS, file_wg)
 
+	log.Printf("Waiting for capture program to terminate")
 	// When the capture program exits, stop session
 	wg.Wait()
+
+	log.Printf("Capture program finished, waiting for last files to be uploaded")
+	CleanUp()
+
+	log.Printf("Stopping session")
 	if err := StopSession(session); err != nil {
 		log.Fatalf("Failed to stop session %q: %+v", session, err)
 	}
 
+	log.Printf("Waiting for finished posegraph")
 	// Start polling for finished posegraph
 	if err := CheckFinished(session); err != nil {
 		log.Fatalf("Couldnt check if session %s is finished: %s", session, err)
 	}
 
+	log.Printf("Integrating scene")
 	// On finished posegraph, integrate final scene
 	// Send final scene to server
+}
+
+func CleanUp() {
+	finished = true
 }
 
 func WatchDir(session string, datatype DataType) {
 	//https://github.com/fsnotify/fsnotify/blob/master/example_test.go
 	//watch_dir := get_session_dir(session, datatype)
 	watch_dir := "/home/ben/streetsmarts/dumps/latest/fragments_cuda"
+	go func() {
+		for {
+			//Run it one more time
+			last_run := false
+			if finished {
+				last_run = true
+			}
 
-	switch datatype {
-	case FRAGMENT:
-		go watchPLY(session, watch_dir)
-	case POSE:
-		go watchPose(session, watch_dir)
-	}
+			switch datatype {
+			case FRAGMENT:
+				watchPLY(session, watch_dir)
+			case POSE:
+				watchPose(session, watch_dir)
+			}
+
+			if last_run {
+				return
+			}
+		}
+	}()
+
 }
 
 func watchPose(session, watch_dir string) {
@@ -133,7 +167,7 @@ func watchPose(session, watch_dir string) {
 			continue
 		}
 
-		// TODO: Delete both
+		//TODO: delete
 	}
 }
 
