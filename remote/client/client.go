@@ -66,8 +66,10 @@ func main() {
 		//cmd := exec.Command("/home/ben/streetsmarts/build/bin/capture", session)
 		//out, err := cmd.CombinedOutput()
 		//if err != nil {
+		//  log.Printf("Output: %s", out)
 		//	log.Fatalf("Failed to run command")
 		//}
+
 		//log.Printf("Output: %s", out)
 	}()
 
@@ -79,7 +81,6 @@ func main() {
 	//WatchDir(session, GPS, file_wg)
 
 	log.Printf("Waiting for capture program to terminate")
-	// When the capture program exits, stop session
 	wg.Wait()
 
 	log.Printf("Capture program finished, waiting for last files to be uploaded")
@@ -97,6 +98,7 @@ func main() {
 	}
 
 	log.Printf("Integrating scene")
+
 	// On finished posegraph, integrate final scene
 	// Send final scene to server
 }
