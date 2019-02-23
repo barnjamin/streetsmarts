@@ -1,12 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
+	"sync"
 )
 
 type DataType string
@@ -26,46 +28,64 @@ var (
 	remote = fmt.Sprintf("http://%s:%s", host, port)
 
 	client = &http.Client{}
+
+	compress = flag.Bool("compress", false, "Whether or not to apply draco compression")
 )
 
 func main() {
+	flag.Parse()
 
 	// Start a session on the server
-	//log.Printf("Starting a session")
-	//session, err := StartSession()
-	//if err != nil {
-	//	log.Fatalf("Failed to start session: %+v", err)
-	//}
+	log.Printf("Starting a session")
+	session, err := StartSession()
+	if err != nil {
+		log.Fatalf("Failed to start session: %+v", err)
+	}
 
-	//log.Printf("Got a session id of: %s", session)
-	//if err := PrepareDirs(session); err != nil {
-	//	log.Fatalf("Failed to prepare directory: %+v", err)
-	//}
+	log.Printf("Got a session id of: %s", session)
+	if err := PrepareDirs(session); err != nil {
+		log.Fatalf("Failed to prepare directory: %+v", err)
+	}
 
-	//log.Printf("Prepared Directories for writing")
+	log.Printf("Prepared Directories for writing")
 
-	// TODO: Kick off program to capture rgbd images and generate fragments
+	var wg sync.WaitGroup
 
-	session := "abc123-1550930895"
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// TODO: Kick off program to capture rgbd images and generate fragments
+		cmd := exec.Command("/home/ben/streetsmarts/build/bin/capture", session)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Fatalf("Failed to run command")
+		}
+		log.Printf("Output: %s", out)
+	}()
+
 	// Watch for new files and upload them to server
 	WatchDir(session, FRAGMENT)
 	//WatchDir(session, IMU)
 	//WatchDir(session, GPS)
 
-	// When the program exits(?) stop session
+	// When the capture program exits, stop session
+	wg.Wait()
+	if err := StopSession(session); err != nil {
+		log.Fatalf("Failed to stop session %q: %+v", session, err)
+	}
 
 	// Start polling for finished posegraph
+	if err := CheckFinished(session); err != nil {
+		log.Fatalf("Couldnt check if session %s is finished: %s", session, err)
+	}
 
 	// On finished posegraph, integrate final scene
-
 	// Send final scene to server
 }
 
 func WatchDir(session string, datatype DataType) {
 	//https://github.com/fsnotify/fsnotify/blob/master/example_test.go
 	//watch_dir := get_session_dir(session, datatype)
-
-	compress := false
 
 	watch_dir := "/home/ben/streetsmarts/dumps/latest/fragments_cuda"
 	files, err := ioutil.ReadDir(watch_dir)
@@ -81,7 +101,7 @@ func WatchDir(session string, datatype DataType) {
 			continue
 		}
 
-		if compress {
+		if *compress {
 			// Compress to fs
 			cmd := exec.Command("/home/ben/draco/build/draco_encode", "-i", watch_dir+"/"+fname)
 			out, err := cmd.CombinedOutput()
@@ -134,6 +154,30 @@ func StartSession() (string, error) {
 
 	//Get the session id we're going to use in later requests
 	return resp.Header.Get("session-id"), nil
+}
+
+func StopSession(session string) error {
+
+	req, err := http.NewRequest("POST", remote+"/stop", nil)
+	if err != nil {
+		log.Printf("Failed to create request for remote server: %+v", err)
+		return err
+	}
+	req.Header.Add("session-id", session)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Failed to stop session on server: %+v", err)
+		return err
+	}
+
+	return nil
+}
+
+func CheckFinished(session string) error {
+	// Continuously or long poll server for session finished state
+	// On success it will write back final pose graph
+	// We write posegraph to pg file
 }
 
 func PrepareDirs(session string) error {
