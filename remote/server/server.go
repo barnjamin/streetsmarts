@@ -16,6 +16,7 @@ var (
 	GPS      DataType = "gps"
 	IMU      DataType = "imu"
 	FRAGMENT DataType = "fragment"
+	POSE     DataType = "pose"
 	FINAL    DataType = "final"
 )
 
@@ -24,6 +25,7 @@ func main() {
 	http.HandleFunc("/stop", Stop)
 
 	http.HandleFunc("/fragment", UploadFragment)
+	http.HandleFunc("/pose", UploadPose)
 	http.HandleFunc("/imu", UploadIMU)
 	http.HandleFunc("/gps", UploadGPS)
 
@@ -57,6 +59,32 @@ func Stop(w http.ResponseWriter, r *http.Request) {
 	//Stop session
 	// Write some sentinal to show that we've finished
 	// Kick off processor?
+}
+
+func UploadPose(w http.ResponseWriter, r *http.Request) {
+	session := r.Header.Get("session-id")
+	fragment := r.Header.Get("fragment")
+
+	path := fmt.Sprintf("%s/%s", get_session_dir(session, POSE), fragment)
+	f, err := os.Create(path)
+	if err != nil {
+		log.Printf("Failed to create file")
+		w.WriteHeader(500)
+		return
+	}
+
+	defer f.Close()
+	defer r.Body.Close()
+
+	// write body to directory of session given in headers
+	if _, err = io.Copy(f, r.Body); err != nil {
+		log.Printf("Failed to write file")
+		w.WriteHeader(500)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	return
 }
 
 func UploadFragment(w http.ResponseWriter, r *http.Request) {
@@ -134,6 +162,11 @@ func StartSession(id string) (string, error) {
 
 	fragment_session_dir := get_session_dir(session, FRAGMENT)
 	if err := os.MkdirAll(fragment_session_dir, 0777); err != nil {
+		return session, err
+	}
+
+	pose_session_dir := get_session_dir(session, POSE)
+	if err := os.MkdirAll(pose_session_dir, 0777); err != nil {
 		return session, err
 	}
 

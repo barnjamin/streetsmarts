@@ -19,6 +19,7 @@ var (
 	FRAGMENT DataType = "fragment"
 	GPS      DataType = "gps"
 	IMU      DataType = "imu"
+	POSE     DataType = "pose"
 )
 
 var (
@@ -65,6 +66,7 @@ func main() {
 
 	// Watch for new files and upload them to server
 	WatchDir(session, FRAGMENT)
+	WatchDir(session, POSE)
 	//WatchDir(session, IMU)
 	//WatchDir(session, GPS)
 
@@ -86,8 +88,57 @@ func main() {
 func WatchDir(session string, datatype DataType) {
 	//https://github.com/fsnotify/fsnotify/blob/master/example_test.go
 	//watch_dir := get_session_dir(session, datatype)
-
 	watch_dir := "/home/ben/streetsmarts/dumps/latest/fragments_cuda"
+
+	switch datatype {
+	case FRAGMENT:
+		go watchPLY(session, watch_dir)
+	case POSE:
+		go watchPose(session, watch_dir)
+	}
+}
+
+func watchPose(session, watch_dir string) {
+	files, err := ioutil.ReadDir(watch_dir)
+	if err != nil {
+		log.Fatalf("Failed to watch directory")
+	}
+
+	for _, file := range files {
+		fname := file.Name()
+
+		//Skip non ply files
+		if fname[len(fname)-4:] != "json" {
+			continue
+		}
+
+		f, err := os.Open(watch_dir + "/" + fname)
+		if err != nil {
+			log.Printf("Failed to open compressed file: %+v", err)
+		}
+
+		req, err := http.NewRequest("POST", remote+"/pose", f)
+		if err != nil {
+			log.Printf("Failed to create new request: %+v", err)
+			continue
+		}
+
+		req.Header.Add("session-id", session)
+		req.Header.Add("fragment", fname)
+
+		// Write Compressed to server
+		_, err = client.Do(req)
+		if err != nil {
+			log.Printf("Failed to upload fragment: %+v", err)
+			continue
+		}
+
+		// TODO: Delete both
+	}
+}
+
+func watchPLY(session, watch_dir string) {
+
 	files, err := ioutil.ReadDir(watch_dir)
 	if err != nil {
 		log.Fatalf("Failed to watch directory")
@@ -136,6 +187,7 @@ func WatchDir(session string, datatype DataType) {
 
 		// TODO: Delete both
 	}
+
 }
 
 func StartSession() (string, error) {
@@ -165,7 +217,7 @@ func StopSession(session string) error {
 	}
 	req.Header.Add("session-id", session)
 
-	resp, err := client.Do(req)
+	_, err = client.Do(req)
 	if err != nil {
 		log.Printf("Failed to stop session on server: %+v", err)
 		return err
@@ -178,6 +230,7 @@ func CheckFinished(session string) error {
 	// Continuously or long poll server for session finished state
 	// On success it will write back final pose graph
 	// We write posegraph to pg file
+	return nil
 }
 
 func PrepareDirs(session string) error {
@@ -194,6 +247,11 @@ func PrepareDirs(session string) error {
 
 	fragment_session_dir := get_session_dir(session, FRAGMENT)
 	if err := os.MkdirAll(fragment_session_dir, 0777); err != nil {
+		return err
+	}
+
+	pose_session_dir := get_session_dir(session, POSE)
+	if err := os.MkdirAll(pose_session_dir, 0777); err != nil {
 		return err
 	}
 
