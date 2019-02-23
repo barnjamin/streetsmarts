@@ -63,7 +63,7 @@ func UploadFragment(w http.ResponseWriter, r *http.Request) {
 	session := r.Header.Get("session-id")
 	fragment := r.Header.Get("fragment")
 
-	path := fmt.Sprintf("%s/%s.ply.drc", get_session_dir(session, FRAGMENT), fragment)
+	path := fmt.Sprintf("%s/%s", get_session_dir(session, FRAGMENT), fragment)
 	f, err := os.Create(path)
 	if err != nil {
 		log.Printf("Failed to create file")
@@ -81,19 +81,21 @@ func UploadFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
-		// decompress with draco via commandline
-		cmd := exec.Command("/home/ben/draco/build/draco_decode", "-i", path, "-o", path[:3])
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			log.Printf("Failed to decompress: %s", path)
-			return
-		}
+	if fragment[len(fragment)-3:] == "drc" {
+		go func() {
+			// decompress with draco via commandline
+			cmd := exec.Command("/home/ben/draco/build/draco_decode", "-i", path, "-o", path[:3])
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				log.Printf("Failed to decompress: %s", path)
+				return
+			}
 
-		log.Printf("Output from draco: %s", out)
+			log.Printf("Output from draco: %s", out)
 
-		os.Remove(path)
-	}()
+			os.Remove(path)
+		}()
+	}
 
 	w.WriteHeader(http.StatusOK)
 	return
