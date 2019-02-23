@@ -43,7 +43,7 @@ func Start(w http.ResponseWriter, r *http.Request) {
 	// a session id for later use by client
 	session, err := StartSession(id)
 	if err != nil {
-		log.Printf("Failed to create session")
+		log.Printf("Failed to create session: %+v", err)
 		w.WriteHeader(500)
 		return
 	}
@@ -121,22 +121,22 @@ func StartSession(id string) (string, error) {
 	session := fmt.Sprintf("%s-%d", id, time.Now().Unix())
 
 	gps_session_dir := get_session_dir(session, GPS)
-	if err := os.Mkdir(gps_session_dir, 0666); err != nil {
+	if err := os.MkdirAll(gps_session_dir, 0777); err != nil {
 		return session, err
 	}
 
 	imu_session_dir := get_session_dir(session, IMU)
-	if err := os.Mkdir(imu_session_dir, 0666); err != nil {
+	if err := os.MkdirAll(imu_session_dir, 0777); err != nil {
 		return session, err
 	}
 
 	fragment_session_dir := get_session_dir(session, FRAGMENT)
-	if err := os.Mkdir(fragment_session_dir, 0666); err != nil {
+	if err := os.MkdirAll(fragment_session_dir, 0777); err != nil {
 		return session, err
 	}
 
 	final_session_dir := get_session_dir(session, FINAL)
-	if err := os.Mkdir(final_session_dir, 0666); err != nil {
+	if err := os.MkdirAll(final_session_dir, 0777); err != nil {
 		return session, err
 	}
 
