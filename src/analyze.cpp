@@ -25,6 +25,7 @@ int main(int argc, char ** argv)
     }
     
 
+
     std::vector<std::shared_ptr<const Geometry>> geoms;
 
     pcd = VoxelDownSample(*pcd, 0.02);
@@ -47,7 +48,7 @@ int main(int argc, char ** argv)
     geoms.push_back(trimmed_pc);
 
     DrawGeometries(geoms);
-    WritePointCloud("downsampled.pcd", *DoN);
+    WritePointCloud("downsampled.ply", *DoN, false, true);
 
     return 0;
 }

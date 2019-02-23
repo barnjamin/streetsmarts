@@ -92,3 +92,7 @@ target_link_libraries(analyze ${DEPENDENCIES})
 set(VISUALIZE_SOURCE src/visualizer.cpp src/utils.cpp src/config.cpp)
 add_executable(vm ${VISUALIZE_SOURCE})
 target_link_libraries(vm ${DEPENDENCIES})
+
+set(TST_SRC src/tester.cpp src/utils.cpp src/config.cpp)
+add_executable(tst ${TST_SRC})
+target_link_libraries(tst ${DEPENDENCIES})
