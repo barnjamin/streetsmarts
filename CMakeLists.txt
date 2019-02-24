@@ -80,10 +80,10 @@ set(DEPENDENCIES
 #set(CLUSTER_SOURCE src/analyze_cluster.cpp)
 #add_executable(cluster ${CLUSTER_SOURCE})
 #target_link_libraries(cluster ${DEPENDENCIES})
-#
-#set(ANALYZE_SOURCE src/analyze_don.cpp src/utils.cpp src/config.cpp)
-#add_executable(analyze ${ANALYZE_SOURCE})
-#target_link_libraries(analyze ${DEPENDENCIES})
+
+set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
+add_executable(analyze ${ANALYZE_SOURCE})
+target_link_libraries(analyze ${DEPENDENCIES})
 
 #set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
 #add_executable(kitti ${KITTI_SOURCE})

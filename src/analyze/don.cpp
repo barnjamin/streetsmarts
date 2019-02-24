@@ -3,6 +3,7 @@
 #include <Visualization/Visualization.h>
 #include <vector>
 #include <math.h>
+#include "../config.h"
 
 using namespace open3d;
 
@@ -16,6 +17,9 @@ std::shared_ptr<LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d ma
 
 int main(int argc, char ** argv) 
 {
+
+    Config conf(argc, argv);
+
     auto pcd = std::make_shared<PointCloud>();
     if (ReadPointCloud(argv[1], *pcd)) {
         PrintWarning("Successfully read %s\n", argv[1]);
@@ -28,14 +32,16 @@ int main(int argc, char ** argv)
 
     std::vector<std::shared_ptr<const Geometry>> geoms;
 
-    pcd = VoxelDownSample(*pcd, 0.02);
+    pcd = VoxelDownSample(*pcd, conf.don_downsample);
 
-    auto trimmed_pc = TrimLongitudinalAxis(*pcd, 0.0, 200);
-    WritePointCloud("trimmed.pcd", *trimmed_pc);
+    //auto trimmed_pc = TrimLongitudinalAxis(*pcd, 0.0, 200);
+    //WritePointCloud("trimmed.pcd", *trimmed_pc);
 
     //Diff of Norms 
-    auto DoN = DifferenceOfNorm(*trimmed_pc, 0.03, 0.5, 0.025, 0.15, WITHIN_RANGE);
-    //auto DoN = DifferenceOfNorm(*pcd, 0.03, 0.5, 0.025, 0.2, OUTSIDE_RANGE);
+    auto DoN = DifferenceOfNorm(*pcd, 
+            conf.don_small, conf.don_large, 
+            conf.threshold_min, conf.threshold_max, 
+            WITHIN_RANGE);
 
     geoms.push_back(DoN);
 
@@ -44,8 +50,8 @@ int main(int argc, char ** argv)
                     0,1,0,0,
                     0,0,1,0,
                     0,0,0,1;
-    trimmed_pc->Transform(side_by_side);
-    geoms.push_back(trimmed_pc);
+    pcd->Transform(side_by_side);
+    geoms.push_back(pcd);
 
     DrawGeometries(geoms);
     WritePointCloud("downsampled.ply", *DoN, false, true);

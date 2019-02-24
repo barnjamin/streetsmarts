@@ -54,8 +54,10 @@ Config::Config(int argc, char ** argv) {
     temp_a      = GetProgramOptionAsDouble(argc,argv,  "--temp-a", 0.5);
     temp_d      = GetProgramOptionAsDouble(argc,argv,  "--temp-d", 50);
 
-    don_small = GetProgramOptionAsDouble(argc,argv, "--don_small", 0.05);
-    don_large = GetProgramOptionAsDouble(argc,argv, "--don_large", 0.25);
+    don_downsample = GetProgramOptionAsDouble(argc,argv, "--don_downsample", 0.02);
+
+    don_small = GetProgramOptionAsDouble(argc,argv, "--don_small", 0.03);
+    don_large = GetProgramOptionAsDouble(argc,argv, "--don_large", 0.5);
 
     threshold_min = GetProgramOptionAsDouble(argc,argv, "--don_thresh_min", 0.032);
     threshold_max = GetProgramOptionAsDouble(argc,argv, "--don_thresh_max", 0.1);

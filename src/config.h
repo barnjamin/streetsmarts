@@ -29,6 +29,8 @@ public:
     double max_depth;
     double depth_factor;
 
+    double don_downsample;
+
     double don_small;
     double don_large;
 
