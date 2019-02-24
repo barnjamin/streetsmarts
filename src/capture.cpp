@@ -84,7 +84,6 @@ int main(int argc, char * argv[]) try
     for(int i=0; i<conf.framestart; i++) rs2::frameset frameset = pipe.wait_for_frames(); 
 
 
-    Timer tm;
     bool success;
     Eigen::Matrix4d t;
     std::vector<std::vector<float>> losses;
@@ -145,15 +144,8 @@ int main(int argc, char * argv[]) try
             pose_graph.edges_.emplace_back(PoseGraphEdge(i-1, i, 
                         odometry.transform_source_to_target_, information, false));
 
-            tm.Start();
             WriteImage(conf.DepthFile(fragment_idx, i), *depth_image);
-            tm.Stop();
-            tm.Print("Write depth image");
-
-            tm.Start();
             WriteImage(conf.ColorFile(fragment_idx, i), *color_image);
-            tm.Stop();
-            tm.Print("Write color image");
             
             rgbd_prev.CopyFrom(rgbd_curr);
             timer.Signal();

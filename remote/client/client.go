@@ -10,9 +10,11 @@ import (
 	"os/exec"
 	"os/signal"
 	"sync"
+	"time"
 )
 
 const CLIENT_ID = "abc123" //TODO
+const local_session_path = "/home/ben/local-sessions/"
 
 type DataType string
 
@@ -45,7 +47,6 @@ func main() {
 		wg   sync.WaitGroup
 		stop = make(chan os.Signal, 1)
 	)
-
 	signal.Notify(stop)
 
 	// Start a session on the server
@@ -68,7 +69,10 @@ func main() {
 
 		log.Printf("Kicking off data capture")
 
-		cmd := exec.Command("/home/ben/streetsmarts/build/bin/capture", session)
+		cmd := exec.Command("/home/ben/streetsmarts/build/bin/capture", "--session", fmt.Sprintf("%s/%s", local_session_path, session))
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
 		err := cmd.Start()
 		if err != nil {
 			log.Fatalf("Failed to start command: %+v", err)
@@ -108,13 +112,15 @@ func main() {
 	log.Printf("Capture program finished, waiting for last files to be uploaded")
 	CleanUp()
 
-	log.Printf("Waiting for finished posegraph")
-	// Start polling for finished posegraph
-	if err := CheckFinished(session); err != nil {
-		log.Fatalf("Couldnt check if session %s is finished: %s", session, err)
-	}
+	time.Sleep(5 * time.Second)
 
-	log.Printf("Integrating scene")
+	//log.Printf("Waiting for finished posegraph")
+	//// Start polling for finished posegraph
+	//if err := CheckFinished(session); err != nil {
+	//	log.Fatalf("Couldnt check if session %s is finished: %s", session, err)
+	//}
+
+	//log.Printf("Integrating scene")
 
 	// On finished posegraph, integrate final scene
 	// Send final scene to server
@@ -146,7 +152,9 @@ func WatchDir(session string, datatype DataType) {
 
 	go func() {
 		for !finished {
+			log.Printf("Checking dir")
 			watch_func(session, watch_dir)
+			time.Sleep(1 * time.Second)
 		}
 
 		//Last pass for cleanup
@@ -323,5 +331,5 @@ func PrepareDirs(session string) error {
 }
 
 func get_session_dir(session_id string, datatype DataType) string {
-	return fmt.Sprintf("/home/ben/local-sessions/%s/%s", session_id, datatype)
+	return fmt.Sprintf("%s/%s/%s", local_session_path, session_id, datatype)
 }
