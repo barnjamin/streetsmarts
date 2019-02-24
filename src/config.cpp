@@ -7,8 +7,8 @@
 
 std::string generate_local_session() {
     std::stringstream ss;
-    std::time_t result = std::time(nullptr);
-    ss << "/home/ben/local_sessions/" <<  std::asctime(std::localtime(&result));
+    std::time_t result = std::time(0);
+    ss << "/home/ben/local-sessions/abc123-" <<  result;
     return ss.str();
 }
 
@@ -24,7 +24,7 @@ Config::Config() {
     tsdf_truncation = 1.0;
 
     fps      	            = 30;
-    frames_per_fragment     = 180;
+    frames_per_fragment     = 30;
     framestart              = 30; //Number of frames to discard at the start
 
     width 	= 640;
@@ -51,7 +51,7 @@ Config::Config() {
     use_imu             = true;
     use_filter          = false;
 
-    session_path        = generate_local_session();
+    session_path        = "";
 
 }
 
@@ -65,21 +65,21 @@ std::string Config::FragmentFile(int idx)
     return ss.str();
 }
 
-std::string Config::ColorFile(int idx)
+std::string Config::ColorFile(int f_idx, int i_idx)
 {
     
     std::stringstream ss;
     ss << session_path <<  "/color/";
-    ss << std::setw(5) << std::setfill('0') << idx << ".jpg";
+    ss << std::setw(5) << std::setfill('0') <<  f_idx << "_" << i_idx  << ".jpg";
     return ss.str();
 }
 
-std::string Config::DepthFile(int idx)
+std::string Config::DepthFile(int f_idx, int i_idx)
 {
     
     std::stringstream ss;
     ss << session_path <<  "/depth/";
-    ss << std::setw(5) << std::setfill('0') << idx << ".png";
+    ss << std::setw(5) << std::setfill('0') << f_idx << "_" << i_idx << ".png";
     return ss.str();
 }
 
@@ -96,47 +96,50 @@ void Config::parseArgs(int argc, char **argv) {
 
     using namespace open3d;
 
-    if (argc == 1 || ProgramOptionExists(argc, argv, "--help")) {
-        return;
-    }
-
     session_path = GetProgramOptionAsString(argc,argv,"--session");
     if (session_path == "") {
         session_path = generate_local_session(); 
     }
 
-    tsdf_cubic_size = GetProgramOptionAsDouble(argc,argv, "--tsdf_cubic");
-    tsdf_truncation = GetProgramOptionAsDouble(argc,argv, "--tsdf_truncation");
+    if(!filesystem::MakeDirectoryHierarchy(session_path + "/pose") ||
+        !filesystem::MakeDirectoryHierarchy(session_path + "/color") ||
+        !filesystem::MakeDirectoryHierarchy(session_path + "/depth") ||
+        !filesystem::MakeDirectoryHierarchy(session_path + "/fragment")){
+        std::cout << "failed to create files" << std::endl; 
+    }
 
-    min_depth = GetProgramOptionAsDouble(argc,argv, "--min_depth");
-    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth");
-    depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor");
+    //tsdf_cubic_size = GetProgramOptionAsDouble(argc,argv, "--tsdf_cubic");
+    //tsdf_truncation = GetProgramOptionAsDouble(argc,argv, "--tsdf_truncation");
 
-    fps                 = GetProgramOptionAsInt(argc,argv, "--fps");
-    frames_per_fragment = GetProgramOptionAsInt(argc,argv,  "--frames_per_fragment");
-    framestart          = GetProgramOptionAsInt(argc,argv,  "--fstart");
+    //min_depth = GetProgramOptionAsDouble(argc,argv, "--min_depth");
+    //max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth");
+    //depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor");
 
-    dec_mag     = GetProgramOptionAsDouble(argc,argv,  "--dec-mag");
-    spat_mag    = GetProgramOptionAsDouble(argc,argv,  "--spat-mag");
-    spat_a      = GetProgramOptionAsDouble(argc,argv,  "--spat-a");
-    spat_d      = GetProgramOptionAsDouble(argc,argv,  "--spat-d");
-    temp_a      = GetProgramOptionAsDouble(argc,argv,  "--temp-a");
-    temp_d      = GetProgramOptionAsDouble(argc,argv,  "--temp-d");
+    //fps                 = GetProgramOptionAsInt(argc,argv, "--fps");
+    //frames_per_fragment = GetProgramOptionAsInt(argc,argv,  "--frames_per_fragment");
+    //framestart          = GetProgramOptionAsInt(argc,argv,  "--fstart");
 
-    don_small = GetProgramOptionAsDouble(argc,argv, "--don_small");
-    don_large = GetProgramOptionAsDouble(argc,argv, "--don_large");
+    //dec_mag     = GetProgramOptionAsDouble(argc,argv,  "--dec-mag");
+    //spat_mag    = GetProgramOptionAsDouble(argc,argv,  "--spat-mag");
+    //spat_a      = GetProgramOptionAsDouble(argc,argv,  "--spat-a");
+    //spat_d      = GetProgramOptionAsDouble(argc,argv,  "--spat-d");
+    //temp_a      = GetProgramOptionAsDouble(argc,argv,  "--temp-a");
+    //temp_d      = GetProgramOptionAsDouble(argc,argv,  "--temp-d");
 
-    threshold_min = GetProgramOptionAsDouble(argc,argv, "--don_thresh_min");
-    threshold_max = GetProgramOptionAsDouble(argc,argv, "--don_thresh_max");
+    //don_small = GetProgramOptionAsDouble(argc,argv, "--don_small");
+    //don_large = GetProgramOptionAsDouble(argc,argv, "--don_large");
 
-    segradius = GetProgramOptionAsDouble(argc,argv, "--don_rad");
+    //threshold_min = GetProgramOptionAsDouble(argc,argv, "--don_thresh_min");
+    //threshold_max = GetProgramOptionAsDouble(argc,argv, "--don_thresh_max");
+
+    //segradius = GetProgramOptionAsDouble(argc,argv, "--don_rad");
 
 
-    width   = GetProgramOptionAsInt(argc,argv, "--width");
-    height  = GetProgramOptionAsInt(argc,argv, "--height");
+    //width   = GetProgramOptionAsInt(argc,argv, "--width");
+    //height  = GetProgramOptionAsInt(argc,argv, "--height");
 
     use_imu     = ProgramOptionExists(argc,argv, "--use_imu");
-    use_filter  = ProgramOptionExists(argc,argv, "--use_imu");
+    use_filter  = ProgramOptionExists(argc,argv, "--use_filter");
 
 
     //Set Filter opts

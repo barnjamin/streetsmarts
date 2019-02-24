@@ -54,8 +54,8 @@ public:
     Config();
 
     std::string PoseFile(int idx);
-    std::string DepthFile(int idx);
-    std::string ColorFile(int idx);
+    std::string DepthFile(int f_idx, int i_idx);
+    std::string ColorFile(int f_idx, int i_idx);
     std::string FragmentFile(int idx);
 
     void parseArgs(int argc, char **argv);

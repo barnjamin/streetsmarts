@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"sync"
-	"time"
 )
 
 type DataType string
@@ -61,22 +60,28 @@ func main() {
 
 		log.Printf("Kicking off data capture")
 
-		time.Sleep(3 * time.Second)
+		cmd := exec.Command("/home/ben/streetsmarts/build/bin/capture", session)
+		err := cmd.Start()
+		if err != nil {
+			log.Fatalf("Failed to start command: %+v", err)
+		}
 
-		//cmd := exec.Command("/home/ben/streetsmarts/build/bin/capture", session)
-		//out, err := cmd.CombinedOutput()
-		//if err != nil {
-		//  log.Printf("Output: %s", out)
-		//	log.Fatalf("Failed to run command")
-		//}
+		if err := cmd.Process.Signal(os.Interrupt); err != nil {
+			log.Printf("Failed to signal: %+v", err)
+			return
+		}
 
-		//log.Printf("Output: %s", out)
+		if err := cmd.Wait(); err != nil {
+			log.Printf("Failed to wait for command: %+v", err)
+			return
+		}
+
 	}()
 
 	// Watch for new files and upload them to server
 	log.Printf("Watching directories")
-	WatchDir(session, FRAGMENT, file_wg)
-	WatchDir(session, POSE, file_wg)
+	WatchDir(session, FRAGMENT)
+	WatchDir(session, POSE)
 	//WatchDir(session, IMU, file_wg)
 	//WatchDir(session, GPS, file_wg)
 
