@@ -96,7 +96,3 @@ set(DEPENDENCIES
 set(CAPTURE_SOURCE src/capture.cpp src/utils.cpp src/config.cpp)
 add_executable(capture ${CAPTURE_SOURCE})
 target_link_libraries(capture ${DEPENDENCIES})
-
-set(CAPTUREI_SOURCE src/capture_immediate.cpp src/utils.cpp src/config.cpp)
-add_executable(icapture ${CAPTUREI_SOURCE})
-target_link_libraries(icapture ${DEPENDENCIES})
