@@ -59,11 +59,23 @@ int main(int argc, char * argv[]) try
     odometry.SetIntrinsics(intrinsic);
     odometry.SetParameters(OdometryOption());
 
+    auto depth_image = std::make_shared<Image>();
+    auto color_image = std::make_shared<Image>();
+
+    depth_image->PrepareImage(conf.width, conf.height, 1, 2);
+    color_image->PrepareImage(conf.width, conf.height, 3, 1);
 
     RGBDImageCuda rgbd_prev(conf.width, conf.height, conf.max_depth);
     RGBDImageCuda rgbd_curr(conf.width, conf.height, conf.max_depth);
 
+    float voxel_length = conf.tsdf_cubic_size / 512.0;
+    TransformCuda trans = TransformCuda::Identity();
+    ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, conf.tsdf_truncation, trans);
+
     Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
+
+    FPSTimer timer("Process RGBD stream", 1000000);
+
 
     PoseGraph pose_graph;
     pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry));
@@ -81,11 +93,6 @@ int main(int argc, char * argv[]) try
 
     while(true) 
     {
-        std::vector<std::shared_ptr<Image>> depth_frames;
-        std::vector<std::shared_ptr<Image>> color_frames;
-
-        //Create buffer of frames
-
         for(int i = 0; i<conf.frames_per_fragment; i++)
         {
             frameset = pipe.wait_for_frames();
@@ -100,19 +107,8 @@ int main(int argc, char * argv[]) try
 
             if(conf.use_filter){ depth_frame = conf.Filter(depth_frame); }
 
-            auto depth_image = std::make_shared<Image>();
-            auto color_image = std::make_shared<Image>();
-
-            depth_image->PrepareImage(conf.width, conf.height, 1, 2);
-            color_image->PrepareImage(conf.width, conf.height, 3, 1);
-
             memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
             memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
-
-            //Add to frame buffer
-            depth_frames.emplace_back(depth_image);
-            color_frames.emplace_back(color_image);
-
 
             //Upload images to GPU
             rgbd_curr.Upload(*depth_image, *color_image);
@@ -136,51 +132,28 @@ int main(int argc, char * argv[]) try
             auto information = odometry.ComputeInformationMatrix();
 
             //Update Target to world
-            Eigen::Matrix4d trans = odometry.transform_source_to_target_;
-            trans_odometry = trans_odometry * trans;
+            trans_odometry = trans_odometry * odometry.transform_source_to_target_;
+            trans.FromEigen(trans_odometry);
+
+            //Integrate fragment
+            tsdf_volume.Integrate(rgbd_curr, cuda_intrinsic, trans);
 
             //Update pose graph
             Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
             pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
-            pose_graph.edges_.emplace_back(PoseGraphEdge(i-1, i, trans, information, false));
+            pose_graph.edges_.emplace_back(PoseGraphEdge(i-1, i, 
+                        odometry.transform_source_to_target_, information, false));
+
+            //WriteImage(conf.DepthFile(fragment_idx, i), *depth_image);
+            //WriteImage(conf.ColorFile(fragment_idx, i), *color_image);
 
             rgbd_prev.CopyFrom(rgbd_curr);
+            timer.Signal();
         }
-
-        //GlobalOptimizationConvergenceCriteria criteria;
-        //GlobalOptimizationOption option( conf.max_depth_diff, 0.25, conf.preference_loop_closure_odometry_, 0);
-        //GlobalOptimizationLevenbergMarquardt optimization_method;
-        //GlobalOptimization(pose_graph, optimization_method, criteria, option);
-
-        //auto pose_graph_prunned = CreatePoseGraphWithoutInvalidEdges( pose_graph, option);
-        //auto pose_graph_prunned = pose_graph;
 
         WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
 
-        float voxel_length = conf.tsdf_cubic_size / 512.0;
-
-        TransformCuda trans = TransformCuda::Identity();
-        ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, conf.tsdf_truncation, trans);
-
-        RGBDImageCuda rgbd(conf.width, conf.height, conf.max_depth);
-        std::shared_ptr<Image> depth, color;
-        for (int i = 0; i < conf.frames_per_fragment; i++) {
-            PrintInfo("Integrating frame %d ...\n", i);
-
-            depth  = depth_frames[i];
-            color  = color_frames[i];
-
-            rgbd.Upload(*depth, *color);
-
-            Eigen::Matrix4d pose = pose_graph.nodes_[i].pose_;
-            trans.FromEigen(pose);
-
-            tsdf_volume.Integrate(rgbd, cuda_intrinsic, trans);
-
-            WriteImage(conf.DepthFile(fragment_idx, i), *depth);
-            WriteImage(conf.ColorFile(fragment_idx, i), *color);
-        }
-
+        //Generate Mesh and write to disk
         tsdf_volume.GetAllSubvolumes();
         ScalableMeshVolumeCuda<8> mesher(tsdf_volume.active_subvolume_entry_array().size(), VertexWithNormalAndColor, 10000000, 20000000);
         mesher.MarchingCubes(tsdf_volume);
