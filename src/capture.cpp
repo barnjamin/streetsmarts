@@ -36,8 +36,7 @@ void signalHandler( int signum ) {
 
 int main(int argc, char * argv[]) try
 {
-    Config conf;
-    conf.parseArgs(argc, argv);
+    Config conf(argc, argv);
 
     signal(SIGINT, signalHandler);
 
@@ -51,7 +50,6 @@ int main(int argc, char * argv[]) try
     rs2::frame color_frame, depth_frame;
     rs2_vector accel_data, gyro_data;
 
-    //rs2::align align(RS2_STREAM_DEPTH);
     rs2::align align(RS2_STREAM_COLOR);
 
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
@@ -107,7 +105,7 @@ int main(int argc, char * argv[]) try
 
             if (!depth_frame || !color_frame) { continue; }
 
-            if(conf.use_filter){ depth_frame = conf.filter(depth_frame); }
+            if(conf.use_filter){ depth_frame = conf.Filter(depth_frame); }
 
             auto depth_image = std::make_shared<Image>();
             auto color_image = std::make_shared<Image>();
@@ -173,7 +171,7 @@ int main(int argc, char * argv[]) try
         float voxel_length = conf.tsdf_cubic_size / 512.0;
 
         TransformCuda trans = TransformCuda::Identity();
-        ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, 3*voxel_length, trans);
+        ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, conf.tsdf_truncation, trans);
 
         std::cout << "alsohere"<< std::endl;
 

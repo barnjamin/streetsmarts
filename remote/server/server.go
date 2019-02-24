@@ -20,6 +20,11 @@ var (
 	FINAL    DataType = "final"
 )
 
+var (
+	host = ""
+	port = 8080
+)
+
 func main() {
 	http.HandleFunc("/start", Start)
 
@@ -32,13 +37,16 @@ func main() {
 
 	http.HandleFunc("/final", UploadFinal)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Printf("Serving on %s:%d", host, port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), nil))
 }
 
 // Start starts a session for keeping local files together
 func Start(w http.ResponseWriter, r *http.Request) {
 	// Get ID of client, hardcoded on client to associate it with a customer
 	id := r.Header.Get("id")
+
+	log.Printf("Got session start request: %+v", id)
 
 	// Start a session by creating directories and generating
 	// a session id for later use by client
@@ -57,6 +65,8 @@ func Start(w http.ResponseWriter, r *http.Request) {
 func UploadPose(w http.ResponseWriter, r *http.Request) {
 	session := r.Header.Get("session-id")
 	fragment := r.Header.Get("fragment")
+
+	log.Printf("Uploading %s for %s", fragment, session)
 
 	path := fmt.Sprintf("%s/%s", get_session_dir(session, POSE), fragment)
 	f, err := os.Create(path)
@@ -83,6 +93,8 @@ func UploadPose(w http.ResponseWriter, r *http.Request) {
 func UploadFragment(w http.ResponseWriter, r *http.Request) {
 	session := r.Header.Get("session-id")
 	fragment := r.Header.Get("fragment")
+
+	log.Printf("Uploading %s for %s", fragment, session)
 
 	path := fmt.Sprintf("%s/%s", get_session_dir(session, FRAGMENT), fragment)
 	f, err := os.Create(path)

@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"sync"
-	"syscall"
 )
 
 const CLIENT_ID = "abc123" //TODO
@@ -42,6 +41,13 @@ var (
 func main() {
 	flag.Parse()
 
+	var (
+		wg   sync.WaitGroup
+		stop = make(chan os.Signal, 1)
+	)
+
+	signal.Notify(stop)
+
 	// Start a session on the server
 	log.Printf("Starting a session")
 	session, err := StartSession()
@@ -56,13 +62,6 @@ func main() {
 
 	log.Printf("Prepared Directories for writing")
 
-	var (
-		wg   sync.WaitGroup
-		stop = make(chan os.Signal, 1)
-	)
-
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -75,19 +74,25 @@ func main() {
 			log.Fatalf("Failed to start command: %+v", err)
 		}
 
-		///What is our stop signal?
-		<-stop
+		log.Printf("Capture program running, waiting for stop signal...")
 
+		//Wait for stop signal
+		log.Printf("Got stop signal: %+v", <-stop)
+
+		//Pass interrupt to command
 		if err := cmd.Process.Signal(os.Interrupt); err != nil {
 			log.Printf("Failed to signal: %+v", err)
 			return
 		}
+
+		log.Printf("Sent signal to Capture, waiting for program to finish")
 
 		if err := cmd.Wait(); err != nil {
 			log.Printf("Failed to wait for command: %+v", err)
 			return
 		}
 
+		log.Printf("Capture finished, cleaning up")
 	}()
 
 	// Watch for new files and upload them to server
@@ -119,21 +124,42 @@ func CleanUp() {
 	finished = true
 }
 
-func WatchDir(session string, datatype DataType) {
-	//https://github.com/fsnotify/fsnotify/blob/master/example_test.go
+type watchfunc func(session, watch_dir string)
 
-	watch_dir := get_session_dir(session, datatype)
+//https://github.com/fsnotify/fsnotify/blob/master/example_test.go
+func WatchDir(session string, datatype DataType) {
+	var (
+		watch_func watchfunc
+		watch_dir  = get_session_dir(session, datatype)
+	)
+
+	switch datatype {
+	case FRAGMENT:
+		watch_func = checkPly
+	case POSE:
+		watch_func = checkPose
+	case IMU:
+		watch_func = checkImu
+	case GPS:
+		watch_func = checkGps
+	}
 
 	go func() {
 		for !finished {
-			switch datatype {
-			case FRAGMENT:
-				checkPly(session, watch_dir)
-			case POSE:
-				checkPose(session, watch_dir)
-			}
+			watch_func(session, watch_dir)
 		}
+
+		//Last pass for cleanup
+		watch_func(session, watch_dir)
 	}()
+}
+
+func checkImu(session, watch_dir string) {
+	//TODO
+}
+
+func checkGps(session, watch_dir string) {
+	//TODO
 }
 
 func checkPose(session, watch_dir string) {

@@ -51,16 +51,15 @@ public:
     rs2::disparity_transform depth_to_disparity;
     rs2::disparity_transform disparity_to_depth;
 
-    Config();
+
+    Config(int argc, char ** argv);
 
     std::string PoseFile(int idx);
     std::string DepthFile(int f_idx, int i_idx);
     std::string ColorFile(int f_idx, int i_idx);
     std::string FragmentFile(int idx);
 
-    void parseArgs(int argc, char **argv);
-
-    rs2::frame filter(rs2::depth_frame depth);
+    rs2::frame Filter(rs2::depth_frame depth);
 
     virtual ~Config();    
 };
