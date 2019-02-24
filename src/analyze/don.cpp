@@ -54,7 +54,7 @@ int main(int argc, char ** argv)
     geoms.push_back(pcd);
 
     DrawGeometries(geoms);
-    WritePointCloud("downsampled.ply", *DoN, false, true);
+    WritePointCloud("downsampled.pcd", *DoN, false, true);
 
     return 0;
 }

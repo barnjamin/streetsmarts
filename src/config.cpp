@@ -64,7 +64,7 @@ Config::Config(int argc, char ** argv) {
 
     cluster_radius = GetProgramOptionAsDouble(argc,argv, "--cluster_rad", 0.02);
     cluster_min = GetProgramOptionAsInt(argc, argv, "--cluster_min",  100);
-    cluster_min = GetProgramOptionAsInt(argc, argv, "--cluster_max",  10000);
+    cluster_max = GetProgramOptionAsInt(argc, argv, "--cluster_max",  10000);
 
     width   = GetProgramOptionAsInt(argc,argv, "--width", 640);
     height  = GetProgramOptionAsInt(argc,argv, "--height", 480);
