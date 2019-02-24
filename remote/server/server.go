@@ -22,7 +22,6 @@ var (
 
 func main() {
 	http.HandleFunc("/start", Start)
-	http.HandleFunc("/stop", Stop)
 
 	http.HandleFunc("/fragment", UploadFragment)
 	http.HandleFunc("/pose", UploadPose)
@@ -53,12 +52,6 @@ func Start(w http.ResponseWriter, r *http.Request) {
 	// Send back session id
 	w.Header().Add("session-id", session)
 	w.WriteHeader(http.StatusOK)
-}
-
-func Stop(w http.ResponseWriter, r *http.Request) {
-	//Stop session
-	// Write some sentinal to show that we've finished
-	// Kick off processor?
 }
 
 func UploadPose(w http.ResponseWriter, r *http.Request) {

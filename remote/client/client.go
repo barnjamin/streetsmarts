@@ -13,6 +13,8 @@ import (
 	"syscall"
 )
 
+const CLIENT_ID = "abc123" //TODO
+
 type DataType string
 
 var (
@@ -92,19 +94,14 @@ func main() {
 	log.Printf("Watching directories")
 	WatchDir(session, FRAGMENT)
 	WatchDir(session, POSE)
-	//WatchDir(session, IMU, file_wg)
-	//WatchDir(session, GPS, file_wg)
+	WatchDir(session, IMU)
+	WatchDir(session, GPS)
 
 	log.Printf("Waiting for capture program to terminate")
 	wg.Wait()
 
 	log.Printf("Capture program finished, waiting for last files to be uploaded")
 	CleanUp()
-
-	log.Printf("Stopping session")
-	if err := StopSession(session); err != nil {
-		log.Fatalf("Failed to stop session %q: %+v", session, err)
-	}
 
 	log.Printf("Waiting for finished posegraph")
 	// Start polling for finished posegraph
@@ -124,34 +121,25 @@ func CleanUp() {
 
 func WatchDir(session string, datatype DataType) {
 	//https://github.com/fsnotify/fsnotify/blob/master/example_test.go
-	watch_dir := get_session_dir(session, datatype)
-	go func() {
-		for {
-			//Run it one more time
-			last_run := false
-			if finished {
-				last_run = true
-			}
 
+	watch_dir := get_session_dir(session, datatype)
+
+	go func() {
+		for !finished {
 			switch datatype {
 			case FRAGMENT:
-				watchPLY(session, watch_dir)
+				checkPly(session, watch_dir)
 			case POSE:
-				watchPose(session, watch_dir)
-			}
-
-			if last_run {
-				return
+				checkPose(session, watch_dir)
 			}
 		}
 	}()
-
 }
 
-func watchPose(session, watch_dir string) {
+func checkPose(session, watch_dir string) {
 	files, err := ioutil.ReadDir(watch_dir)
 	if err != nil {
-		log.Fatalf("Failed to watch directory")
+		log.Fatalf("Failed to list files in directory: %+v")
 	}
 
 	for _, file := range files {
@@ -176,22 +164,24 @@ func watchPose(session, watch_dir string) {
 		req.Header.Add("session-id", session)
 		req.Header.Add("fragment", fname)
 
-		// Write Compressed to server
+		log.Printf("Uploading %s", fname)
+
 		_, err = client.Do(req)
 		if err != nil {
 			log.Printf("Failed to upload fragment: %+v", err)
 			continue
 		}
 
-		//TODO: delete
+		log.Printf("removing local copy of %s", fname)
+		os.Remove(watch_dir + "/" + fname)
 	}
 }
 
-func watchPLY(session, watch_dir string) {
+func checkPly(session, watch_dir string) {
 
 	files, err := ioutil.ReadDir(watch_dir)
 	if err != nil {
-		log.Fatalf("Failed to watch directory")
+		log.Fatalf("Failed to list files in directory: %+v")
 	}
 
 	for _, file := range files {
@@ -228,6 +218,8 @@ func watchPLY(session, watch_dir string) {
 		req.Header.Add("session-id", session)
 		req.Header.Add("fragment", fname)
 
+		log.Printf("Uploading %s", fname)
+
 		// Write Compressed to server
 		_, err = client.Do(req)
 		if err != nil {
@@ -235,7 +227,11 @@ func watchPLY(session, watch_dir string) {
 			continue
 		}
 
-		// TODO: Delete both
+		log.Printf("removing local copy of %s", fname)
+		os.Remove(watch_dir + "/" + fname)
+		if *compress {
+			os.Remove(watch_dir + "/" + fname[:len(fname)-4])
+		}
 	}
 
 }
@@ -246,7 +242,7 @@ func StartSession() (string, error) {
 		log.Printf("Failed to Create request for remote server: %+v", err)
 		return "", err
 	}
-	req.Header.Add("id", "abc123") //TODO
+	req.Header.Add("id", CLIENT_ID)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -256,24 +252,6 @@ func StartSession() (string, error) {
 
 	//Get the session id we're going to use in later requests
 	return resp.Header.Get("session-id"), nil
-}
-
-func StopSession(session string) error {
-
-	req, err := http.NewRequest("POST", remote+"/stop", nil)
-	if err != nil {
-		log.Printf("Failed to create request for remote server: %+v", err)
-		return err
-	}
-	req.Header.Add("session-id", session)
-
-	_, err = client.Do(req)
-	if err != nil {
-		log.Printf("Failed to stop session on server: %+v", err)
-		return err
-	}
-
-	return nil
 }
 
 func CheckFinished(session string) error {
