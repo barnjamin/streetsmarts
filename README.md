@@ -47,10 +47,6 @@ make -j4
                  |                     | Final Model   |                      |
                  | Upload Final Model  +-------------->+ Final Model Analyzed |
                  |                     |               | For Impairments      |
-                 |                     |               |                      |
-                 |                     |               |                      |
-                 |                     |               |                      |
-                 |                     |               |                      |
                  +---------------------+               +----------------------+
 
 
