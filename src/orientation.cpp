@@ -3,7 +3,7 @@
 #include <thread>
 #include <Eigen/Geometry>
 #include <GL/glut.h>
-#include "display.h"
+#include "orientation.h"
 #include <functional>
 
 Pose *gpose;

@@ -12,7 +12,7 @@
 #include <librealsense2/rs.hpp> 
 #include "utils.h" 
 #include "pose.h"
-#include "display.h"
+#include "orientation.h"
 #include "config.h"
 
 using namespace open3d;

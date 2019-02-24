@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"sync"
+	"syscall"
 )
 
 type DataType string
@@ -52,7 +54,12 @@ func main() {
 
 	log.Printf("Prepared Directories for writing")
 
-	var wg sync.WaitGroup
+	var (
+		wg   sync.WaitGroup
+		stop = make(chan os.Signal, 1)
+	)
+
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	wg.Add(1)
 	go func() {
@@ -65,6 +72,9 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to start command: %+v", err)
 		}
+
+		///What is our stop signal?
+		<-stop
 
 		if err := cmd.Process.Signal(os.Interrupt); err != nil {
 			log.Printf("Failed to signal: %+v", err)
@@ -114,8 +124,7 @@ func CleanUp() {
 
 func WatchDir(session string, datatype DataType) {
 	//https://github.com/fsnotify/fsnotify/blob/master/example_test.go
-	//watch_dir := get_session_dir(session, datatype)
-	watch_dir := "/home/ben/streetsmarts/dumps/latest/fragments_cuda"
+	watch_dir := get_session_dir(session, datatype)
 	go func() {
 		for {
 			//Run it one more time

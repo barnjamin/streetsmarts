@@ -12,7 +12,6 @@
 #include <librealsense2/rs.hpp> 
 #include "utils.h" 
 #include "pose.h"
-#include "display.h"
 #include "config.h"
 
 #include <iostream>
@@ -69,11 +68,6 @@ int main(int argc, char * argv[]) try
     odometry.SetIntrinsics(intrinsic);
     odometry.SetParameters(OdometryOption());
 
-    auto depth_image_ptr = std::make_shared<Image>();
-    auto color_image_ptr = std::make_shared<Image>();
-
-    depth_image_ptr->PrepareImage(conf.width, conf.height, 1, 2);
-    color_image_ptr->PrepareImage(conf.width, conf.height, 3, 1);
 
     RGBDImageCuda rgbd_prev(conf.width, conf.height, conf.max_depth);
     RGBDImageCuda rgbd_curr(conf.width, conf.height, conf.max_depth);
@@ -94,12 +88,10 @@ int main(int argc, char * argv[]) try
     int fragment_idx;
     PrintInfo("Starting to read frames...");
 
-    std::vector<Image> depth_frame_buffer(conf.frames_per_fragment);
-    std::vector<Image> color_frame_buffer(conf.frames_per_fragment);
     while(true) 
     {
-
-
+        std::vector<std::shared_ptr<Image>> depth_frames;
+        std::vector<std::shared_ptr<Image>> color_frames;
 
         //Create buffer of frames
 
@@ -117,17 +109,22 @@ int main(int argc, char * argv[]) try
 
             if(conf.use_filter){ depth_frame = conf.filter(depth_frame); }
 
-            memcpy(depth_image_ptr->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
-            memcpy(color_image_ptr->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
+            auto depth_image = std::make_shared<Image>();
+            auto color_image = std::make_shared<Image>();
 
+            depth_image->PrepareImage(conf.width, conf.height, 1, 2);
+            color_image->PrepareImage(conf.width, conf.height, 3, 1);
 
-            depth_frame_buffer[i] = *depth_image_ptr;
-            color_frame_buffer[i] = *color_image_ptr;
+            memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
+            memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
             //Add to frame buffer
+            depth_frames.emplace_back(depth_image);
+            color_frames.emplace_back(color_image);
+
 
             //Upload images to GPU
-            rgbd_curr.Upload(*depth_image_ptr, *color_image_ptr);
+            rgbd_curr.Upload(*depth_image, *color_image);
 
             if(i==0) { rgbd_prev.CopyFrom(rgbd_curr); continue; }
 
@@ -158,7 +155,6 @@ int main(int argc, char * argv[]) try
             pose_graph.edges_.emplace_back(PoseGraphEdge(i-1, i, trans, information, false));
 
             rgbd_prev.CopyFrom(rgbd_curr);
-            std::cout<<"here:"<<i<<std::endl;
         }
 
         std::cout << "hi"<< std::endl;
@@ -189,10 +185,10 @@ int main(int argc, char * argv[]) try
         for (int i = 0; i < conf.frames_per_fragment; i++) {
             PrintInfo("Integrating frame %d ...\n", i);
 
-            depth  = depth_frame_buffer[i];
-            color  = color_frame_buffer[i];
+            depth  = depth_frames[i];
+            color  = color_frames[i];
 
-            rgbd.Upload(depth, color);
+            rgbd.Upload(*depth, *color);
 
             Eigen::Matrix4d pose = pose_graph.nodes_[i].pose_;
             trans.FromEigen(pose);
