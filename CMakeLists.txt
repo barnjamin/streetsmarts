@@ -60,26 +60,9 @@ set(DEPENDENCIES
 )
 
 
-
-#set(STREAM_SOURCE src/stream.cpp src/utils.cpp src/pose.cpp src/display.cpp src/config.cpp)
-#add_executable(stream ${STREAM_SOURCE})
-#target_link_libraries(stream ${DEPENDENCIES})
-#
-#set(RECORD_SOURCE src/record.cpp src/utils.cpp src/config.cpp)
-#add_executable(record ${RECORD_SOURCE})
-#target_link_libraries(record ${DEPENDENCIES})
-#
-#set(PLAYBACK_SOURCE src/playback.cpp src/utils.cpp src/pose.cpp src/display.cpp src/config.cpp)
-#add_executable(playback ${PLAYBACK_SOURCE})
-#target_link_libraries(playback ${DEPENDENCIES})
-#
-#set(COMBINE_SOURCE src/combine.cpp src/utils.cpp src/config.cpp)
-#add_executable(combine ${COMBINE_SOURCE})
-#target_link_libraries(combine ${DEPENDENCIES})
-
-#set(CLUSTER_SOURCE src/analyze_cluster.cpp)
-#add_executable(cluster ${CLUSTER_SOURCE})
-#target_link_libraries(cluster ${DEPENDENCIES})
+set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp)
+add_executable(cluster ${CLUSTER_SOURCE})
+target_link_libraries(cluster ${DEPENDENCIES})
 
 set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
 add_executable(analyze ${ANALYZE_SOURCE})
@@ -88,10 +71,6 @@ target_link_libraries(analyze ${DEPENDENCIES})
 #set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
 #add_executable(kitti ${KITTI_SOURCE})
 #target_link_libraries(kitti ${DEPENDENCIES})
-
-#set(VISUALIZE_SOURCE src/visualizer.cpp src/utils.cpp src/config.cpp)
-#add_executable(vm ${VISUALIZE_SOURCE})
-#target_link_libraries(vm ${DEPENDENCIES})
 
 set(CAPTURE_SOURCE src/capture.cpp src/utils.cpp src/config.cpp)
 add_executable(capture ${CAPTURE_SOURCE})

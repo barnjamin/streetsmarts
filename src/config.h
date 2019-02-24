@@ -37,7 +37,9 @@ public:
     double threshold_min;
     double threshold_max;
 
-    double segradius;   // threshold for radius segmentation
+    double cluster_radius;   
+    int cluster_min;   
+    int cluster_max;   
 
 
     bool use_imu;

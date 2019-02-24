@@ -10,11 +10,14 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include "../config.h"
 
 
 int 
 main (int argc, char** argv)
 {
+
+  Config conf(argc, argv);
   // Read in the cloud data
   pcl::PCDWriter writer;
   pcl::PCDReader reader;
@@ -29,9 +32,9 @@ main (int argc, char** argv)
 
   std::vector<pcl::PointIndices> cluster_indices;
   pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-  ec.setClusterTolerance (0.05);
-  ec.setMinClusterSize (300);
-  ec.setMaxClusterSize (100000);
+  ec.setClusterTolerance (conf.cluster_radius);
+  ec.setMinClusterSize (conf.cluster_min);
+  ec.setMaxClusterSize (conf.cluster_max);
   ec.setSearchMethod (tree);
   ec.setInputCloud (cloud_filtered);
   ec.extract (cluster_indices);

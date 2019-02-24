@@ -62,8 +62,9 @@ Config::Config(int argc, char ** argv) {
     threshold_min = GetProgramOptionAsDouble(argc,argv, "--don_thresh_min", 0.032);
     threshold_max = GetProgramOptionAsDouble(argc,argv, "--don_thresh_max", 0.1);
 
-    segradius = GetProgramOptionAsDouble(argc,argv, "--don_rad", 0.02);
-
+    cluster_radius = GetProgramOptionAsDouble(argc,argv, "--cluster_rad", 0.02);
+    cluster_min = GetProgramOptionAsInt(argc, argv, "--cluster_min",  100);
+    cluster_min = GetProgramOptionAsInt(argc, argv, "--cluster_max",  10000);
 
     width   = GetProgramOptionAsInt(argc,argv, "--width", 640);
     height  = GetProgramOptionAsInt(argc,argv, "--height", 480);
