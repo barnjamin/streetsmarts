@@ -4,7 +4,6 @@
 #include <iostream>
 #include <iomanip>
 
-
 std::string generate_local_session() {
     using namespace open3d;
 
@@ -29,24 +28,20 @@ Config::~Config() { }
 Config::Config(int argc, char ** argv) {
     using namespace open3d;
 
+    // Where to write the files
     session_path = GetProgramOptionAsString(argc,argv,"--session");
     if (session_path == "") {
         session_path = generate_local_session(); 
     }
 
-
-    tsdf_cubic_size = GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic", 15.0);
-    tsdf_truncation = GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.15);
-
-    min_depth = GetProgramOptionAsDouble(argc,argv, "--min_depth", 1.0);
-    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 10.0);
-    depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor", 2.0);
-
+    //Camera params
+    width               = GetProgramOptionAsInt(argc,argv, "--width", 640);
+    height              = GetProgramOptionAsInt(argc,argv, "--height", 480);
     fps                 = GetProgramOptionAsInt(argc,argv, "--fps", 30);
-    frames_per_fragment = GetProgramOptionAsInt(argc,argv,  "--frames_per_fragment", 30);
     framestart          = GetProgramOptionAsInt(argc,argv,  "--fstart", 30);
 
-
+    //Post Processing
+    use_filter  = ProgramOptionExists(argc,argv, "--use_filter");
     dec_mag     = GetProgramOptionAsDouble(argc,argv,  "--dec-mag", 1.0) ;
     spat_mag    = GetProgramOptionAsDouble(argc,argv,  "--spat-mag", 1.0);
     spat_a      = GetProgramOptionAsDouble(argc,argv,  "--spat-a", 0.5);
@@ -54,6 +49,21 @@ Config::Config(int argc, char ** argv) {
     temp_a      = GetProgramOptionAsDouble(argc,argv,  "--temp-a", 0.5);
     temp_d      = GetProgramOptionAsDouble(argc,argv,  "--temp-d", 50);
 
+    //Integration Params
+    tsdf_cubic_size = GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic", 15.0);
+    tsdf_truncation = GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.15);
+
+    //RGBD Image params
+    min_depth = GetProgramOptionAsDouble(argc,argv, "--min_depth", 1.0);
+    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 10.0);
+    depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor", 2.0);
+
+
+    //Odometry Params
+    use_imu             = ProgramOptionExists(argc,argv, "--use_imu");
+    frames_per_fragment = GetProgramOptionAsInt(argc,argv,  "--frames_per_fragment", 30);
+
+    //DoN params
     don_downsample = GetProgramOptionAsDouble(argc,argv, "--don_downsample", 0.02);
 
     don_small = GetProgramOptionAsDouble(argc,argv, "--don_small", 0.03);
@@ -62,27 +72,19 @@ Config::Config(int argc, char ** argv) {
     threshold_min = GetProgramOptionAsDouble(argc,argv, "--don_thresh_min", 0.032);
     threshold_max = GetProgramOptionAsDouble(argc,argv, "--don_thresh_max", 0.1);
 
-    cluster_radius = GetProgramOptionAsDouble(argc,argv, "--cluster_rad", 0.02);
-    cluster_min = GetProgramOptionAsInt(argc, argv, "--cluster_min",  100);
-    cluster_max = GetProgramOptionAsInt(argc, argv, "--cluster_max",  10000);
-
-    width   = GetProgramOptionAsInt(argc,argv, "--width", 640);
-    height  = GetProgramOptionAsInt(argc,argv, "--height", 480);
-
-    use_imu     = ProgramOptionExists(argc,argv, "--use_imu");
-    use_filter  = ProgramOptionExists(argc,argv, "--use_filter");
+    //Cluster Params
+    cluster_radius  = GetProgramOptionAsDouble(argc,argv, "--cluster_rad", 0.02);
+    cluster_min     = GetProgramOptionAsInt(argc, argv, "--cluster_min",  100);
+    cluster_max     = GetProgramOptionAsInt(argc, argv, "--cluster_max",  10000);
 
 
     //Set Filter opts
     dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, dec_mag);  
-
     spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, spat_mag);
     spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, spat_a);
     spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, spat_d);
-
     temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, temp_a);
     temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, temp_d);
-
 
     depth_to_disparity = rs2::disparity_transform(true);
     disparity_to_depth = rs2::disparity_transform(false);
