@@ -75,13 +75,10 @@ int main(int argc, char * argv[]) try
     TransformCuda trans = TransformCuda::Identity();
     ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, conf.tsdf_truncation, trans);
 
-    Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
 
     FPSTimer timer("Process RGBD stream", 1000000);
 
 
-    PoseGraph pose_graph;
-    pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry));
 
     PrintInfo("Discarding first %d frames\n", conf.framestart);
     for(int i=0; i<conf.framestart; i++) rs2::frameset frameset = pipe.wait_for_frames(); 
@@ -96,6 +93,10 @@ int main(int argc, char * argv[]) try
 
     while(true) 
     {
+
+        Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
+        PoseGraph pose_graph;
+        pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry));
 
         for(int i = 0; i<conf.frames_per_fragment; i++)
         {
