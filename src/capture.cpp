@@ -3,11 +3,14 @@
 
 #include <Core/Core.h>
 #include <IO/IO.h>
+#include <Core/Registration/PoseGraph.h>
+#include <Core/Registration/GlobalOptimization.h>
+#include <Core/Utility/Timer.h>
+
 #include <Cuda/Odometry/RGBDOdometryCuda.h>
 #include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
 #include <Cuda/Integration/ScalableMeshVolumeCuda.h>
-#include <Visualization/Visualization.h>
-#include <Core/Utility/Timer.h>
+
 
 #include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp> 
@@ -60,7 +63,9 @@ int main(int argc, char * argv[]) try
 
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsic);
-    odometry.SetParameters(OdometryOption());
+    odometry.SetParameters(OdometryOption({20, 10, 5}, 
+                conf.max_depth_diff, conf.min_depth, conf.max_depth), 0.5f);
+    //odometry.SetParameters(OdometryOption());
 
     auto depth_image = std::make_shared<Image>();
     auto color_image = std::make_shared<Image>();
@@ -77,8 +82,6 @@ int main(int argc, char * argv[]) try
 
 
     FPSTimer timer("Process RGBD stream", 1000000);
-
-
 
     PrintInfo("Discarding first %d frames\n", conf.framestart);
     for(int i=0; i<conf.framestart; i++) rs2::frameset frameset = pipe.wait_for_frames(); 
@@ -149,15 +152,21 @@ int main(int argc, char * argv[]) try
             //Update pose graph
             Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
             pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
-            pose_graph.edges_.emplace_back(PoseGraphEdge(i-1, i, 
-                        odometry.transform_source_to_target_, information, false));
+            pose_graph.edges_.emplace_back(PoseGraphEdge(i-1, i, odometry.transform_source_to_target_, information, false));
 
             
             rgbd_prev.CopyFrom(rgbd_curr);
             timer.Signal();
         }
 
-        WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
+        GlobalOptimizationConvergenceCriteria criteria;
+        GlobalOptimizationOption option(conf.max_depth_diff, 0.25, conf.preference_loop_closure_odometry, 0);
+        GlobalOptimizationLevenbergMarquardt optimization_method;
+        GlobalOptimization(pose_graph, optimization_method, criteria, option);
+
+        auto pg = CreatePoseGraphWithoutInvalidEdges(pose_graph, option);
+
+        WritePoseGraph(conf.PoseFile(fragment_idx), *pg);
 
         //Generate Mesh and write to disk
         tsdf_volume.GetAllSubvolumes();

@@ -51,18 +51,20 @@ Config::Config(int argc, char ** argv) {
     temp_d      = GetProgramOptionAsDouble(argc,argv,  "--temp-d", 50);
 
     //Integration Params
-    tsdf_cubic_size = GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic", 15.0);
-    tsdf_truncation = GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.15);
+    tsdf_cubic_size = GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic", 5.0);
+    tsdf_truncation = GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.1);
 
     //RGBD Image params
     min_depth = GetProgramOptionAsDouble(argc,argv, "--min_depth", 1.0);
-    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 10.0);
-    depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor", 2.0);
+    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 3.0);
+    depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor", 1000.0);
 
 
     //Odometry Params
     use_imu             = ProgramOptionExists(argc,argv, "--use_imu");
     frames_per_fragment = GetProgramOptionAsInt(argc,argv,  "--frames_per_fragment", 30);
+    preference_loop_closure_odometry = GetProgramOptionAsDouble(argc, argv, "--loop_closure_odom", 0.1);
+    max_depth_diff = GetProgramOptionAsDouble(argc, argv, "--max_depth_diff", 0.1);
 
     //DoN params
     don_downsample = GetProgramOptionAsDouble(argc,argv, "--don_downsample", 0.02);
@@ -79,9 +81,9 @@ Config::Config(int argc, char ** argv) {
     cluster_max     = GetProgramOptionAsInt(argc, argv, "--cluster_max",  10000);
 
     //Refine Params
-    registration_window_size = GetProgramOptionAsInt(argc, argv, "--registration_winddow",  5);
-    preference_loop_closure_registration = GetProgramOptionAsDouble(argc, argv, "--loop_closure_registration",  1.0);
-    voxel_size = GetProgramOptionAsDouble(argc, argv, "--voxel_size", 0.5);
+    registration_window_size = GetProgramOptionAsInt(argc, argv, "--registration_window",  5);
+    preference_loop_closure_registration = GetProgramOptionAsDouble(argc, argv, "--loop_closure_registration",  0.5);
+    voxel_size = GetProgramOptionAsDouble(argc, argv, "--voxel_size", 0.05);
 
 
     //Set Filter opts

@@ -48,6 +48,8 @@ public:
 
     std::string session_path;
 
+    double max_depth_diff;
+    double preference_loop_closure_odometry;
     double preference_loop_closure_registration;
     double voxel_size;
     int registration_window_size;

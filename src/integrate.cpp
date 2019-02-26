@@ -60,7 +60,6 @@ int main(int argc, char ** argv)
             trans.FromEigen(pose);
 
             PrintInfo("Integrating %d and %d\n", fragment_id, img_id);
-            std::cout << pose << std::endl;
 
             tsdf_volume.Integrate(rgbd, intrinsic, trans);
         }

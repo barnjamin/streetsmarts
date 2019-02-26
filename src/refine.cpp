@@ -235,7 +235,7 @@ int main(int argc, char ** argv)
     PrintInfo("Optimizing Pose graph for fragments");
     OptimizePoseGraphForRegisteredScene(conf);
 
-    ////Refine
+    //Refine
     PrintInfo("Refining Pose Graph");
     auto refined_matches = RefineFragments(conf);
     MakePoseGraphForRefinedScene(refined_matches, conf);
