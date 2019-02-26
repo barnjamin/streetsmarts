@@ -96,6 +96,7 @@ int main(int argc, char * argv[]) try
 
     while(true) 
     {
+
         for(int i = 0; i<conf.frames_per_fragment; i++)
         {
             frameset = pipe.wait_for_frames();
@@ -112,6 +113,9 @@ int main(int argc, char * argv[]) try
 
             memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
             memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
+
+            WriteImage(conf.DepthFile(fragment_idx, i), *depth_image);
+            WriteImage(conf.ColorFile(fragment_idx, i), *color_image);
 
             //Upload images to GPU
             rgbd_curr.Upload(*depth_image, *color_image);
@@ -147,8 +151,6 @@ int main(int argc, char * argv[]) try
             pose_graph.edges_.emplace_back(PoseGraphEdge(i-1, i, 
                         odometry.transform_source_to_target_, information, false));
 
-            WriteImage(conf.DepthFile(fragment_idx, i), *depth_image);
-            WriteImage(conf.ColorFile(fragment_idx, i), *color_image);
             
             rgbd_prev.CopyFrom(rgbd_curr);
             timer.Signal();
@@ -162,12 +164,15 @@ int main(int argc, char * argv[]) try
         mesher.MarchingCubes(tsdf_volume);
         auto mesh = mesher.mesh().Download();
 
+
         PointCloud pcl;
         pcl.points_ = mesh->vertices_;
         pcl.normals_ = mesh->vertex_normals_;
         pcl.colors_ = mesh->vertex_colors_;
 
         WritePointCloudToPLY(conf.FragmentFile(fragment_idx), pcl, true);
+
+        tsdf_volume.Reset();
 
         fragment_idx++; 
     }

@@ -14,6 +14,7 @@ std::string generate_local_session() {
     std::string session_path = ss.str(); 
 
     if(!filesystem::MakeDirectoryHierarchy(session_path + "/pose") ||
+        !filesystem::MakeDirectoryHierarchy(session_path + "/scene") ||
         !filesystem::MakeDirectoryHierarchy(session_path + "/color") ||
         !filesystem::MakeDirectoryHierarchy(session_path + "/depth") ||
         !filesystem::MakeDirectoryHierarchy(session_path + "/fragment")){
@@ -157,10 +158,20 @@ std::string Config::PoseFileScene()
 
 int Config::GetFragmentCount() 
 {
+
     //TODO
     // Use fragment dir to get fragment count
-    // return the number of fragments
-    return 0;
+     
+    std::stringstream ss;
+    ss << session_path <<  "/fragment";
+
+    std::vector<std::string> filenames;
+
+    if(!open3d::filesystem::ListFilesInDirectory(ss.str(), filenames)) {
+        return 0 ;
+    }
+
+    return filenames.size();
 }
 
 rs2::frame Config::Filter(rs2::depth_frame depth)

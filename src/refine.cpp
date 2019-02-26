@@ -28,7 +28,7 @@ struct Match {
 
 
 std::tuple<int, int> GetWindow(int idx, int len, int size) {
-    return std::make_tuple(idx+1, std::min(len-1,idx+size));
+    return std::make_tuple(idx+1, std::min(len,idx+size));
 }
 
 
@@ -227,14 +227,16 @@ int main(int argc, char ** argv)
 
     Config conf(argc, argv);
 
-    //filesystem::MakeDirectory(config.path_dataset_ + "/scene_cuda");
-    
+    PrintInfo("Registering fragments");
     //Register 
     auto registered_matches = RegisterFragments(conf);
+    PrintInfo("Making Pose graph for fragments");
     MakePoseGraphForRegisteredScene(registered_matches, conf);
+    PrintInfo("Optimizing Pose graph for fragments");
     OptimizePoseGraphForRegisteredScene(conf);
 
-    //Refine
+    ////Refine
+    PrintInfo("Refining Pose Graph");
     auto refined_matches = RefineFragments(conf);
     MakePoseGraphForRefinedScene(refined_matches, conf);
     OptimizePoseGraphForRefinedScene(conf);

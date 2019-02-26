@@ -21,7 +21,7 @@ int main(int argc, char ** argv)
     Config conf(argc, argv);
 
     cuda::TransformCuda trans = cuda::TransformCuda::Identity();
-    cuda::ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, (float)conf.tsdf_cubic_size / 512, (float)conf.tsdf_truncation, trans);
+    cuda::ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, conf.tsdf_cubic_size / 512.0, conf.tsdf_truncation, trans);
 
     PoseGraph global_pose_graph;
     ReadPoseGraph(conf.PoseFileScene(), global_pose_graph);
@@ -34,17 +34,21 @@ int main(int argc, char ** argv)
 
     cuda::PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
 
-    cuda::RGBDImageCuda rgbd((float)conf.max_depth, (float)conf.depth_factor);
+    cuda::RGBDImageCuda rgbd(conf.width, conf.height, conf.max_depth);
     for(int fragment_id=0; fragment_id<conf.GetFragmentCount(); fragment_id++){
 
         PoseGraph local_pose_graph;
         ReadPoseGraph(conf.PoseFile(fragment_id), local_pose_graph);
 
-        for (int img_id = 0; img_id < conf.frames_per_fragment; img_id) {
+
+        for (int img_id = 0; img_id < conf.frames_per_fragment; img_id++) {
             Image depth, color;
 
-            ReadImage(conf.DepthFile(fragment_id, img_id), depth);
-            ReadImage(conf.ColorFile(fragment_id, img_id), color);
+            if(!ReadImage(conf.DepthFile(fragment_id, img_id), depth) ||
+                !ReadImage(conf.ColorFile(fragment_id, img_id), color)) {
+                PrintInfo("Failed to read %d_%d", fragment_id, img_id);
+                continue;
+            }
 
             rgbd.Upload(depth, color);
 
@@ -55,16 +59,25 @@ int main(int argc, char ** argv)
             cuda::TransformCuda trans;
             trans.FromEigen(pose);
 
+            PrintInfo("Integrating %d and %d\n", fragment_id, img_id);
+            std::cout << pose << std::endl;
+
             tsdf_volume.Integrate(rgbd, intrinsic, trans);
         }
-
     }
 
+    PrintInfo("Getting subvolumes");
     tsdf_volume.GetAllSubvolumes();
+
+    PrintInfo("Creating mesher");
     cuda::ScalableMeshVolumeCuda<8> mesher(100000, cuda::VertexWithNormalAndColor, 10000000, 20000000);
+
+    PrintInfo("Meshing");
     mesher.MarchingCubes(tsdf_volume);
 
+    PrintInfo("Downloading");
     auto mesh = mesher.mesh().Download();
 
+    PrintInfo("Writing");
     WriteTriangleMeshToPLY(conf.SceneMeshFile(), *mesh);
 }
