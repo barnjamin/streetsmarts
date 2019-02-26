@@ -75,3 +75,11 @@ target_link_libraries(analyze ${DEPENDENCIES})
 set(CAPTURE_SOURCE src/capture.cpp src/utils.cpp src/config.cpp)
 add_executable(capture ${CAPTURE_SOURCE})
 target_link_libraries(capture ${DEPENDENCIES})
+
+set(REFINE_SOURCE src/refine.cpp src/utils.cpp src/config.cpp)
+add_executable(refine ${REFINE_SOURCE})
+target_link_libraries(refine ${DEPENDENCIES})
+
+set(INTEGRATE_SOURCE src/integrate.cpp src/utils.cpp src/config.cpp)
+add_executable(integrate ${INTEGRATE_SOURCE})
+target_link_libraries(integrate ${DEPENDENCIES})

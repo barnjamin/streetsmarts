@@ -53,6 +53,9 @@ int main(int argc, char * argv[]) try
     rs2::pipeline_profile profile = pipe.start(cfg);
 
     PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
+
+    WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
+
     PinholeCameraIntrinsicCuda cuda_intrinsic(intrinsic);
 
     RGBDOdometryCuda<3> odometry;

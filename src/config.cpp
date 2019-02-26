@@ -77,6 +77,11 @@ Config::Config(int argc, char ** argv) {
     cluster_min     = GetProgramOptionAsInt(argc, argv, "--cluster_min",  100);
     cluster_max     = GetProgramOptionAsInt(argc, argv, "--cluster_max",  10000);
 
+    //Refine Params
+    registration_window_size = GetProgramOptionAsInt(argc, argv, "--registration_winddow",  5);
+    preference_loop_closure_registration = GetProgramOptionAsDouble(argc, argv, "--loop_closure_registration",  1.0);
+    voxel_size = GetProgramOptionAsDouble(argc, argv, "--voxel_size", 0.5);
+
 
     //Set Filter opts
     dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, dec_mag);  
@@ -91,6 +96,13 @@ Config::Config(int argc, char ** argv) {
 }
 
 
+std::string Config::IntrinsicFile()
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/intrinsic.json";
+    return ss.str();
+}
 
 std::string Config::FragmentFile(int idx)
 {
@@ -125,6 +137,30 @@ std::string Config::PoseFile(int idx)
     ss << session_path <<  "/pose/";
     ss << std::setw(5) << std::setfill('0') << idx << ".json";
     return ss.str();
+}
+
+std::string Config::SceneMeshFile()
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/scene/scene.ply";
+    return ss.str();
+}
+
+std::string Config::PoseFileScene()
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/scene/pose.json";
+    return ss.str();
+}
+
+int Config::GetFragmentCount() 
+{
+    //TODO
+    // Use fragment dir to get fragment count
+    // return the number of fragments
+    return 0;
 }
 
 rs2::frame Config::Filter(rs2::depth_frame depth)

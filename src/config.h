@@ -48,6 +48,10 @@ public:
 
     std::string session_path;
 
+    double preference_loop_closure_registration;
+    double voxel_size;
+    int registration_window_size;
+
     rs2::decimation_filter dec_filter;
     rs2::spatial_filter spat_filter;
     rs2::temporal_filter temp_filter;
@@ -58,12 +62,19 @@ public:
 
     Config(int argc, char ** argv);
 
+    std::string IntrinsicFile();
+
     std::string PoseFile(int idx);
     std::string DepthFile(int f_idx, int i_idx);
     std::string ColorFile(int f_idx, int i_idx);
     std::string FragmentFile(int idx);
 
+    std::string SceneMeshFile();
+    std::string PoseFileScene();
+
     rs2::frame Filter(rs2::depth_frame depth);
+
+    int GetFragmentCount();
 
     virtual ~Config();    
 };
