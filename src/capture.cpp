@@ -65,7 +65,6 @@ int main(int argc, char * argv[]) try
     odometry.SetIntrinsics(intrinsic);
     odometry.SetParameters(OdometryOption({20, 10, 5}, 
                 conf.max_depth_diff, conf.min_depth, conf.max_depth), 0.5f);
-    //odometry.SetParameters(OdometryOption());
 
     auto depth_image = std::make_shared<Image>();
     auto color_image = std::make_shared<Image>();
@@ -80,7 +79,6 @@ int main(int argc, char * argv[]) try
     TransformCuda trans = TransformCuda::Identity();
     ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, conf.tsdf_truncation, trans);
 
-
     FPSTimer timer("Process RGBD stream", 1000000);
 
     PrintInfo("Discarding first %d frames\n", conf.framestart);
@@ -91,12 +89,10 @@ int main(int argc, char * argv[]) try
     Eigen::Matrix4d t;
     std::vector<std::vector<float>> losses;
 
-    int fragment_idx;
     PrintInfo("Starting to read frames...");
 
-    while(true) 
+    for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
     {
-
         Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
         PoseGraph pose_graph;
         pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry));
@@ -183,8 +179,6 @@ int main(int argc, char * argv[]) try
         WritePointCloudToPLY(conf.FragmentFile(fragment_idx), pcl, true);
 
         tsdf_volume.Reset();
-
-        fragment_idx++; 
     }
 
     return EXIT_SUCCESS;

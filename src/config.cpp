@@ -3,6 +3,7 @@
 #include "config.h"
 #include <iostream>
 #include <iomanip>
+#include <unistd.h>
 
 std::string generate_local_session() {
     using namespace open3d;
@@ -21,6 +22,12 @@ std::string generate_local_session() {
         std::cout << "failed to create files" << std::endl; 
     }
 
+    unlink("/home/ben/local-sessions/latest");
+    if(symlink(session_path.c_str(), "/home/ben/local-sessions/latest")==-1){
+        std::cout << "failed to symlink" << std::endl; 
+        exit(1);
+    }
+
     return session_path; 
 }
 
@@ -31,7 +38,9 @@ Config::Config(int argc, char ** argv) {
 
     // Where to write the files
     session_path = GetProgramOptionAsString(argc,argv,"--session");
-    if (session_path == "") {
+    if (session_path == "latest"){
+        session_path =  "/home/ben/local-sessions/latest";
+    }else if (session_path == "") {
         session_path = generate_local_session(); 
     }
 
@@ -52,19 +61,20 @@ Config::Config(int argc, char ** argv) {
 
     //Integration Params
     tsdf_cubic_size = GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic", 5.0);
-    tsdf_truncation = GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.1);
+    tsdf_truncation = GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.03);
 
     //RGBD Image params
     min_depth = GetProgramOptionAsDouble(argc,argv, "--min_depth", 1.0);
-    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 3.0);
+    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 2.0);
     depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor", 1000.0);
 
 
     //Odometry Params
     use_imu             = ProgramOptionExists(argc,argv, "--use_imu");
+    fragments          = GetProgramOptionAsInt(argc,argv,  "--fragments", 8);
     frames_per_fragment = GetProgramOptionAsInt(argc,argv,  "--frames_per_fragment", 30);
     preference_loop_closure_odometry = GetProgramOptionAsDouble(argc, argv, "--loop_closure_odom", 0.1);
-    max_depth_diff = GetProgramOptionAsDouble(argc, argv, "--max_depth_diff", 0.1);
+    max_depth_diff = GetProgramOptionAsDouble(argc, argv, "--max_depth_diff", 0.07);
 
     //DoN params
     don_downsample = GetProgramOptionAsDouble(argc,argv, "--don_downsample", 0.02);
@@ -120,7 +130,8 @@ std::string Config::ColorFile(int f_idx, int i_idx)
     
     std::stringstream ss;
     ss << session_path <<  "/color/";
-    ss << std::setw(5) << std::setfill('0') <<  f_idx << "_" << i_idx  << ".jpg";
+    ss << std::setw(5) << std::setfill('0') <<  f_idx;
+    ss << "_" << std::setw(3) << std::setfill('0') << i_idx << ".jpg";
     return ss.str();
 }
 
@@ -129,7 +140,8 @@ std::string Config::DepthFile(int f_idx, int i_idx)
     
     std::stringstream ss;
     ss << session_path <<  "/depth/";
-    ss << std::setw(5) << std::setfill('0') << f_idx << "_" << i_idx << ".png";
+    ss << std::setw(5) << std::setfill('0') << f_idx;
+    ss << "_" << std::setw(3) << std::setfill('0') << i_idx << ".png";
     return ss.str();
 }
 

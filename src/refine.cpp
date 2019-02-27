@@ -39,7 +39,8 @@ std::vector<Match> RegisterFragments(Config &config) {
     int start, stop;
     int frag_count = config.GetFragmentCount();
     for (int s = 0; s < frag_count; s++) {
-        auto source = CreatePointCloudFromFile(config.FragmentFile(s));
+        auto source_raw = CreatePointCloudFromFile(config.FragmentFile(s));
+        auto source = VoxelDownSample(*source_raw,config.voxel_size);
 
         PoseGraph pose_graph_s;
         ReadPoseGraph(config.PoseFile(s), pose_graph_s);
@@ -52,7 +53,8 @@ std::vector<Match> RegisterFragments(Config &config) {
 
             if (t == s) { continue; }
 
-            auto target = CreatePointCloudFromFile(config.FragmentFile(t));
+            auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
+            auto target = VoxelDownSample(*target_raw, config.voxel_size);
 
             Match match;
             match.s = s;

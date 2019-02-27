@@ -10,6 +10,7 @@ public:
     int framestart;
 
     int frames_per_fragment;
+    int fragments;
 
     double tsdf_cubic_size;
     double tsdf_truncation;
@@ -23,7 +24,6 @@ public:
 
     double temp_a;
     double temp_d;
-
 
     double min_depth;
     double max_depth;
@@ -40,7 +40,6 @@ public:
     double cluster_radius;   
     int cluster_min;   
     int cluster_max;   
-
 
     bool use_imu;
     bool use_filter;

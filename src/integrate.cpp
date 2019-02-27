@@ -52,9 +52,7 @@ int main(int argc, char ** argv)
 
             rgbd.Upload(depth, color);
 
-            //TODO: check img_id, was i-begin
-            Eigen::Matrix4d pose = 
-                global_pose_graph.nodes_[fragment_id].pose_ * local_pose_graph.nodes_[img_id].pose_;
+            Eigen::Matrix4d pose = global_pose_graph.nodes_[fragment_id].pose_ * local_pose_graph.nodes_[img_id].pose_;
 
             cuda::TransformCuda trans;
             trans.FromEigen(pose);
