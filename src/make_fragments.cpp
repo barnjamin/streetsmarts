@@ -41,18 +41,15 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
                                           config.min_depth,
                                           config.max_depth), 0.5f);
 
-    RGBDImageCuda rgbd_source((float) config.width, (float) config.height);
-    RGBDImageCuda rgbd_target((float) config.width, (float) config.height);
-
-    const int begin = fragment_id * config.frames_per_fragment;
-    const int end = std::min((fragment_id + 1) * config.frames_per_fragment, (int) 120);
+    RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
+    RGBDImageCuda rgbd_target(config.width, config.height, config.max_depth, config.depth_factor);
 
     // world_to_source
     Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
     PoseGraph pose_graph;
     pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry));
 
-    for (int s = begin; s < end; ++s) {
+    for (int s = 0; s < config.frames_per_fragment-1; ++s) {
         Image depth, color;
 
         ReadImage(config.DepthFile(fragment_id, s), depth);
@@ -61,7 +58,6 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         rgbd_source.Upload(depth, color);
 
         int t = s + 1;
-        if (t >= end) break;
 
         ReadImage(config.DepthFile(fragment_id, t), depth);
         ReadImage(config.ColorFile(fragment_id, t), color);
@@ -83,11 +79,11 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
 
         pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
         pose_graph.edges_.emplace_back(PoseGraphEdge(
-            s - begin, t - begin, trans, information, false));
+            s , t , trans, information, false));
     }
 
 
-    WritePoseGraph(config.FragmentFile(fragment_id), pose_graph);
+    WritePoseGraph(config.PoseFile(fragment_id), pose_graph);
 }
 
 void OptimizePoseGraphForFragment(int fragment_id, Config &config) {
@@ -122,10 +118,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     RGBDImageCuda rgbd((float) config.width, (float) config.height);
 
-    const int begin = fragment_id * config.frames_per_fragment;
-    const int end = std::min((fragment_id + 1) * config.frames_per_fragment, (int) 120);
-
-    for (int i = begin; i < end; ++i) {
+    for (int i = 0; i < config.frames_per_fragment; ++i) {
         PrintDebug("Integrating frame %d ...\n", i);
 
         Image depth, color;
@@ -134,7 +127,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
         rgbd.Upload(depth, color);
 
         /* Use ground truth trajectory */
-        Eigen::Matrix4d pose = pose_graph.nodes_[i - begin].pose_;
+        Eigen::Matrix4d pose = pose_graph.nodes_[i].pose_;
         trans.FromEigen(pose);
 
         tsdf_volume.Integrate(rgbd, intrinsic, trans);
@@ -170,8 +163,8 @@ int main(int argc, char * argv[])
         //PrintInfo("Processing fragment %d / %d\n", i, num_fragments - 1);
 
         MakePoseGraphForFragment(i, conf);
-        //OptimizePoseGraphForFragment(i, conf);
-        //IntegrateForFragment(i, conf);
+        OptimizePoseGraphForFragment(i, conf);
+        IntegrateForFragment(i, conf);
 
     }
 
