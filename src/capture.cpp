@@ -97,7 +97,7 @@ int main(int argc, char * argv[]) try
         PoseGraph pose_graph;
         pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry));
 
-        for(int i = 0; i<conf.frames_per_fragment; i++)
+        for(int i = 0; i < conf.frames_per_fragment; i++)
         {
             frameset = pipe.wait_for_frames();
 
@@ -148,7 +148,8 @@ int main(int argc, char * argv[]) try
             //Update pose graph
             Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
             pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
-            pose_graph.edges_.emplace_back(PoseGraphEdge(i-1, i, odometry.transform_source_to_target_, information, false));
+            pose_graph.edges_.emplace_back(PoseGraphEdge(
+                i - 1, i, odometry.transform_source_to_target_, information, false));
 
             
             rgbd_prev.CopyFrom(rgbd_curr);

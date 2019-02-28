@@ -47,6 +47,8 @@ std::vector<Match> RegisterFragments(Config &config) {
 
         Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_.back().pose_.inverse(); 
 
+        std::cout << init_source_to_target << std::endl;
+
         //std::tie(start, stop) = GetWindow(s, frag_count, config.registration_window_size);
         for (int t = s+1; t < frag_count; t++) {
             auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
@@ -262,10 +264,10 @@ int main(int argc, char ** argv)
     OptimizePoseGraphForRegisteredScene(conf);
 
     //Refine
-    PrintInfo("Refining Pose Graph\n");
-    auto refined_matches = RefineFragments(conf);
-    MakePoseGraphForRefinedScene(refined_matches, conf);
-    OptimizePoseGraphForRefinedScene(conf);
+    //PrintInfo("Refining Pose Graph\n");
+    //auto refined_matches = RefineFragments(conf);
+    //MakePoseGraphForRefinedScene(refined_matches, conf);
+    //OptimizePoseGraphForRefinedScene(conf);
 
     return 0;
 }

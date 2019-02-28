@@ -69,6 +69,7 @@ public:
     std::string DepthFile(int f_idx, int i_idx);
     std::string ColorFile(int f_idx, int i_idx);
     std::string FragmentFile(int idx);
+    std::string ThumbnailFragmentFile(int idx);
 
     std::string SceneMeshFile();
     std::string PoseFileScene();

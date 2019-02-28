@@ -76,6 +76,10 @@ set(CAPTURE_SOURCE src/capture.cpp src/utils.cpp src/config.cpp)
 add_executable(capture ${CAPTURE_SOURCE})
 target_link_libraries(capture ${DEPENDENCIES})
 
+set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp)
+add_executable(make_fragments ${FRAGMENT_SOURCE})
+target_link_libraries(make_fragments ${DEPENDENCIES})
+
 set(REFINE_SOURCE src/refine.cpp src/utils.cpp src/config.cpp)
 add_executable(refine ${REFINE_SOURCE})
 target_link_libraries(refine ${DEPENDENCIES})

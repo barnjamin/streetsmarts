@@ -125,6 +125,14 @@ std::string Config::FragmentFile(int idx)
     return ss.str();
 }
 
+std::string Config::ThumbnailFragmentFile(int idx)
+{
+    std::stringstream ss;
+    ss << session_path <<  "/thumbnail_fragment/";
+    ss << std::setw(5) << std::setfill('0') << idx << ".ply";
+    return ss.str();
+}
+
 std::string Config::ColorFile(int f_idx, int i_idx)
 {
     

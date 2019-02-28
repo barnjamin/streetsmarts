@@ -34,7 +34,7 @@ int main(int argc, char ** argv)
 
     cuda::PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
 
-    cuda::RGBDImageCuda rgbd(conf.width, conf.height, conf.max_depth);
+    cuda::RGBDImageCuda rgbd(conf.width, conf.height); //conf.max_depth);
     for(int fragment_id=0; fragment_id<conf.GetFragmentCount(); fragment_id++){
 
         PoseGraph local_pose_graph;
