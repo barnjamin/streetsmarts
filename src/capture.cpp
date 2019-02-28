@@ -150,7 +150,7 @@ int main(int argc, char * argv[]) try
             tsdf_volume.Integrate(rgbd_source, cuda_intrinsic, tsdf_trans);
             
             //Overwrite previous
-            rgbd_target.CopyFrom(rgbd_curr);
+            rgbd_target.CopyFrom(rgbd_source);
 
             timer.Signal();
         }
