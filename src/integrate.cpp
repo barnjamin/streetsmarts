@@ -28,7 +28,7 @@ int main(int argc, char ** argv)
 
     PinholeCameraIntrinsic intrinsic_;
     if(!ReadIJsonConvertible(conf.IntrinsicFile(), intrinsic_)){
-        PrintError("Failed to read intrinsic");
+        PrintError("Failed to read intrinsic\n");
         return 1; 
     }
 
@@ -46,7 +46,7 @@ int main(int argc, char ** argv)
 
             if(!ReadImage(conf.DepthFile(fragment_id, img_id), depth) ||
                 !ReadImage(conf.ColorFile(fragment_id, img_id), color)) {
-                PrintInfo("Failed to read %d_%d", fragment_id, img_id);
+                PrintInfo("Failed to read %d_%d\n", fragment_id, img_id);
                 continue;
             }
 
@@ -63,18 +63,18 @@ int main(int argc, char ** argv)
         }
     }
 
-    PrintInfo("Getting subvolumes");
+    PrintInfo("Getting subvolumes\n");
     tsdf_volume.GetAllSubvolumes();
 
-    PrintInfo("Creating mesher");
+    PrintInfo("Creating mesher\n");
     cuda::ScalableMeshVolumeCuda<8> mesher(100000, cuda::VertexWithNormalAndColor, 10000000, 20000000);
 
-    PrintInfo("Meshing");
+    PrintInfo("Meshing\n");
     mesher.MarchingCubes(tsdf_volume);
 
-    PrintInfo("Downloading");
+    PrintInfo("Downloading\n");
     auto mesh = mesher.mesh().Download();
 
-    PrintInfo("Writing");
+    PrintInfo("Writing\n");
     WriteTriangleMeshToPLY(conf.SceneMeshFile(), *mesh);
 }

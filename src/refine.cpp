@@ -38,21 +38,17 @@ std::vector<Match> RegisterFragments(Config &config) {
 
     int start, stop;
     int frag_count = config.GetFragmentCount();
-    for (int s = 0; s < frag_count; s++) {
+    for (int s = 0; s < frag_count-1; s++) {
         auto source_raw = CreatePointCloudFromFile(config.FragmentFile(s));
         auto source = VoxelDownSample(*source_raw,config.voxel_size);
 
         PoseGraph pose_graph_s;
         ReadPoseGraph(config.PoseFile(s), pose_graph_s);
 
-        Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_[0].pose_.inverse(); 
+        Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_.back().pose_.inverse(); 
 
-        std::tie(start, stop) = GetWindow(s, frag_count, config.registration_window_size);
-
-        for (int t = start; t < stop; ++t) {
-
-            if (t == s) { continue; }
-
+        //std::tie(start, stop) = GetWindow(s, frag_count, config.registration_window_size);
+        for (int t = s+1; t < frag_count; t++) {
             auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
             auto target = VoxelDownSample(*target_raw, config.voxel_size);
 
@@ -60,20 +56,48 @@ std::vector<Match> RegisterFragments(Config &config) {
             match.s = s;
             match.t = t;
 
-            /** Colored ICP **/
-            cuda::RegistrationCuda registration(TransformationEstimationType::ColoredICP);
+            if(t == s+1){ /** Colored ICP **/
+                PrintInfo("ColoredICP");
+                cuda::RegistrationCuda registration(TransformationEstimationType::ColoredICP);
+                registration.Initialize(*source, *target, (float) config.voxel_size * 1.4f, init_source_to_target);
+                registration.ComputeICP();
 
-            registration.Initialize(*source, *target, (float) config.voxel_size * 1.4f, init_source_to_target);
+                match.trans_source_to_target = registration.transform_source_to_target_;
 
-            registration.ComputeICP();
+                match.information = registration.ComputeInformationMatrix();
 
-            match.trans_source_to_target = registration.transform_source_to_target_;
+                match.success = true;
+            } else {
+                //PrintInfo("FGR");
+                //cuda::FastGlobalRegistrationCuda fgr;
+                //fgr.Initialize(*source, *target);
 
-            match.information = registration.ComputeInformationMatrix();
+                //auto result = fgr.ComputeRegistration();
+                //match.trans_source_to_target = result.transformation_;
 
-            match.success = true;
+                ///**!!! THIS SHOULD BE REFACTORED !!!**/
+                //cuda::RegistrationCuda registration(
+                //    TransformationEstimationType::PointToPoint);
+                //auto source_copy = *source;
 
-            PrintInfo("Point cloud odometry (%d %d)\n", match.s, match.t);
+                //source_copy.Transform(result.transformation_);
+                //registration.Initialize(source_copy, *target,
+                //                        config.voxel_size * 1.4f);
+                //registration.transform_source_to_target_ = result.transformation_;
+
+                //match.information = registration.ComputeInformationMatrix();
+
+                //match.success = match.trans_source_to_target.trace() != 4.0
+                //    && match.information(5, 5) /
+                //        std::min(source->points_.size(),
+                //                 target->points_.size()) >= 0.3;
+                //if (match.success) {
+                //    PrintInfo("Global registration (%d %d) computed\n",
+                //               match.s, match.t);
+                //} else {
+                //    PrintInfo("Skip (%d %d).\n", match.s, match.t);
+                //}
+            }
 
             matches.push_back(match);
         }
@@ -140,7 +164,7 @@ std::tuple<Eigen::Matrix4d, Eigen::Matrix6d>
     Eigen::Matrix4d transformation = init_trans;
     Eigen::Matrix6d information = Eigen::Matrix6d::Identity();
 
-    for (int i = 0; i < iters.size(); ++i) {
+    for (int i = 0; i < iters.size(); i++) {
         float voxel_size_level = voxel_size / voxel_factors[i];
         auto source_down = VoxelDownSample(source, voxel_size_level);
         auto target_down = VoxelDownSample(target, voxel_size_level);
@@ -229,16 +253,16 @@ int main(int argc, char ** argv)
 
     Config conf(argc, argv);
 
-    PrintInfo("Registering fragments");
+    PrintInfo("Registering fragments\n");
     //Register 
     auto registered_matches = RegisterFragments(conf);
-    PrintInfo("Making Pose graph for fragments");
+    PrintInfo("Making Pose graph for fragments\n");
     MakePoseGraphForRegisteredScene(registered_matches, conf);
-    PrintInfo("Optimizing Pose graph for fragments");
+    PrintInfo("Optimizing Pose graph for fragments\n");
     OptimizePoseGraphForRegisteredScene(conf);
 
     //Refine
-    PrintInfo("Refining Pose Graph");
+    PrintInfo("Refining Pose Graph\n");
     auto refined_matches = RefineFragments(conf);
     MakePoseGraphForRefinedScene(refined_matches, conf);
     OptimizePoseGraphForRefinedScene(conf);
