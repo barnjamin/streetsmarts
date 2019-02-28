@@ -264,10 +264,10 @@ int main(int argc, char ** argv)
     OptimizePoseGraphForRegisteredScene(conf);
 
     //Refine
-    //PrintInfo("Refining Pose Graph\n");
-    //auto refined_matches = RefineFragments(conf);
-    //MakePoseGraphForRefinedScene(refined_matches, conf);
-    //OptimizePoseGraphForRefinedScene(conf);
+    PrintInfo("Refining Pose Graph\n");
+    auto refined_matches = RefineFragments(conf);
+    MakePoseGraphForRefinedScene(refined_matches, conf);
+    OptimizePoseGraphForRefinedScene(conf);
 
     return 0;
 }

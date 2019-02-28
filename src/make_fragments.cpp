@@ -30,11 +30,11 @@ using namespace std;
 
 void MakePoseGraphForFragment(int fragment_id, Config &config) {
 
-    RGBDOdometryCuda<3> odometry;
 
     PinholeCameraIntrinsic intrinsic;
     ReadIJsonConvertible(config.IntrinsicFile(), intrinsic);
 
+    RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsic);
     odometry.SetParameters(OdometryOption({20, 10, 5},
                                           config.max_depth_diff,
@@ -116,7 +116,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     TransformCuda trans = TransformCuda::Identity();
     ScalableTSDFVolumeCuda<8> tsdf_volume( 20000, 400000, voxel_length, (float) config.tsdf_truncation, trans);
 
-    RGBDImageCuda rgbd((float) config.width, (float) config.height);
+    RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
 
     for (int i = 0; i < config.frames_per_fragment; ++i) {
         PrintDebug("Integrating frame %d ...\n", i);
@@ -163,7 +163,7 @@ int main(int argc, char * argv[])
         //PrintInfo("Processing fragment %d / %d\n", i, num_fragments - 1);
 
         MakePoseGraphForFragment(i, conf);
-        OptimizePoseGraphForFragment(i, conf);
+        //OptimizePoseGraphForFragment(i, conf);
         IntegrateForFragment(i, conf);
 
     }

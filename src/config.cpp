@@ -64,8 +64,8 @@ Config::Config(int argc, char ** argv) {
     tsdf_truncation = GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.03);
 
     //RGBD Image params
-    min_depth = GetProgramOptionAsDouble(argc,argv, "--min_depth", 1.0);
-    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 2.0);
+    min_depth = GetProgramOptionAsDouble(argc,argv, "--min_depth", 0.5);
+    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 3.0);
     depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor", 1000.0);
 
 

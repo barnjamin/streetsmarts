@@ -61,10 +61,6 @@ int main(int argc, char * argv[]) try
 
     PinholeCameraIntrinsicCuda cuda_intrinsic(intrinsic);
 
-    RGBDOdometryCuda<3> odometry;
-    odometry.SetIntrinsics(intrinsic);
-    odometry.SetParameters(OdometryOption({20, 10, 5}, 
-                conf.max_depth_diff, conf.min_depth, conf.max_depth), 0.5f);
 
     auto depth_image = std::make_shared<Image>();
     auto color_image = std::make_shared<Image>();
@@ -72,12 +68,9 @@ int main(int argc, char * argv[]) try
     depth_image->PrepareImage(conf.width, conf.height, 1, 2);
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
 
-    RGBDImageCuda rgbd_prev(conf.width, conf.height, conf.max_depth);
-    RGBDImageCuda rgbd_curr(conf.width, conf.height, conf.max_depth);
+    RGBDImageCuda rgbd_target(conf.width, conf.height, conf.max_depth, conf.depth_factor);
+    RGBDImageCuda rgbd_source(conf.width, conf.height, conf.max_depth, conf.depth_factor);
 
-    float voxel_length = conf.tsdf_cubic_size / 512.0;
-    TransformCuda trans = TransformCuda::Identity();
-    ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, voxel_length, conf.tsdf_truncation, trans);
 
     FPSTimer timer("Process RGBD stream", 1000000);
 
@@ -93,9 +86,19 @@ int main(int argc, char * argv[]) try
 
     for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
     {
+        RGBDOdometryCuda<3> odometry;
+        odometry.SetIntrinsics(intrinsic);
+        odometry.SetParameters(OdometryOption({20, 10, 5}, 
+                    conf.max_depth_diff, conf.min_depth, conf.max_depth), 0.5f);
+
         Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
         PoseGraph pose_graph;
         pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry));
+
+        float voxel_length = conf.tsdf_cubic_size / 512.0;
+        TransformCuda tsdf_trans = TransformCuda::Identity();
+        ScalableTSDFVolumeCuda<8> tsdf_volume(20000, 400000, voxel_length, 
+                conf.tsdf_truncation, tsdf_trans);
 
         for(int i = 0; i < conf.frames_per_fragment; i++)
         {
@@ -118,52 +121,48 @@ int main(int argc, char * argv[]) try
             WriteImage(conf.ColorFile(fragment_idx, i), *color_image);
 
             //Upload images to GPU
-            rgbd_curr.Upload(*depth_image, *color_image);
+            rgbd_source.Upload(*depth_image, *color_image);
 
-            if(i==0) { rgbd_prev.CopyFrom(rgbd_curr); continue; }
+            if(i==0) { rgbd_target.CopyFrom(rgbd_source); continue; }
 
 
             //Reset Odometry transform
             odometry.transform_source_to_target_ =  Eigen::Matrix4d::Identity();
 
             //Initialize odometry with current and previous images
-            odometry.Initialize(rgbd_curr, rgbd_prev);
+            odometry.Initialize(rgbd_source, rgbd_target);
+            odometry.ComputeMultiScale();
 
-            //Compute Odometry
-            std::tie(success, t, losses) =  odometry.ComputeMultiScale();
-            if(!success) {
-                rgbd_prev.CopyFrom(rgbd_curr);
-                continue; 
-            }
-
-            auto information = odometry.ComputeInformationMatrix();
+            Eigen::Matrix4d trans = odometry.transform_source_to_target_;
+            Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
 
             //Update Target to world
-            trans_odometry = trans_odometry * odometry.transform_source_to_target_;
-            trans.FromEigen(trans_odometry);
+            trans_odometry =  trans * trans_odometry;
+
+            Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
+
+            //Update PoseGraph
+            pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
+            pose_graph.edges_.emplace_back(PoseGraphEdge(i - 1, i, trans, information, false));
 
             //Integrate fragment
-            tsdf_volume.Integrate(rgbd_curr, cuda_intrinsic, trans);
-
-            //Update pose graph
-            Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
-            pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
-            pose_graph.edges_.emplace_back(PoseGraphEdge(
-                i - 1, i, odometry.transform_source_to_target_, information, false));
-
+            tsdf_trans.FromEigen(trans_odometry);
+            tsdf_volume.Integrate(rgbd_source, cuda_intrinsic, tsdf_trans);
             
-            rgbd_prev.CopyFrom(rgbd_curr);
+            //Overwrite previous
+            rgbd_target.CopyFrom(rgbd_curr);
+
             timer.Signal();
         }
 
-        GlobalOptimizationConvergenceCriteria criteria;
-        GlobalOptimizationOption option(conf.max_depth_diff, 0.25, conf.preference_loop_closure_odometry, 0);
-        GlobalOptimizationLevenbergMarquardt optimization_method;
-        GlobalOptimization(pose_graph, optimization_method, criteria, option);
+        //GlobalOptimizationConvergenceCriteria criteria;
+        //GlobalOptimizationOption option(conf.max_depth_diff, 0.25, conf.preference_loop_closure_odometry, 0);
+        //GlobalOptimizationLevenbergMarquardt optimization_method;
+        //GlobalOptimization(pose_graph, optimization_method, criteria, option);
 
-        auto pg = CreatePoseGraphWithoutInvalidEdges(pose_graph, option);
+        //auto pg = CreatePoseGraphWithoutInvalidEdges(pose_graph, option);
 
-        WritePoseGraph(conf.PoseFile(fragment_idx), *pg);
+        WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
 
         //Generate Mesh and write to disk
         tsdf_volume.GetAllSubvolumes();
@@ -178,8 +177,6 @@ int main(int argc, char * argv[]) try
         pcl.colors_ = mesh->vertex_colors_;
 
         WritePointCloudToPLY(conf.FragmentFile(fragment_idx), pcl, true);
-
-        tsdf_volume.Reset();
     }
 
     return EXIT_SUCCESS;
