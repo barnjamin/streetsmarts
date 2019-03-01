@@ -133,7 +133,7 @@ int main(int argc, char * argv[]) try
             odometry.Initialize(rgbd_source, rgbd_target);
             odometry.ComputeMultiScale();
 
-            Eigen::Matrix4d trans = odometry.transform_source_to_target_;
+            Eigen::Matrix4d trans = odometry.transform_source_to_target_.inverse();
             Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
 
             //Update Target to world
@@ -156,10 +156,10 @@ int main(int argc, char * argv[]) try
         }
 
         //GlobalOptimizationConvergenceCriteria criteria;
-        //GlobalOptimizationOption option(conf.max_depth_diff, 0.25, conf.preference_loop_closure_odometry, 0);
+        //GlobalOptimizationOption option(conf.max_depth_diff, 0.25, 
+        //  conf.preference_loop_closure_odometry, 0);
         //GlobalOptimizationLevenbergMarquardt optimization_method;
         //GlobalOptimization(pose_graph, optimization_method, criteria, option);
-
         //auto pg = CreatePoseGraphWithoutInvalidEdges(pose_graph, option);
 
         WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);

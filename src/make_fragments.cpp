@@ -78,8 +78,7 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
 
         pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
-        pose_graph.edges_.emplace_back(PoseGraphEdge(
-            s , t , trans, information, false));
+        pose_graph.edges_.emplace_back(PoseGraphEdge( s , t , trans, information, false));
     }
 
 
