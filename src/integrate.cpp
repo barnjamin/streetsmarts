@@ -40,12 +40,13 @@ int main(int argc, char ** argv)
         PoseGraph local_pose_graph;
         ReadPoseGraph(conf.PoseFile(fragment_id), local_pose_graph);
 
-
+        cuda::TransformCuda trans;
         for (int img_id = 0; img_id < conf.frames_per_fragment; img_id++) {
             Image depth, color;
 
-            if(!ReadImage(conf.DepthFile(fragment_id, img_id), depth) ||
-                !ReadImage(conf.ColorFile(fragment_id, img_id), color)) {
+            int frame_idx = (fragment_id * conf.frames_per_fragment) + img_id;
+            if(!ReadImage(conf.DepthFile(frame_idx), depth) ||
+                !ReadImage(conf.ColorFile(frame_idx), color)) {
                 PrintInfo("Failed to read %d_%d\n", fragment_id, img_id);
                 continue;
             }
@@ -54,7 +55,6 @@ int main(int argc, char ** argv)
 
             Eigen::Matrix4d pose = global_pose_graph.nodes_[fragment_id].pose_ * local_pose_graph.nodes_[img_id].pose_;
 
-            cuda::TransformCuda trans;
             trans.FromEigen(pose);
 
             PrintInfo("Integrating %d and %d\n", fragment_id, img_id);

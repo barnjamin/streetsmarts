@@ -66,6 +66,10 @@ class Calibration(object):
         self.b_x = self.P[0,3]/(-self.f_u) # relative 
         self.b_y = self.P[1,3]/(-self.f_v)
 
+        print("cu, cv: ", self.c_u, self.c_v)
+        print("fu, fv: ", self.f_u, self.f_v)
+        print("bx, by: ", self.b_x, self.b_y)
+
     def read_calib_file(self, filepath):
         ''' Read in a calibration file and parse into a dictionary.
         Ref: https://github.com/utiasSTARS/pykitti/blob/master/pykitti/utils.py

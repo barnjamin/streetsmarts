@@ -53,6 +53,8 @@ public:
     double voxel_size;
     int registration_window_size;
 
+    rs2::threshold_filter threshold;
+
     rs2::decimation_filter dec_filter;
     rs2::spatial_filter spat_filter;
     rs2::temporal_filter temp_filter;
@@ -66,8 +68,8 @@ public:
     std::string IntrinsicFile();
 
     std::string PoseFile(int idx);
-    std::string DepthFile(int f_idx, int i_idx);
-    std::string ColorFile(int f_idx, int i_idx);
+    std::string DepthFile(int i_idx);
+    std::string ColorFile(int i_idx);
     std::string FragmentFile(int idx);
     std::string ThumbnailFragmentFile(int idx);
 

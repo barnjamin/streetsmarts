@@ -71,7 +71,6 @@ int main(int argc, char * argv[]) try
     RGBDImageCuda rgbd_target(conf.width, conf.height, conf.max_depth, conf.depth_factor);
     RGBDImageCuda rgbd_source(conf.width, conf.height, conf.max_depth, conf.depth_factor);
 
-
     FPSTimer timer("Process RGBD stream", 1000000);
 
     PrintInfo("Discarding first %d frames\n", conf.framestart);
@@ -83,7 +82,6 @@ int main(int argc, char * argv[]) try
     std::vector<std::vector<float>> losses;
 
     PrintInfo("Starting to read frames...");
-
     for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
     {
         RGBDOdometryCuda<3> odometry;
@@ -102,6 +100,9 @@ int main(int argc, char * argv[]) try
 
         for(int i = 0; i < conf.frames_per_fragment; i++)
         {
+
+            int frame_idx = (conf.frames_per_fragment * fragment_idx) * i;
+
             frameset = pipe.wait_for_frames();
 
             //Get processed aligned frame
@@ -117,8 +118,8 @@ int main(int argc, char * argv[]) try
             memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
             memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
-            WriteImage(conf.DepthFile(fragment_idx, i), *depth_image);
-            WriteImage(conf.ColorFile(fragment_idx, i), *color_image);
+            WriteImage(conf.DepthFile(frame_idx), *depth_image);
+            WriteImage(conf.ColorFile(frame_idx), *color_image);
 
             //Upload images to GPU
             rgbd_source.Upload(*depth_image, *color_image);
@@ -155,13 +156,6 @@ int main(int argc, char * argv[]) try
             timer.Signal();
         }
 
-        //GlobalOptimizationConvergenceCriteria criteria;
-        //GlobalOptimizationOption option(conf.max_depth_diff, 0.25, 
-        //  conf.preference_loop_closure_odometry, 0);
-        //GlobalOptimizationLevenbergMarquardt optimization_method;
-        //GlobalOptimization(pose_graph, optimization_method, criteria, option);
-        //auto pg = CreatePoseGraphWithoutInvalidEdges(pose_graph, option);
-
         WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
 
         //Generate Mesh and write to disk
@@ -169,7 +163,6 @@ int main(int argc, char * argv[]) try
         ScalableMeshVolumeCuda<8> mesher(tsdf_volume.active_subvolume_entry_array().size(), VertexWithNormalAndColor, 10000000, 20000000);
         mesher.MarchingCubes(tsdf_volume);
         auto mesh = mesher.mesh().Download();
-
 
         PointCloud pcl;
         pcl.points_ = mesh->vertices_;

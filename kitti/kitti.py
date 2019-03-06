@@ -108,8 +108,14 @@ if __name__=='__main__':
     dataset = kitti_object(root_dir)
     calib = dataset.get_calibration()
 
-    depth_dir = os.path.join(root_dir, 'depth' , 'sequences', '00')
-    color_dir = os.path.join(root_dir, 'color' , 'sequences', '00')
+    depth_dir = os.path.join(root_dir, 'depth')
+    color_dir = os.path.join(root_dir, 'color')
+
+    if not os.path.exists(depth_dir):
+            os.makedirs(depth_dir)
+
+    if not os.path.exists(color_dir):
+            os.makedirs(color_dir)
 
     for data_idx in range(4000):
         print("Working on {}".format(data_idx))

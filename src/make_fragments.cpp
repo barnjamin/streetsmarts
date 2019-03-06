@@ -52,18 +52,19 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
     for (int s = 0; s < config.frames_per_fragment-1; ++s) {
         Image depth, color;
 
-        ReadImage(config.DepthFile(fragment_id, s), depth);
-        ReadImage(config.ColorFile(fragment_id, s), color);
+        int src_frame_idx = (fragment_id * config.frames_per_fragment) + s;
+        ReadImage(config.DepthFile(src_frame_idx), depth);
+        ReadImage(config.ColorFile(src_frame_idx), color);
 
         rgbd_source.Upload(depth, color);
 
-        int t = s + 1;
+        int tgt_frame_idx = src_frame_idx + 1;
 
-        ReadImage(config.DepthFile(fragment_id, t), depth);
-        ReadImage(config.ColorFile(fragment_id, t), color);
+        ReadImage(config.DepthFile(tgt_frame_idx), depth);
+        ReadImage(config.ColorFile(tgt_frame_idx), color);
         rgbd_target.Upload(depth, color);
 
-        PrintInfo("RGBD Odometry between (%d %d)\n", s, t);
+        PrintInfo("RGBD Odometry between (%d %d)\n", src_frame_idx, tgt_frame_idx);
         odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
         odometry.Initialize(rgbd_source, rgbd_target);
         odometry.ComputeMultiScale();
@@ -78,7 +79,8 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
 
         pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
-        pose_graph.edges_.emplace_back(PoseGraphEdge( s , t , trans, information, false));
+        pose_graph.edges_.emplace_back(PoseGraphEdge( 
+                    src_frame_idx, tgt_frame_idx , trans, information, false));
     }
 
 
@@ -121,8 +123,9 @@ void IntegrateForFragment(int fragment_id, Config &config) {
         PrintDebug("Integrating frame %d ...\n", i);
 
         Image depth, color;
-        ReadImage(config.DepthFile(fragment_id, i), depth);
-        ReadImage(config.ColorFile(fragment_id, i), color);
+        int frame_idx = (config.frames_per_fragment * fragment_id)+i;
+        ReadImage(config.DepthFile(frame_idx), depth);
+        ReadImage(config.ColorFile(frame_idx), color);
         rgbd.Upload(depth, color);
 
         /* Use ground truth trajectory */
@@ -162,7 +165,7 @@ int main(int argc, char * argv[])
         //PrintInfo("Processing fragment %d / %d\n", i, num_fragments - 1);
 
         MakePoseGraphForFragment(i, conf);
-        //OptimizePoseGraphForFragment(i, conf);
+        OptimizePoseGraphForFragment(i, conf);
         IntegrateForFragment(i, conf);
 
     }

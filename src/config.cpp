@@ -96,6 +96,11 @@ Config::Config(int argc, char ** argv) {
     voxel_size = GetProgramOptionAsDouble(argc, argv, "--voxel_size", 0.05);
 
 
+    //Set threshold
+    
+    threshold.set_option(RS2_OPTION_MIN_DISTANCE,min_depth);
+    threshold.set_option(RS2_OPTION_MAX_DISTANCE,max_depth);
+    
     //Set Filter opts
     dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, dec_mag);  
     spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, spat_mag);
@@ -133,23 +138,21 @@ std::string Config::ThumbnailFragmentFile(int idx)
     return ss.str();
 }
 
-std::string Config::ColorFile(int f_idx, int i_idx)
+std::string Config::ColorFile(int idx)
 {
     
     std::stringstream ss;
     ss << session_path <<  "/color/";
-    ss << std::setw(5) << std::setfill('0') <<  f_idx;
-    ss << "_" << std::setw(3) << std::setfill('0') << i_idx << ".jpg";
+    ss << std::setw(6) << std::setfill('0') <<  idx << ".jpg";
     return ss.str();
 }
 
-std::string Config::DepthFile(int f_idx, int i_idx)
+std::string Config::DepthFile(int idx)
 {
     
     std::stringstream ss;
     ss << session_path <<  "/depth/";
-    ss << std::setw(5) << std::setfill('0') << f_idx;
-    ss << "_" << std::setw(3) << std::setfill('0') << i_idx << ".png";
+    ss << std::setw(6) << std::setfill('0') << idx << ".png";
     return ss.str();
 }
 

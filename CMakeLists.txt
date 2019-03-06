@@ -72,9 +72,13 @@ target_link_libraries(analyze ${DEPENDENCIES})
 #add_executable(kitti ${KITTI_SOURCE})
 #target_link_libraries(kitti ${DEPENDENCIES})
 
-set(CAPTURE_SOURCE src/capture.cpp src/utils.cpp src/config.cpp)
-add_executable(capture ${CAPTURE_SOURCE})
-target_link_libraries(capture ${DEPENDENCIES})
+set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
+add_executable(capture_frames ${CAPTURE_SOURCE})
+target_link_libraries(capture_frames ${DEPENDENCIES})
+
+set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp)
+add_executable(client ${CAPTURE_SOURCE})
+target_link_libraries(client ${DEPENDENCIES})
 
 set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp)
 add_executable(make_fragments ${FRAGMENT_SOURCE})
