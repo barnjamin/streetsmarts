@@ -68,9 +68,9 @@ set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
 add_executable(analyze ${ANALYZE_SOURCE})
 target_link_libraries(analyze ${DEPENDENCIES})
 
-#set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
-#add_executable(kitti ${KITTI_SOURCE})
-#target_link_libraries(kitti ${DEPENDENCIES})
+set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
+add_executable(kitti ${KITTI_SOURCE})
+target_link_libraries(kitti ${DEPENDENCIES})
 
 set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
 add_executable(capture_frames ${CAPTURE_SOURCE})
