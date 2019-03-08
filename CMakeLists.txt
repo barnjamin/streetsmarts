@@ -7,6 +7,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
+message("mod path: ${CMAKE_MODULE_PATH}")
+
 
 find_package(OpenCV REQUIRED)
 find_package(OpenGL)
@@ -15,6 +17,7 @@ find_package(PCL)
 find_package (Eigen3)
 find_package(Open3D)
 find_package(realsense2)
+find_package (GeographicLib REQUIRED)
 
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
@@ -27,6 +30,7 @@ add_compile_options(-Wno-unused-result)
 add_definitions(-DUNIX)
 add_definitions(-O3)
 add_definitions(${PCL_DEFINITIONS})
+add_definitions (${GeographicLib_DEFINITIONS})
 
 set(IMGUI /home/ben/librealsense/third-party/imgui/)
 aux_source_directory(${IMGUI} IMGUI_SOURCES)
@@ -41,6 +45,7 @@ include_directories(
   ${OPENGL_INCLUDE_DIRS}  
   ${GLUT_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  ${GeographicLib_INCLUDE_DIRS}
 ) 
 
 link_directories(${Open3D_LIBRARY_DIRS})
@@ -56,9 +61,9 @@ set(DEPENDENCIES
 	${Open3D_LIBRARIES} 
 	Eigen3::Eigen 
 	/home/ben/Open3D/build/lib/libCuda.a
-        ${PCL_LIBRARIES} 
+    ${PCL_LIBRARIES} 
+    ${GeographicLib_LIBRARIES}
 )
-
 
 set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp)
 add_executable(cluster ${CLUSTER_SOURCE})
