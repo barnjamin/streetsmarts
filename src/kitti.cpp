@@ -90,9 +90,20 @@ int main(int argc, char ** argv)
     const GeographicLib::Geocentric& earth = GeographicLib::Geocentric::WGS84();
     GeographicLib::LocalCartesian proj;
 
+    Eigen::Quaterniond q(1,0,0,0);
+
+    Eigen::Matrix6d information;
+    information << 614817.25, -2948.681884765625, 65493.2734375, 0.0, -393870.875, -2794.27001953125,
+        -2948.681884765625, 675245.5625, 8518.068359375, 393870.875, 0.0, 27101.2109375,
+        65493.2734375, 8518.068359375, 200426.1875, 2794.26806640625, -27101.2109375, 0.0,
+        0.0, 393870.875, 2794.26806640625, 288427.0, 0.0, 0.0,
+        -393870.875, 0.0, -27101.2109375, 0.0, 288427.0, 0.0,
+        -2794.27001953125, 27101.2109375, 0.0, 0.0, 0.0, 288427.0 ;
+
+
     double lat, lng, alt;
     double x, y, z;
-    double x_orig, y_orig, z_orig;
+    double x_last, y_last, z_last;
     int idx = 0;
     for(std::string line: gps)
     {
@@ -106,17 +117,30 @@ int main(int argc, char ** argv)
         }
 
         proj.Forward(lat, lng, alt, x, y, z);
+
         std::cout << x << " " << y << " " << z << "\n";
 
+        Eigen::Translation3d trans_to_world(Eigen::Vector3d(x, y, z));
+        Eigen::Transform<double, 3, Eigen::Projective>  world_trans = trans_to_world * q.normalized().toRotationMatrix();
+
+
         // Create transform between last 2
-        // Create target to world
-        // Create information matrix
-        //pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
-        //pose_graph.edges_.emplace_back(PoseGraphEdge(i - 1, i, trans, information, false));
+        Eigen::Translation3d translation_diff(Eigen::Vector3d(x-x_last, y-y_last, z-z_last));
+        Eigen::Transform<double, 3, Eigen::Projective> local_trans = translation_diff * q.normalized().toRotationMatrix();
+
+
+        
+        pose_graph.nodes_.emplace_back(open3d::PoseGraphNode(world_trans.matrix().inverse()));
+        pose_graph.edges_.emplace_back(open3d::PoseGraphEdge(idx - 1, idx, local_trans.matrix(), information, false));
+
+        x_last = x;
+        y_last = y;
+        z_last = z;
 
         idx++;
     }
 
+    WritePoseGraph("testy.json", pose_graph);
     return 0;
 
 
