@@ -20,7 +20,12 @@ void VisualizeRegistration(const open3d::PointCloud &source,
     std::shared_ptr<PointCloud> target_ptr(new PointCloud);
     *source_transformed_ptr = source;
     *target_ptr = target;
+    
     source_transformed_ptr->Transform(Transformation);
+
+    target_ptr->PaintUniformColor(Eigen::Vector3d(0,0,1.0));
+    source_transformed_ptr->PaintUniformColor(Eigen::Vector3d(1.0,0,0));
+
     DrawGeometries({source_transformed_ptr, target_ptr}, "Registration result");
 }
 

@@ -13,6 +13,7 @@
 #include <GeographicLib/LocalCartesian.hpp>
 
 #include "config.h"
+#include "utils.h"
 
 std::shared_ptr<open3d::PointCloud> readKittiVelodyne(std::string& fileName){
     std::shared_ptr<open3d::PointCloud> pc = std::make_shared<open3d::PointCloud>();
@@ -45,9 +46,10 @@ std::shared_ptr<open3d::PointCloud> readKittiVelodyne(std::string& fileName){
 
     EstimateNormals(*pc, open3d::KDTreeSearchParamKNN());
 
-    auto result = RemoveStatisticalOutliers(*pc, 50, 0.3);
+    return pc;
 
-    return std::get<0>(result);
+    //auto result = RemoveStatisticalOutliers(*pc, 50, 0.3);
+    //return std::get<0>(result);
 }
 
 std::tuple<double, double, double> get_lat_lng(std::string gps_file) 
@@ -93,7 +95,8 @@ int main(int argc, char ** argv)
     Eigen::Quaterniond q(1,0,0,0);
 
     Eigen::Matrix6d information;
-    information << 614817.25, -2948.681884765625, 65493.2734375, 0.0, -393870.875, -2794.27001953125,
+    information << 
+        614817.25, -2948.681884765625, 65493.2734375, 0.0, -393870.875, -2794.27001953125,
         -2948.681884765625, 675245.5625, 8518.068359375, 393870.875, 0.0, 27101.2109375,
         65493.2734375, 8518.068359375, 200426.1875, 2794.26806640625, -27101.2109375, 0.0,
         0.0, 393870.875, 2794.26806640625, 288427.0, 0.0, 0.0,
@@ -118,8 +121,6 @@ int main(int argc, char ** argv)
 
         proj.Forward(lat, lng, alt, x, y, z);
 
-        std::cout << x << " " << y << " " << z << "\n";
-
         Eigen::Translation3d trans_to_world(Eigen::Vector3d(x, y, z));
         Eigen::Transform<double, 3, Eigen::Projective>  world_trans = trans_to_world * q.normalized().toRotationMatrix();
 
@@ -140,13 +141,9 @@ int main(int argc, char ** argv)
         idx++;
     }
 
-    WritePoseGraph("testy.json", pose_graph);
-    return 0;
-
+    WritePoseGraph("/home/ben/kitti-sync/gps_pg.json", pose_graph);
 
     //Update PoseGraph
-
-
 
     std::shared_ptr<open3d::PointCloud> src;
     std::shared_ptr<open3d::PointCloud> tgt;
@@ -154,35 +151,33 @@ int main(int argc, char ** argv)
     std::string bin_dir = "/home/ben/kitti-sync/velodyne_points/data";
     std::vector<std::string> bins;
     open3d::filesystem::ListFilesInDirectory(bin_dir, bins);
+    sort(bins.begin(), bins.end());
+
     for(int i=0; i<bins.size(); i++){
-
-
-
-
         src = readKittiVelodyne(bins[i]);
         if(i == 0) { 
             tgt = src;
             continue; 
         }
 
-        open3d::cuda::RegistrationCuda registration(open3d::TransformationEstimationType::PointToPlane);
 
-        registration.Initialize(*src, *tgt, (float) config.voxel_size * 1.4f, Eigen::Matrix4d::Identity());
+        //open3d::PrintInfo("PointCloud %d to %d\n", i-1, i);
+        //VisualizeRegistration(*src, *tgt, Eigen::Matrix4d::Identity());
 
-        registration.ComputeICP(256);
+        open3d::cuda::RegistrationCuda registration(open3d::TransformationEstimationType::PointToPoint);
 
-        std::cout << registration.transform_source_to_target_ << std::endl;
-        std::cout << registration.ComputeInformationMatrix() << std::endl;
+        registration.Initialize(*src, *tgt, 0.9, pose_graph.nodes_[i].pose_);
 
+        registration.ComputeICP();
 
-        tgt->PaintUniformColor(Eigen::Vector3d(0,0,1.0));
+        auto imat = registration.ComputeInformationMatrix();
 
         src->Transform(registration.transform_source_to_target_);
+
         src->PaintUniformColor(Eigen::Vector3d(1.0,0,0));
+        tgt->PaintUniformColor(Eigen::Vector3d(0,0,1.0));
 
         open3d::DrawGeometries({src,tgt});
-
-
 
         tgt = src;
     }
