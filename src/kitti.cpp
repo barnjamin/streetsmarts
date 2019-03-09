@@ -48,8 +48,8 @@ std::shared_ptr<open3d::PointCloud> readKittiVelodyne(std::string& fileName){
 
     return pc;
 
-    //auto result = RemoveStatisticalOutliers(*pc, 50, 0.3);
-    //return std::get<0>(result);
+    auto result = RemoveStatisticalOutliers(*pc, 50, 0.3);
+    return std::get<0>(result);
 }
 
 std::tuple<double, double, double, Eigen::Quaterniond> get_lat_lng_quat(std::string gps_file) 
@@ -128,7 +128,6 @@ int main(int argc, char ** argv)
     for(std::string line: gps)
     {
         std::tie(lat, lng, alt, q) = get_lat_lng_quat(line);
-        //open3d::PrintInfo("%.6f %.6f %.6f\n", lat, lng, alt);
 
         if(idx == 0){ 
             proj.Reset(lat, lng, alt);   
@@ -171,23 +170,30 @@ int main(int argc, char ** argv)
     open3d::filesystem::ListFilesInDirectory(bin_dir, bins);
     sort(bins.begin(), bins.end());
 
+    Eigen::Matrix4d trans_world = Eigen::Matrix4d::Identity();
+
+    auto pcd  = readKittiVelodyne(bins[0]);
     for(int i=1; i<bins.size(); i++){
+    //for(int i=1; i<10; i++){
         src = readKittiVelodyne(bins[i-1]);
         tgt = readKittiVelodyne(bins[i]);
 
         open3d::PrintInfo("PointCloud %d to %d\n", i-1, i);
 
         open3d::cuda::RegistrationCuda registration(open3d::TransformationEstimationType::PointToPoint);
-        registration.Initialize(*src, *tgt, 0.9, pose_graph.edges_[i].transformation_);
+        registration.Initialize(*src, *tgt, 0.5, pose_graph.edges_[i].transformation_);
         registration.ComputeICP();
+
         auto imat = registration.ComputeInformationMatrix();
 
-        src->Transform(registration.transform_source_to_target_);
+        trans_world = trans_world * registration.transform_source_to_target_.inverse();
+        src->Transform(trans_world);
 
-        src->PaintUniformColor(Eigen::Vector3d(1.0,0,0));
-        tgt->PaintUniformColor(Eigen::Vector3d(0,0,1.0));
+        //src->PaintUniformColor(Eigen::Vector3d(1.0,0,0));
+        //tgt->PaintUniformColor(Eigen::Vector3d(0,0,1.0));
 
-        open3d::DrawGeometries({src,tgt});
+        *pcd += *src;
     }
 
+    open3d::DrawGeometries({pcd});
 }
