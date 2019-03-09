@@ -24,7 +24,7 @@ std::shared_ptr<open3d::PointCloud> readKittiVelodyne(std::string& fileName){
         return pc;
     }
 
-    float bbmax = 30.0;
+    float bbmax = 50.0;
     for (int iter=0; input.good() && !input.eof(); iter++) {
         float x,y,z;
         float i;
@@ -46,9 +46,9 @@ std::shared_ptr<open3d::PointCloud> readKittiVelodyne(std::string& fileName){
 
     EstimateNormals(*pc, open3d::KDTreeSearchParamKNN());
 
-    return pc;
+    //return pc;
 
-    auto result = RemoveStatisticalOutliers(*pc, 50, 0.3);
+    auto result = RemoveStatisticalOutliers(*pc, 50, 0.9);
     return std::get<0>(result);
 }
 
@@ -92,7 +92,6 @@ int main(int argc, char ** argv)
 {
 
     Config config(argc, argv);
-
 
     std::string gps_dir = "/home/ben/kitti-sync/oxts/data";
     std::vector<std::string> gps;
@@ -141,7 +140,6 @@ int main(int argc, char ** argv)
         Eigen::Translation3d trans_to_world(Eigen::Vector3d(x, y, z));
         Eigen::Transform<double, 3, Eigen::Affine>  world_trans = trans_to_world * q.normalized().toRotationMatrix();
 
-
         // Create transform between last 2
         Eigen::Translation3d translation_diff(Eigen::Vector3d(x-x_last, y-y_last, z-z_last));
         Eigen::Quaterniond q_diff = (q * q_last.inverse());
@@ -172,11 +170,16 @@ int main(int argc, char ** argv)
 
     Eigen::Matrix4d trans_world = Eigen::Matrix4d::Identity();
 
-    auto pcd  = readKittiVelodyne(bins[0]);
-    for(int i=1; i<bins.size(); i++){
-    //for(int i=1; i<10; i++){
+    open3d::PoseGraph pg;
+    pg.nodes_.emplace_back(open3d::PoseGraphNode(trans_world));
+    
+    //auto pcd  = readKittiVelodyne(bins[0]);
+    std::shared_ptr<open3d::PointCloud>  pcd = std::make_shared<open3d::PointCloud>();
+    for(int i=1; i<bins.size()-1; i++){
         src = readKittiVelodyne(bins[i-1]);
         tgt = readKittiVelodyne(bins[i]);
+
+        //open3d::DrawGeometries({src});
 
         open3d::PrintInfo("PointCloud %d to %d\n", i-1, i);
 
@@ -189,11 +192,24 @@ int main(int argc, char ** argv)
         trans_world = trans_world * registration.transform_source_to_target_.inverse();
         src->Transform(trans_world);
 
+        pg.nodes_.emplace_back(open3d::PoseGraphNode(trans_world.inverse()));
+        pg.edges_.emplace_back(open3d::PoseGraphEdge(i-1, i, registration.transform_source_to_target_, imat, false));
+
         //src->PaintUniformColor(Eigen::Vector3d(1.0,0,0));
         //tgt->PaintUniformColor(Eigen::Vector3d(0,0,1.0));
 
         *pcd += *src;
     }
+    
 
-    open3d::DrawGeometries({pcd});
+    
+    open3d::WritePoseGraph("registered.json", pg);
+
+    open3d::WritePointCloud("combined.pcd", *pcd);
+
+    auto result = open3d::RemoveStatisticalOutliers(*pcd, 10, 0.2);
+    auto cleaned = std::get<0>(result);
+    auto ds = open3d::VoxelDownSample(*cleaned, 0.05);
+
+    open3d::WritePointCloud("downsampled.pcd", *ds);
 }
