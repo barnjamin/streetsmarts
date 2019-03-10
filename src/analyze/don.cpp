@@ -32,6 +32,9 @@ int main(int argc, char ** argv)
 
     std::vector<std::shared_ptr<const Geometry>> geoms;
 
+    auto result = RemoveStatisticalOutliers(*pcd, 20, 0.05);
+    pcd = std::get<0>(result);
+
     pcd = VoxelDownSample(*pcd, conf.don_downsample);
 
     //auto trimmed_pc = TrimLongitudinalAxis(*pcd, 0.0, 200);
@@ -45,16 +48,16 @@ int main(int argc, char ** argv)
 
     geoms.push_back(DoN);
 
-    Eigen::Matrix4d side_by_side;
-    side_by_side << 1,0,0,10,
-                    0,1,0,0,
-                    0,0,1,0,
-                    0,0,0,1;
-    pcd->Transform(side_by_side);
-    geoms.push_back(pcd);
+    //Eigen::Matrix4d side_by_side;
+    //side_by_side << 1,0,0,10,
+    //                0,1,0,0,
+    //                0,0,1,0,
+    //                0,0,0,1;
+    //pcd->Transform(side_by_side);
+    //geoms.push_back(pcd);
 
     DrawGeometries(geoms);
-    WritePointCloud("downsampled.pcd", *DoN, false, true);
+    WritePointCloud("diff_of_norm.pcd", *DoN, false, true);
 
     return 0;
 }
@@ -100,7 +103,9 @@ std::shared_ptr<PointCloud> DifferenceOfNorm(
             std::cout << "Diff: " << delta << std::endl;
         }
 
-        big_pc.colors_[i] =  color_map_ptr->GetColor(delta*10);
+
+        //big_pc.colors_[i] =  color_map_ptr->GetColor((delta+0.25)/2);
+        big_pc.colors_[i] =  color_map_ptr->GetColor((delta+0.15));
     
         if(delta > low_thresh && delta < high_thresh) 
             indicies.push_back(i);
