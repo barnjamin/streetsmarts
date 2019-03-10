@@ -15,6 +15,7 @@
 #include "config.h"
 #include "utils.h"
 
+
 std::tuple<Eigen::Matrix4d, Eigen::Matrix6d>
     MultiScaleICP(const open3d::PointCloud &source, const open3d::PointCloud& target,
                     const Eigen::Matrix4d &init_trans,
@@ -57,7 +58,7 @@ std::shared_ptr<open3d::PointCloud> readKittiVelodyne(std::string& fileName){
         return pc;
     }
 
-    float bbmax = 15.0;
+    float bbmax = 20.0;
     for (int iter=0; input.good() && !input.eof(); iter++) {
         float x,y,z;
         float i;
@@ -79,9 +80,8 @@ std::shared_ptr<open3d::PointCloud> readKittiVelodyne(std::string& fileName){
 
     EstimateNormals(*pc, open3d::KDTreeSearchParamKNN());
 
-    return pc;
+    auto result = RemoveStatisticalOutliers(*pc, 50, 0.2);
 
-    auto result = RemoveStatisticalOutliers(*pc, 10, 0.2);
     return std::get<0>(result);
 }
 
@@ -194,8 +194,6 @@ int main(int argc, char ** argv)
 
     WritePoseGraph(base_dir + "/gps_pg.json", pose_graph);
 
-    //Update PoseGraph
-
     std::shared_ptr<open3d::PointCloud> src;
     std::shared_ptr<open3d::PointCloud> tgt;
 
@@ -204,55 +202,57 @@ int main(int argc, char ** argv)
     open3d::filesystem::ListFilesInDirectory(bin_dir, bins);
     sort(bins.begin(), bins.end());
 
+    // Init vars 
+    Eigen::Matrix4d trans_s_to_t;
+    Eigen::Matrix6d info;
     Eigen::Matrix4d trans_world = Eigen::Matrix4d::Identity();
+    Eigen::Quaterniond nada(1.0, 0.0, 0.0, 0.0);
+    std::shared_ptr<open3d::PointCloud>  pcd = std::make_shared<open3d::PointCloud>();
 
+    // Create pg, add initial identity
     open3d::PoseGraph pg;
     pg.nodes_.emplace_back(open3d::PoseGraphNode(trans_world));
 
-    Eigen::Matrix4d trans_s_to_t;
-    Eigen::Matrix6d info;
-    
-    Eigen::Quaterniond nada(1.0, 0.0, 0.0, 0.0);
-    //auto pcd  = readKittiVelodyne(bins[0]);
-    std::shared_ptr<open3d::PointCloud>  pcd = std::make_shared<open3d::PointCloud>();
-    //for(int i=3; i<bins.size()-3; i++){
-    for(int i=3; i<6; i++){
+    for(int i=1; i<bins.size(); i++){
         src = readKittiVelodyne(bins[i-1]);
         tgt = readKittiVelodyne(bins[i]);
 
         open3d::PrintInfo("PointCloud %d to %d\n", i-1, i);
 
-        Eigen::Transform<double, 3, Eigen::Affine> world_frame_pose(pose_graph.nodes_[i].pose_.inverse());
+        // Get the world pose from gps posegraph
+        Eigen::Transform<double, 3, Eigen::Affine> world_frame_pose(
+                pose_graph.nodes_[i-1].pose_.inverse());
 
-        Eigen::Transform<double, 3, Eigen::Affine> world_frame_transform(pose_graph.edges_[i].transformation_);
+        // Get the local transform
+        Eigen::Transform<double, 3, Eigen::Affine> world_frame_transform(
+                pose_graph.edges_[i].transformation_);
+
+        // Isolate the translation
         Eigen::Vector3d world_translation(world_frame_transform.translation());
 
+        // Rotate the translation to the local frame 
+        Eigen::Translation3d newtrans(
+                world_frame_pose.rotation().inverse() * world_translation);
 
-        Eigen::Translation3d newtrans(world_frame_pose.rotation().inverse() * world_translation);
+        // Construct seed transform in world 
+        Eigen::Transform<double, 3, Eigen::Affine> seed = 
+            newtrans * nada.normalized().toRotationMatrix();
 
-        Eigen::Transform<double, 3, Eigen::Affine> seed = newtrans * nada.normalized().toRotationMatrix();
-
-
+        // Compute MultiScaleICP
         std::tie(trans_s_to_t, info) =  
-            MultiScaleICP(*src, *tgt, seed.matrix(), 0.5);
+                MultiScaleICP(*src, *tgt, seed.matrix(), 0.5);
 
-        //std::cout << trans_s_to_t << std::endl;
-
+        // Add inverse of source to target to local transfrom accumulator
         trans_world = trans_world * trans_s_to_t.inverse();
 
+        // Add transforms to posegraph
         pg.nodes_.emplace_back(open3d::PoseGraphNode(trans_world.inverse()));
         pg.edges_.emplace_back(open3d::PoseGraphEdge(i-1, i, trans_s_to_t, info, false));
 
-        src->PaintUniformColor(Eigen::Vector3d(1.0,0,0));
-        tgt->PaintUniformColor(Eigen::Vector3d(0,0,1.0));
-        
-        //src->Transform(trans_s_to_t.inverse());
-        //open3d::DrawGeometries({src, tgt});
-        //src->Transform(pose_graph.edges_[i].transformation_.inverse());
+        // Apply local transform
         src->Transform(trans_world.inverse());
 
-        //open3d::DrawGeometries({src, tgt});
-
+        // Add to pointcloud
         *pcd += *src;
     }
     
@@ -262,7 +262,4 @@ int main(int argc, char ** argv)
 
     auto ds = open3d::VoxelDownSample(*pcd, 0.05);
     open3d::WritePointCloud("downsampled.pcd", *ds);
-
-    //auto result = open3d::RemoveStatisticalOutliers(*pcd, 10, 0.2);
-    //auto cleaned = std::get<0>(result);
 }
