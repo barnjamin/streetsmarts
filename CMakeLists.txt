@@ -48,6 +48,7 @@ include_directories(
   ${GeographicLib_INCLUDE_DIRS}
   /home/ben/ublox/include/
   /home/ben/serial/include/
+  /home/ben/streetsmarts/src/
 ) 
 
 link_directories(${Open3D_LIBRARY_DIRS})
@@ -104,3 +105,7 @@ target_link_libraries(integrate ${DEPENDENCIES})
 set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp)
 add_executable(gps ${GPS_SOURCE})
 target_link_libraries(gps ${DEPENDENCIES})
+
+set(CALLBACK_SOURCE src/cb.cpp src/utils.cpp src/config.cpp src/callbacks.hpp)
+add_executable(cb ${CALLBACK_SOURCE})
+target_link_libraries(cb ${DEPENDENCIES})
