@@ -16,20 +16,21 @@ int main(int argc, char * argv[]) try
     // Declare RealSense pipeline, encapsulating the actual device and sensors.
     rs2::pipeline pipe;
 
-    SaveToDisk cb;
+    std::mutex mtx;
+    Record * ctx = new Record(&mtx);
 
-    rs2::pipeline_profile profiles = pipe.start(cb);
+    rs2::pipeline_profile profiles = pipe.start(RecordCallBack(*ctx));
 
     // Collect the enabled streams names
     for (auto p : profiles.get_streams())
-        cb.AddStream(p.unique_id(), p.stream_name());
+        ctx->AddStream(p.unique_id(), p.stream_name());
 
     std::cout << "RealSense callback sample" << std::endl << std::endl;
 
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        cb.PrintState();
+        ctx->PrintState();
     }
 
     return EXIT_SUCCESS;
