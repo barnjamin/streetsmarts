@@ -1,7 +1,3 @@
-// Define frame callback
-// The callback is executed on a sensor thread and can be called simultaneously from multiple sensors
-// Therefore any modification to common memory should be done under lock
-
 #include <librealsense2/rs.hpp> 
 #include <iostream>
 #include <map>
@@ -11,65 +7,73 @@
 
 using FrameCallback = std::function<void(rs2::frame)>; 
 
-class Record {
-public:
+class Context {
+    public:
+    virtual void Lock() = 0;
+    virtual void Unlock() = 0;
+    virtual void AddStream(int sid, std::string sn) = 0;
+    virtual void PrintState() = 0;
+    virtual void HandleFrame(const rs2::frame& frame) = 0;
+};
+
+FrameCallback CallBack(Context & ctx) {
+    return [&](const rs2::frame& frame){
+        ctx.Lock();
+        if (rs2::frameset fs = frame.as<rs2::frameset>())
+        {
+            for (const rs2::frame& f : fs) ctx.HandleFrame(f);
+        } else { 
+            ctx.HandleFrame(frame); 
+        }
+        ctx.Unlock();
+    };
+}
+
+class RecordContext : public Context {
     std::mutex * mtx;
+
+public:
     std::map<int, int> counters;
     std::map<int, std::string> stream_names;
 
-    Record(){
+    RecordContext(){
         std::mutex mutex; 
         mtx = &mutex;
-        std::cout<<"empty constructor called"<<std::endl;
     }
 
-    Record(std::mutex* mtx): mtx(mtx) {
-        std::cout<<"constructor called"<<std::endl;
-    }
+    RecordContext(std::mutex* mtx): mtx(mtx) { }
 
-    Record(const Record &r) {
-        std::cout<<"copy constructor called"<<std::endl;
+    RecordContext(const RecordContext &r) {
         mtx = r.mtx;
         counters = r.counters;
         stream_names = r.stream_names;
     }
 
-    ~Record() {}
+    ~RecordContext() {}
+
+    void Lock() { mtx->lock(); }
+    void Unlock() { mtx->unlock(); }
 
     void AddStream(int sid, std::string sn){
-        mtx->lock();
+        Lock();
         stream_names[sid] = sn; 
-        mtx->unlock();
+        Unlock();
     }
 
     void PrintState() {
-        mtx->lock();
+        Lock();
         for (auto p : counters)
         {
             std::cout << stream_names[p.first] 
                 << "[" << p.first << "]: " << p.second << " [frames] || " ;
         }
         std::cout << std::endl;
-        
-        mtx->unlock();
+        Unlock();
+    }
+
+    void HandleFrame(const rs2::frame & frame) {
+        counters[frame.get_profile().unique_id()]++;
     }
 };
 
-FrameCallback RecordCallBack(Record & r) {
-    return [&](const rs2::frame& frame){
-        r.mtx->lock();
-        if (rs2::frameset fs = frame.as<rs2::frameset>())
-        {
 
-            // With callbacks, all synchronized stream will arrive in a single frameset
-            for (const rs2::frame& f : fs)
-                r.counters[f.get_profile().unique_id()]++;
-
-        } else {
-
-            // Stream that bypass synchronization (such as IMU) will produce single frames
-            r.counters[frame.get_profile().unique_id()]++;
-        }
-        r.mtx->unlock();
-    };
-}

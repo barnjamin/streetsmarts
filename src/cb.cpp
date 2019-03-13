@@ -8,18 +8,20 @@
 #include <thread>
 
 #include "callbacks.hpp"
+#include "config.h"
 
 // The callback example demonstrates asynchronous usage of the pipeline
 int main(int argc, char * argv[]) try
 {
+    Config conf(argc, argv);
 
     // Declare RealSense pipeline, encapsulating the actual device and sensors.
     rs2::pipeline pipe;
 
     std::mutex mtx;
-    Record * ctx = new Record(&mtx);
+    RecordContext * ctx = new RecordContext(&mtx);
 
-    rs2::pipeline_profile profiles = pipe.start(RecordCallBack(*ctx));
+    rs2::pipeline_profile profiles = pipe.start(CallBack(*ctx));
 
     // Collect the enabled streams names
     for (auto p : profiles.get_streams())
