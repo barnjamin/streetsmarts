@@ -1,9 +1,9 @@
+#pragma once
+
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 
 class Config {
 public:
-
-
     int width;
     int height;
     int fps;
@@ -63,8 +63,10 @@ public:
     rs2::disparity_transform disparity_to_depth;
 
 
+    Config(){}
     Config(int argc, char ** argv);
 
+    rs2::align  Aligner();
     std::string IntrinsicFile();
 
     std::string PoseFile(int idx);
@@ -80,5 +82,7 @@ public:
 
     int GetFragmentCount();
 
+
     virtual ~Config();    
+
 };

@@ -19,13 +19,9 @@ int main(int argc, char * argv[]) try
     rs2::pipeline pipe;
 
     std::mutex mtx;
-    RecordContext * ctx = new RecordContext(&mtx);
+    RecordContext * ctx = new RecordContext(&mtx, conf);
 
     rs2::pipeline_profile profiles = pipe.start(CallBack(*ctx));
-
-    // Collect the enabled streams names
-    for (auto p : profiles.get_streams())
-        ctx->AddStream(p.unique_id(), p.stream_name());
 
     std::cout << "RealSense callback sample" << std::endl << std::endl;
 

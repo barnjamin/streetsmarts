@@ -95,9 +95,7 @@ Config::Config(int argc, char ** argv) {
     preference_loop_closure_registration = GetProgramOptionAsDouble(argc, argv, "--loop_closure_registration",  0.5);
     voxel_size = GetProgramOptionAsDouble(argc, argv, "--voxel_size", 0.05);
 
-
     //Set threshold
-    
     threshold.set_option(RS2_OPTION_MIN_DISTANCE,min_depth);
     threshold.set_option(RS2_OPTION_MAX_DISTANCE,max_depth);
     
@@ -111,6 +109,11 @@ Config::Config(int argc, char ** argv) {
 
     depth_to_disparity = rs2::disparity_transform(true);
     disparity_to_depth = rs2::disparity_transform(false);
+}
+
+//Set Alignment, default arg? TODO:
+rs2::align Config::Aligner(){
+    return rs2::align(RS2_STREAM_COLOR);
 }
 
 

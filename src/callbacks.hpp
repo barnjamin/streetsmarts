@@ -4,6 +4,10 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include "config.h"
+
+#include <Core/Core.h>
+#include <IO/IO.h>
 
 using FrameCallback = std::function<void(rs2::frame)>; 
 
@@ -11,19 +15,25 @@ class Context {
     public:
     virtual void Lock() = 0;
     virtual void Unlock() = 0;
-    virtual void AddStream(int sid, std::string sn) = 0;
     virtual void PrintState() = 0;
-    virtual void HandleFrame(const rs2::frame& frame) = 0;
+    virtual void HandleIMU(const rs2::frame& frame) = 0;
+    virtual void HandleImages(const rs2::frameset& frame) = 0;
 };
 
 FrameCallback CallBack(Context & ctx) {
+    rs2::align align(RS2_STREAM_COLOR);
+    int idx;
     return [&](const rs2::frame& frame){
         ctx.Lock();
-        if (rs2::frameset fs = frame.as<rs2::frameset>())
-        {
-            for (const rs2::frame& f : fs) ctx.HandleFrame(f);
+
+        if (rs2::frameset fs = frame.as<rs2::frameset>()) {
+            if(idx>30){
+                //fs = align.process(fs); //Segfaults
+                ctx.HandleImages(fs);
+            }
+            idx++;
         } else { 
-            ctx.HandleFrame(frame); 
+            ctx.HandleIMU(frame); 
         }
         ctx.Unlock();
     };
@@ -31,22 +41,21 @@ FrameCallback CallBack(Context & ctx) {
 
 class RecordContext : public Context {
     std::mutex * mtx;
+    Config conf;
+    int img_idx;
 
+    
 public:
-    std::map<int, int> counters;
-    std::map<int, std::string> stream_names;
-
     RecordContext(){
         std::mutex mutex; 
         mtx = &mutex;
     }
 
-    RecordContext(std::mutex* mtx): mtx(mtx) { }
+    RecordContext(std::mutex* mtx, Config & conf): mtx(mtx), conf(conf) { }
 
     RecordContext(const RecordContext &r) {
         mtx = r.mtx;
-        counters = r.counters;
-        stream_names = r.stream_names;
+        conf = r.conf;
     }
 
     ~RecordContext() {}
@@ -54,25 +63,46 @@ public:
     void Lock() { mtx->lock(); }
     void Unlock() { mtx->unlock(); }
 
-    void AddStream(int sid, std::string sn){
-        Lock();
-        stream_names[sid] = sn; 
-        Unlock();
-    }
-
     void PrintState() {
         Lock();
-        for (auto p : counters)
-        {
-            std::cout << stream_names[p.first] 
-                << "[" << p.first << "]: " << p.second << " [frames] || " ;
-        }
-        std::cout << std::endl;
         Unlock();
     }
 
-    void HandleFrame(const rs2::frame & frame) {
-        counters[frame.get_profile().unique_id()]++;
+    //Gyro or Accel frame
+    void HandleIMU(const rs2::frame & frame) {
+
+        auto stype = frame.get_profile().stream_type();
+        auto mvec = frame.as<rs2::motion_frame>().get_motion_data();
+
+        if(stype == RS2_STREAM_GYRO){
+            //TODO: Update pose
+        }else{
+            //TODO: Update pose
+        }
+    }
+
+    // Color/Depth frames
+    void HandleImages(const rs2::frameset & fs) {
+        auto depth_image = std::make_shared<open3d::Image>();
+        auto color_image = std::make_shared<open3d::Image>();
+
+        depth_image->PrepareImage(conf.width, conf.height, 1, 2);
+        color_image->PrepareImage(conf.width, conf.height, 3, 1);
+
+        auto color_frame = fs.first(RS2_STREAM_COLOR);
+        auto depth_frame = fs.get_depth_frame();	       
+
+        if (!depth_frame || !color_frame) { return; }
+
+        if(conf.use_filter){ depth_frame = conf.Filter(depth_frame); }
+
+        memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
+        memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
+
+        open3d::WriteImage(conf.DepthFile(img_idx), *depth_image);
+        open3d::WriteImage(conf.ColorFile(img_idx), *color_image);
+
+        img_idx++;
     }
 };
 
