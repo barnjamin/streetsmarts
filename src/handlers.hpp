@@ -93,6 +93,8 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
     RGBDImageCuda rgbd_target(conf.width, conf.height, conf.max_depth, conf.depth_factor);
     RGBDImageCuda rgbd_source(conf.width, conf.height, conf.max_depth, conf.depth_factor);
 
+    FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
+
     PrintInfo("Starting to make fragments\n");
     for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
     {
@@ -132,8 +134,8 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
             memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
-            //WriteImage(conf.DepthFile(frame_idx), *depth_image);
-            //WriteImage(conf.ColorFile(frame_idx), *color_image);
+            //std::thread write_depth(WriteImage, conf.DepthFile(frame_idx), *depth_image);
+            //std::thread write_color(WriteImage, conf.ColorFile(frame_idx), *color_image);
 
             //Upload images to GPU
             rgbd_source.Upload(*depth_image, *color_image);
@@ -165,13 +167,21 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             
             //Overwrite previous
             rgbd_target.CopyFrom(rgbd_source);
-        }
 
+            //write_depth.join();
+            //write_color.join();
+
+            timer.Signal();
+        }
         WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
 
         //Generate Mesh and write to disk
         tsdf_volume.GetAllSubvolumes();
-        ScalableMeshVolumeCuda<8> mesher(tsdf_volume.active_subvolume_entry_array().size(), VertexWithNormalAndColor, 10000000, 20000000);
+
+        ScalableMeshVolumeCuda<8> mesher(
+                tsdf_volume.active_subvolume_entry_array().size(), 
+                VertexWithNormalAndColor, 10000000, 20000000);
+
         mesher.MarchingCubes(tsdf_volume);
         auto mesh = mesher.mesh().Download();
 

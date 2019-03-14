@@ -86,7 +86,7 @@ set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
 add_executable(capture_frames ${CAPTURE_SOURCE})
 target_link_libraries(capture_frames ${DEPENDENCIES})
 
-set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp)
+set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp)
 add_executable(client ${CAPTURE_SOURCE})
 target_link_libraries(client ${DEPENDENCIES})
 
@@ -105,7 +105,3 @@ target_link_libraries(integrate ${DEPENDENCIES})
 set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp)
 add_executable(gps ${GPS_SOURCE})
 target_link_libraries(gps ${DEPENDENCIES})
-
-set(QUEUE_SOURCE src/fq.cpp src/utils.cpp src/config.cpp src/handlers.hpp)
-add_executable(fq ${QUEUE_SOURCE})
-target_link_libraries(fq ${DEPENDENCIES})
