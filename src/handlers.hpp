@@ -39,6 +39,7 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     depth_image->PrepareImage(conf.width, conf.height, 1, 2);
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
 
+
     int img_idx;
     while(true) {
         rs2::frame frame = q.wait_for_frame();
@@ -134,13 +135,19 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
             memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
-            //std::thread write_depth(WriteImage, conf.DepthFile(frame_idx), *depth_image);
-            //std::thread write_color(WriteImage, conf.ColorFile(frame_idx), *color_image);
 
             //Upload images to GPU
             rgbd_source.Upload(*depth_image, *color_image);
 
-            if(i==0) { rgbd_target.CopyFrom(rgbd_source); continue; }
+            std::thread write_depth(WriteImage, conf.DepthFile(frame_idx), *depth_image, 100);
+            std::thread write_color(WriteImage, conf.ColorFile(frame_idx), *color_image, 100);
+
+            if(i==0) { 
+                rgbd_target.CopyFrom(rgbd_source); 
+                write_depth.join();
+                write_color.join();
+                continue; 
+            }
 
             //Reset Odometry transform
             odometry.transform_source_to_target_ =  Eigen::Matrix4d::Identity();
@@ -168,8 +175,8 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             //Overwrite previous
             rgbd_target.CopyFrom(rgbd_source);
 
-            //write_depth.join();
-            //write_color.join();
+            write_depth.join();
+            write_color.join();
 
             timer.Signal();
         }

@@ -70,38 +70,38 @@ set(DEPENDENCIES
     /home/ben/serial/lib/libserial.a
 )
 
-set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp)
-add_executable(cluster ${CLUSTER_SOURCE})
-target_link_libraries(cluster ${DEPENDENCIES})
-
-set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
-add_executable(analyze ${ANALYZE_SOURCE})
-target_link_libraries(analyze ${DEPENDENCIES})
-
-set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
-add_executable(kitti ${KITTI_SOURCE})
-target_link_libraries(kitti ${DEPENDENCIES})
-
-set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
-add_executable(capture_frames ${CAPTURE_SOURCE})
-target_link_libraries(capture_frames ${DEPENDENCIES})
+#set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp)
+#add_executable(cluster ${CLUSTER_SOURCE})
+#target_link_libraries(cluster ${DEPENDENCIES})
+#
+#set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
+#add_executable(analyze ${ANALYZE_SOURCE})
+#target_link_libraries(analyze ${DEPENDENCIES})
+#
+#set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
+#add_executable(kitti ${KITTI_SOURCE})
+#target_link_libraries(kitti ${DEPENDENCIES})
+#
+#set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
+#add_executable(capture_frames ${CAPTURE_SOURCE})
+#target_link_libraries(capture_frames ${DEPENDENCIES})
 
 set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp)
-add_executable(client ${CAPTURE_SOURCE})
+add_executable(client ${CLIENT_SOURCE})
 target_link_libraries(client ${DEPENDENCIES})
 
-set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp)
-add_executable(make_fragments ${FRAGMENT_SOURCE})
-target_link_libraries(make_fragments ${DEPENDENCIES})
-
-set(REFINE_SOURCE src/refine.cpp src/utils.cpp src/config.cpp)
-add_executable(refine ${REFINE_SOURCE})
-target_link_libraries(refine ${DEPENDENCIES})
-
-set(INTEGRATE_SOURCE src/integrate.cpp src/utils.cpp src/config.cpp)
-add_executable(integrate ${INTEGRATE_SOURCE})
-target_link_libraries(integrate ${DEPENDENCIES})
-
-set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp)
-add_executable(gps ${GPS_SOURCE})
-target_link_libraries(gps ${DEPENDENCIES})
+#set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp)
+#add_executable(make_fragments ${FRAGMENT_SOURCE})
+#target_link_libraries(make_fragments ${DEPENDENCIES})
+#
+#set(REFINE_SOURCE src/refine.cpp src/utils.cpp src/config.cpp)
+#add_executable(refine ${REFINE_SOURCE})
+#target_link_libraries(refine ${DEPENDENCIES})
+#
+#set(INTEGRATE_SOURCE src/integrate.cpp src/utils.cpp src/config.cpp)
+#add_executable(integrate ${INTEGRATE_SOURCE})
+#target_link_libraries(integrate ${DEPENDENCIES})
+#
+#set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp)
+#add_executable(gps ${GPS_SOURCE})
+#target_link_libraries(gps ${DEPENDENCIES})
