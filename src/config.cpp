@@ -68,11 +68,10 @@ Config::Config(int argc, char ** argv) {
     max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 3.0);
     depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor", 1000.0);
 
-
     //Odometry Params
     use_imu             = ProgramOptionExists(argc,argv, "--use_imu");
     fragments          = GetProgramOptionAsInt(argc,argv,  "--fragments", 8);
-    frames_per_fragment = GetProgramOptionAsInt(argc,argv,  "--frames_per_fragment", 60);
+    frames_per_fragment = GetProgramOptionAsInt(argc,argv,  "--frames_per_fragment", 30);
     preference_loop_closure_odometry = GetProgramOptionAsDouble(argc, argv, "--loop_closure_odom", 0.1);
     max_depth_diff = GetProgramOptionAsDouble(argc, argv, "--max_depth_diff", 0.07);
 
