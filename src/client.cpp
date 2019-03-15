@@ -3,12 +3,24 @@
 
 #include <Core/Core.h>
 #include <IO/IO.h>
+#include "gps.hpp"
+#include "pose.h"
 #include "config.h"
 #include "handlers.hpp"
 
 int main(int argc, char * argv[]) try
 {
     Config conf(argc, argv);
+
+
+    GPS gps;
+
+    if(!gps.Connect()){
+        std::cout << "Failed to connect" << std::endl;
+        return 1;
+    }
+
+    gps.Start();
 
     rs2::pipeline pipe;
 
@@ -23,24 +35,26 @@ int main(int argc, char * argv[]) try
 
     rs2::pipeline_profile profile = pipe.start(cfg, [&](rs2::frame frame){
         if (frame.is<rs2::frameset>()) img_q.enqueue(frame);
-        //else imu_q.enqueue(frame); 
+        else imu_q.enqueue(frame); 
     });
 
-    //std::thread imu_thread(record_imu, conf, imu_q);
+    Pose pose(conf.fps);
+
+    std::thread imu_thread(record_imu, conf, pose, imu_q);
     std::thread img_thread(make_fragments, conf, profile, img_q);
 
-    //imu_thread.join();
     img_thread.join();
 
+    pipe.stop();
+
+    imu_thread.join();
+
     return EXIT_SUCCESS;
-}
-catch (const rs2::error & e)
-{
+
+} catch (const rs2::error & e) {
     std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
     return EXIT_FAILURE;
-}
-catch (const std::exception& e)
-{
+} catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
 }

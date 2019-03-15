@@ -13,20 +13,15 @@
 #include "config.h"
 #include "utils.h"
 
-void record_imu(Config conf, rs2::frame_queue q) {
-    rs2_vector accel_data, gyro_data;
+void record_imu(Config conf, Pose pose, rs2::frame_queue q) {
 
-    while(true){
-        rs2::frame frame = q.wait_for_frame();
-
+    while(rs2::frame frame = q.wait_for_frame()){
         auto stype = frame.get_profile().stream_type();
-        auto mvec = frame.as<rs2::motion_frame>().get_motion_data();
-
-        if(stype == RS2_STREAM_GYRO){
-            //TODO: Update pose
-        }else{
-            //TODO: Update pose
-        }
+        auto mframe = frame.as<rs2::motion_frame>();
+        auto vec = mframe.get_motion_data();
+        auto ts = mframe.get_timestamp();
+        if(stype == RS2_STREAM_GYRO) pose.UpdateGyro(vec, ts);
+        else pose.UpdateAccel(vec, ts);
     }
 }
 
@@ -41,8 +36,7 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 
 
     int img_idx;
-    while(true) {
-        rs2::frame frame = q.wait_for_frame();
+    while(rs2::frame frame = q.wait_for_frame()) {
         rs2::frameset fs = frame.as<rs2::frameset>();
         fs = align.process(fs);
 

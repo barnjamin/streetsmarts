@@ -1,3 +1,4 @@
+#include <librealsense2/rs.hpp> 
 #include <iostream>
 #include <Eigen/Geometry>
 #include <vector>
@@ -58,123 +59,59 @@ Eigen::Matrix4d Pose::GetTransform() {
     return (t.matrix() * imu_extrinsic.inverse()).inverse();
 }
 
-Eigen::Matrix4d Pose::GetWorldTransform() {
-    // Combine to Create Transform
-    Eigen::Transform<double, 3, Eigen::Projective> t =  Eigen::Translation3d(pos) * orientation.normalized().toRotationMatrix();
-
-    return t.matrix();
+void Pose::UpdateGyro(rs2_vector data, double ts) {
+    std::cout << "Gyro ts: " << ts << std::endl;
+    //TODO:
 }
 
-void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double timestamp) {
-    // Update quaternion through Madgwick filter
-    if(last_timestamp > 1){
-        auto delta = timestamp - last_timestamp;
-        if (delta == 0) { return; }
-        time_delta = delta;
-    }
-    last_timestamp = timestamp;
-
-    //accel[2] -= 1.2;
-
-    madgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
-
-    //Set Orientation obj from quat vals
-    orientation = Eigen::Quaterniond(q0, q1, q2, q3);
-
-    // Compute world accel from orientation && gravity
-    auto rot = orientation.normalized().toRotationMatrix();
-    auto accel_raw = Eigen::Vector3d (accel.at(0), accel.at(1), accel.at(2));
-
-    //std::cout << "Raw: \n" << accel_raw << std::endl << std::endl;
-
-    auto accel_rot = rot * accel_raw;
-    auto world_accel = accel_rot - gravity;
-
-    //std::cout << "World: \n" << world_accel << std::endl << std::endl;
-
-    // Compute position from velocity && accel (use last vel calc)
-    pos[0] = pos[0] + (vel[0] * time_delta) + 0.5*(world_accel[0] * (time_delta*time_delta));    
-    pos[1] = pos[1] + (vel[1] * time_delta) + 0.5*(world_accel[1] * (time_delta*time_delta));    
-    pos[2] = pos[2] + (vel[2] * time_delta) + 0.5*(world_accel[2] * (time_delta*time_delta));    
-
-    // Compute Velocity from accel
-    vel[0] = vel[0] + (world_accel[0] * time_delta);
-    vel[1] = vel[1] + (world_accel[1] * time_delta);
-    vel[2] = vel[2] + (world_accel[2] * time_delta);
+void Pose::UpdateAccel(rs2_vector data, double ts) {
+    std::cout << "Accel ts: " << ts << std::endl;
+    //TODO:
 }
 
-void Pose::Improve(Eigen::Matrix4d transform, Eigen::Matrix4d camera_transform, Eigen::Matrix6d info){
-    // Add our changes to the posegraph 
-    auto s = pg.edges_.size();
-    pg.nodes_.push_back(open3d::PoseGraphNode(camera_transform.inverse()));
-    pg.edges_.push_back(open3d::PoseGraphEdge(s-1, s, transform, info));
-
-    //camera_transform = camera_transform * imu_extrinsic.inverse();
-    //Convert 4x4 matrix to transform
-    //Eigen::Transform<double, 3, Eigen::Projective> camera(camera_transform);
-    Eigen::Transform<double, 3, Eigen::Projective> odom(transform);
-
-    //Set position to the translation component of the inverse world translation 
-    //pos = camera.translation();
-
-    //Set orientation to the cameras rotation
-    //orientation = camera.rotation();
-
-    ////Reset quaterion values to our current rotation
-    //q0 = orientation.w();
-    //q1 = orientation.x();
-    //q2 = orientation.y();
-    //q3 = orientation.z();
-
-    if(path.size()>0){
-        //Set velocity to translation/time since last element added
-        Eigen::Vector3d trpos = odom.translation();
-        vel = trpos / time_delta;
-    }
-
-    // Add our changes to the list
-    path.push_back(pos);
-    orientations.push_back(orientation);
-}
-
-open3d::PoseGraph Pose::GetGraph() {
-    return pg;
-}
-
-std::tuple<double, double, double> Pose::Difference(Eigen::Matrix4d odom){
-    if(path.size()== 0) {
-        return std::make_tuple(0.0, 0.0, 0.0);
-    }
-
-    Eigen::Transform<double, 3, Eigen::Projective> o_trans(odom);
-
-    Eigen::Transform<double, 3, Eigen::Projective> i_trans(GetTransform());
-
-    //Get difference of rotation elements in the world
-    Eigen::Quaterniond odom_rotation(o_trans.rotation());
-    Eigen::Quaterniond imu_rotation(i_trans.rotation());
-    Eigen::Quaterniond or_diff = imu_rotation * odom_rotation.inverse();
-    Eigen::Vector3d qmag = or_diff.norm() * Eigen::Vector3d(1,1,1);
-    double qdiff = qmag.dot(qmag)/3.0;
-     
-    //Get difference of translation elements
-    Eigen::Vector3d odom_translation(o_trans.translation());
-    Eigen::Vector3d imu_translation(i_trans.translation());
-    Eigen::Vector3d dist = imu_translation - odom_translation;
-    double tdiff = dist.dot(dist);
-
-    //Get difference of velocity 
-    Eigen::Vector3d veldiff = vel - (odom_translation / time_delta);
-    double vdiff = veldiff.dot(veldiff);
-
-    return std::make_tuple(qdiff, tdiff, vdiff);
-}
-
-void Pose::PrintState(){
-    std::cout << "Vel: " << vel << std::endl;
-    std::cout << "Pos: " << pos << std::endl;
-    std::cout << "Quat: " << orientation.w() << " " << orientation.x() << " " << orientation.y() << " "<< orientation.z() << std::endl;
-}
+//void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double timestamp) {
+//    // Update quaternion through Madgwick filter
+//    if(last_timestamp > 1){
+//        auto delta = timestamp - last_timestamp;
+//        if (delta == 0) { return; }
+//        time_delta = delta;
+//    }
+//    last_timestamp = timestamp;
+//
+//    //accel[2] -= 1.2;
+//
+//    madgwickUpdate(gyro.at(0), gyro.at(1), gyro.at(2), accel.at(0), accel.at(1), accel.at(2));
+//
+//    //Set Orientation obj from quat vals
+//    orientation = Eigen::Quaterniond(q0, q1, q2, q3);
+//
+//    // Compute world accel from orientation && gravity
+//    auto rot = orientation.normalized().toRotationMatrix();
+//    auto accel_raw = Eigen::Vector3d (accel.at(0), accel.at(1), accel.at(2));
+//
+//    //std::cout << "Raw: \n" << accel_raw << std::endl << std::endl;
+//
+//    auto accel_rot = rot * accel_raw;
+//    auto world_accel = accel_rot - gravity;
+//
+//    //std::cout << "World: \n" << world_accel << std::endl << std::endl;
+//
+//    // Compute position from velocity && accel (use last vel calc)
+//    pos[0] = pos[0] + (vel[0] * time_delta) + 0.5*(world_accel[0] * (time_delta*time_delta));    
+//    pos[1] = pos[1] + (vel[1] * time_delta) + 0.5*(world_accel[1] * (time_delta*time_delta));    
+//    pos[2] = pos[2] + (vel[2] * time_delta) + 0.5*(world_accel[2] * (time_delta*time_delta));    
+//
+//    // Compute Velocity from accel
+//    vel[0] = vel[0] + (world_accel[0] * time_delta);
+//    vel[1] = vel[1] + (world_accel[1] * time_delta);
+//    vel[2] = vel[2] + (world_accel[2] * time_delta);
+//}
+//
+//void Pose::PrintState(){
+//    std::cout << "Vel: " << vel << std::endl;
+//    std::cout << "Pos: " << pos << std::endl;
+//    std::cout << "Quat: " << orientation.w() << " " << orientation.x() << " " << orientation.y() << " "<< orientation.z() << std::endl;
+//}
 
 // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
 void Pose::madgwickUpdate(double gx, double gy, double gz, double ax, double ay, double az) {

@@ -1,4 +1,5 @@
 #pragma once
+#include <librealsense2/rs.hpp> 
 #include <Eigen/Geometry>
 #include <vector>
 #include <Core/Core.h>
@@ -52,22 +53,11 @@ public:
     Eigen::Matrix4d GetWorldTransform();
 
     //Add the latest accel/gyro readings to pose
-    void Update(std::vector<double> accel, std::vector<double> gyro, double timestamp);
-
-    //Improve Current orientation using RGBDOdometry
-    void Improve(Eigen::Matrix4d transform, Eigen::Matrix4d world_transform, Eigen::Matrix6d info);
-
-    //Get the difference between imu and odom 
-    std::tuple<double, double, double> Difference(Eigen::Matrix4d odom);
+    void UpdateGyro(rs2_vector data, double timestamp);
+    void UpdateAccel(rs2_vector data, double timestamp);
 
     //Reset the pose estimation
     void Reset();
-
-    //
-    void PrintState();
-
-    //Return the aggregated pose graph
-    open3d::PoseGraph GetGraph();
 
     //Used for gl display
     Eigen::Quaterniond GetOrientation() { return orientation; }
