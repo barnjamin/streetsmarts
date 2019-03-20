@@ -50,6 +50,7 @@ public:
     bool write_losses;
 
     std::string session_path;
+    std::string session_prefix;
 
     double max_depth_diff;
     double loop_close_odom;

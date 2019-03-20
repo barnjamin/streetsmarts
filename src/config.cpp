@@ -5,12 +5,12 @@
 #include <iomanip>
 #include <unistd.h>
 
-std::string generate_local_session() {
+std::string generate_local_session(std::string prefix) {
     using namespace open3d;
 
     std::stringstream ss;
     std::time_t result = std::time(0);
-    ss << "/home/ben/local-sessions/abc123-" <<  result;
+    ss << "/home/ben/local-sessions/"<< prefix << "-" <<  result;
 
     std::string session_path = ss.str(); 
 
@@ -37,11 +37,13 @@ Config::Config(int argc, char ** argv) {
     using namespace open3d;
 
     // Where to write the files
-    session_path = GetProgramOptionAsString(argc,argv,"--session");
+    session_path = GetProgramOptionAsString(argc, argv, "--session");
+    session_prefix = GetProgramOptionAsString(argc, argv, "--session_prefix", "abc123");
+
     if (session_path == "latest"){
         session_path =  "/home/ben/local-sessions/latest";
     }else if (session_path == "") {
-        session_path = generate_local_session(); 
+        session_path = generate_local_session(session_prefix); 
     }
 
     //Camera params

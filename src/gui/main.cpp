@@ -12,18 +12,40 @@ static void error_callback(int error, const char* description)
 }
 
 
+/*
+
+Options:
+    Select options for capture
+        - make fragemnts or capture images
+        - use gps
+    
+Start Capturing
+
+Report Status
+    - Initializing
+    - Capturing
+    - Finishing
+
+Display Summary Statistics
+    - GPS status
+    - Number of frames captured
+    - Actual FPS
+    - Processing Queue Size
+    - Quality of matches
+
+
+*/
+
+
+
 int main(int, char**)
 {
     // Setup window
     glfwSetErrorCallback(error_callback);
-    if (!glfwInit())
-        return 1;
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    if (!glfwInit()) return 1;
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "ImGui example", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "StreetSmarts", NULL, NULL);
 
     glfwMakeContextCurrent(window);
     glewInit();
@@ -31,40 +53,36 @@ int main(int, char**)
     // Setup ImGui binding
     ImGui_ImplGlfw_Init(window, true);
 
-    bool show_test_window = false;
-    bool show_another_window = true;
-    ImVec4 clear_color = ImColor(114, 144, 154);
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-
-    // Main loop
-    while (!glfwWindowShouldClose(window))
-    {
+   // Main loop
+    while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        ImGui_ImplGlfw_NewFrame(1);
+        // Start the Dear ImGui frame
+        ImGui_ImplGlfw_NewFrame(1.5);
 
-        std::cout << "hi" << std::endl;
+        ImGui::Begin("Controller");
 
-        static float f = 0.0f;
-        ImGui::Begin("Another Window", &show_test_window);
-        ImGui::Text("Hello, world!");
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-        ImGui::ColorEdit3("clear color", (float*)&clear_color);
-        if (ImGui::Button("Test Window")) show_test_window ^= 1;
-        if (ImGui::Button("Another Window")) show_another_window ^= 1;
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        if (ImGui::Button("Start")){
+            //Begin 
+        }
+
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)");
+
         ImGui::End();
 
-        // Rendering
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        //glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
+        glfwMakeContextCurrent(window);
         ImGui::Render();
         glfwSwapBuffers(window);
-
     }
+
 
     // Cleanup
     ImGui_ImplGlfw_Shutdown();
