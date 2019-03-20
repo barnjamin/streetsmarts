@@ -32,8 +32,10 @@ add_definitions(-O3)
 add_definitions(${PCL_DEFINITIONS})
 add_definitions (${GeographicLib_DEFINITIONS})
 
-set(IMGUI /home/ben/librealsense/third-party/imgui/)
+set(IMGUI /home/ben/librealsense/third-party/imgui)
+
 aux_source_directory(${IMGUI} IMGUI_SOURCES)
+
 include_directories(
   ${PROJECT_SOURCE_DIR}/include/
   ${OpenCV_INCLUDE_DIRS}
@@ -49,11 +51,13 @@ include_directories(
   /home/ben/ublox/include/
   /home/ben/serial/include/
   /home/ben/streetsmarts/src/
+  ${IMGUI}
 ) 
 
 link_directories(${Open3D_LIBRARY_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 link_directories(${OpenCV_LIBS})
+link_directories(${IMGUI})
 
 set(DEPENDENCIES 
 	${GLUT_LIBRARY}
@@ -89,6 +93,14 @@ set(DEPENDENCIES
 set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose.cpp src/gps.hpp)
 add_executable(client ${CLIENT_SOURCE})
 target_link_libraries(client ${DEPENDENCIES})
+
+set(GUI_SOURCE src/gui/main.cpp ${IMGUI_SOURCES})
+
+message("FUCK ${GUI_SOURCE}")
+add_executable(gui ${GUI_SOURCE})
+include_directories(gui ${IMGUI})
+message("FUCKSKI ${IMGUI}")
+target_link_libraries(gui ${DEPENDENCIES})
 
 #set(POSER_SOURCE src/poser/main.cpp src/poser/odom_estimation.cpp src/poser/nlacg_odom.cpp)
 #add_executable(poser ${POSER_SOURCE})
