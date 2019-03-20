@@ -144,7 +144,7 @@ void OptimizePoseGraphForRegisteredScene(Config &config) {
     ReadPoseGraph(config.PoseFileScene(), pose_graph);
 
     GlobalOptimizationConvergenceCriteria criteria;
-    GlobalOptimizationOption option( config.voxel_size * 1.4, 0.25, config.preference_loop_closure_registration, 0);
+    GlobalOptimizationOption option( config.voxel_size * 1.4, 0.25, config.loop_close_reg, 0);
     GlobalOptimizationLevenbergMarquardt optimization_method;
     GlobalOptimization(pose_graph, optimization_method, criteria, option);
 
@@ -241,7 +241,7 @@ void OptimizePoseGraphForRefinedScene(Config &config) {
     ReadPoseGraph(config.PoseFileScene(), pose_graph);
 
     GlobalOptimizationConvergenceCriteria criteria;
-    GlobalOptimizationOption option( config.voxel_size * 1.4, 0.25, config.preference_loop_closure_registration, 0);
+    GlobalOptimizationOption option( config.voxel_size * 1.4, 0.25, config.loop_close_reg, 0);
     GlobalOptimizationLevenbergMarquardt optimization_method;
     GlobalOptimization(pose_graph, optimization_method, criteria, option);
 

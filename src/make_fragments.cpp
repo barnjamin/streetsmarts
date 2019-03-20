@@ -93,7 +93,7 @@ void OptimizePoseGraphForFragment(int fragment_id, Config &config) {
     ReadPoseGraph(config.PoseFile(fragment_id), pose_graph);
 
     GlobalOptimizationConvergenceCriteria criteria;
-    GlobalOptimizationOption option( config.max_depth_diff, 0.25, config.preference_loop_closure_odometry, 0);
+    GlobalOptimizationOption option( config.max_depth_diff, 0.25, config.loop_close_odom, 0);
     GlobalOptimizationLevenbergMarquardt optimization_method;
     GlobalOptimization(pose_graph, optimization_method, criteria, option);
 

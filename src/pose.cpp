@@ -59,14 +59,14 @@ Eigen::Matrix4d Pose::GetTransform() {
     return (t.matrix() * imu_extrinsic.inverse()).inverse();
 }
 
+//TODO:
 void Pose::UpdateGyro(rs2_vector data, double ts) {
     std::cout << "Gyro ts: " << ts << std::endl;
-    //TODO:
 }
 
+//TODO:
 void Pose::UpdateAccel(rs2_vector data, double ts) {
     std::cout << "Accel ts: " << ts << std::endl;
-    //TODO:
 }
 
 //void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double timestamp) {
@@ -106,7 +106,7 @@ void Pose::UpdateAccel(rs2_vector data, double ts) {
 //    vel[1] = vel[1] + (world_accel[1] * time_delta);
 //    vel[2] = vel[2] + (world_accel[2] * time_delta);
 //}
-//
+
 //void Pose::PrintState(){
 //    std::cout << "Vel: " << vel << std::endl;
 //    std::cout << "Pos: " << pos << std::endl;

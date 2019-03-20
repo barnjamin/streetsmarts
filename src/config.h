@@ -9,6 +9,10 @@ public:
     int fps;
     int framestart;
 
+    bool capture_gps;
+    bool capture_imu;
+    bool make_fragments;
+
     int frames_per_fragment;
     int fragments;
 
@@ -48,8 +52,8 @@ public:
     std::string session_path;
 
     double max_depth_diff;
-    double preference_loop_closure_odometry;
-    double preference_loop_closure_registration;
+    double loop_close_odom;
+    double loop_close_reg;
     double voxel_size;
     int registration_window_size;
 
@@ -66,7 +70,7 @@ public:
     Config(){}
     Config(int argc, char ** argv);
 
-    rs2::align  Aligner();
+    std::string GPSFile();
     std::string IntrinsicFile();
 
     std::string PoseFile(int idx);

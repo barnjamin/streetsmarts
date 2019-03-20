@@ -45,74 +45,73 @@ Config::Config(int argc, char ** argv) {
     }
 
     //Camera params
-    width               = GetProgramOptionAsInt(argc,argv, "--width", 640);
-    height              = GetProgramOptionAsInt(argc,argv, "--height", 480);
-    fps                 = GetProgramOptionAsInt(argc,argv, "--fps", 30);
+    width               = GetProgramOptionAsInt(argc,argv,  "--width",  640);
+    height              = GetProgramOptionAsInt(argc,argv,  "--height", 480);
+    fps                 = GetProgramOptionAsInt(argc,argv,  "--fps",    30);
     framestart          = GetProgramOptionAsInt(argc,argv,  "--fstart", 30);
 
+    //Capture params
+    capture_gps     = !(ProgramOptionExists(argc, argv, "--no_gps"));
+    capture_imu     = ProgramOptionExists(argc, argv,   "--capture_imu");
+    make_fragments  = ProgramOptionExists(argc, argv,   "--make_fragments");
+
     //Post Processing
-    use_filter  = ProgramOptionExists(argc,argv, "--use_filter");
-    dec_mag     = GetProgramOptionAsDouble(argc,argv,  "--dec-mag", 1.0) ;
-    spat_mag    = GetProgramOptionAsDouble(argc,argv,  "--spat-mag", 1.0);
-    spat_a      = GetProgramOptionAsDouble(argc,argv,  "--spat-a", 0.5);
-    spat_d      = GetProgramOptionAsDouble(argc,argv,  "--spat-d", 25);
-    temp_a      = GetProgramOptionAsDouble(argc,argv,  "--temp-a", 0.5);
-    temp_d      = GetProgramOptionAsDouble(argc,argv,  "--temp-d", 50);
+    use_filter  = ProgramOptionExists(argc,argv,        "--use_filter");
+    dec_mag     = GetProgramOptionAsDouble(argc,argv,   "--dec-mag",    1.0) ;
+    spat_mag    = GetProgramOptionAsDouble(argc,argv,   "--spat-mag",   1.0);
+    spat_a      = GetProgramOptionAsDouble(argc,argv,   "--spat-a",     0.5);
+    spat_d      = GetProgramOptionAsDouble(argc,argv,   "--spat-d",     25);
+    temp_a      = GetProgramOptionAsDouble(argc,argv,   "--temp-a",     0.5);
+    temp_d      = GetProgramOptionAsDouble(argc,argv,   "--temp-d",     50);
 
     //Integration Params
-    tsdf_cubic_size = GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic", 5.0);
+    tsdf_cubic_size = GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic",      5.0);
     tsdf_truncation = GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.03);
 
     //RGBD Image params
-    min_depth = GetProgramOptionAsDouble(argc,argv, "--min_depth", 0.5);
-    max_depth = GetProgramOptionAsDouble(argc,argv, "--max_depth", 3.0);
-    depth_factor = GetProgramOptionAsDouble(argc,argv, "--depth_factor", 1000.0);
+    min_depth   = GetProgramOptionAsDouble(argc,argv,   "--min_depth",      0.5);
+    max_depth   = GetProgramOptionAsDouble(argc,argv,   "--max_depth",      3.0);
+    depth_factor= GetProgramOptionAsDouble(argc,argv,   "--depth_factor",   1000.0);
+
 
     //Odometry Params
-    use_imu             = ProgramOptionExists(argc,argv, "--use_imu");
-    fragments          = GetProgramOptionAsInt(argc,argv,  "--fragments", 8);
-    frames_per_fragment = GetProgramOptionAsInt(argc,argv,  "--frames_per_fragment", 30);
-    preference_loop_closure_odometry = GetProgramOptionAsDouble(argc, argv, "--loop_closure_odom", 0.1);
-    max_depth_diff = GetProgramOptionAsDouble(argc, argv, "--max_depth_diff", 0.07);
+    use_imu             = ProgramOptionExists(argc,argv,        "--use_imu");
+    fragments           = GetProgramOptionAsInt(argc,argv,      "--fragments",          8);
+    frames_per_fragment = GetProgramOptionAsInt(argc,argv,      "--frames_per_fragment",30);
+    max_depth_diff      = GetProgramOptionAsDouble(argc, argv,  "--max_depth_diff",     0.07);
+    loop_close_odom     = GetProgramOptionAsDouble(argc, argv,  "--loop_closure_odom",  0.1);
 
     //DoN params
     don_downsample = GetProgramOptionAsDouble(argc,argv, "--don_downsample", 0.02);
-
-    don_small = GetProgramOptionAsDouble(argc,argv, "--don_small", 0.03);
-    don_large = GetProgramOptionAsDouble(argc,argv, "--don_large", 0.5);
-
-    threshold_min = GetProgramOptionAsDouble(argc,argv, "--don_thresh_min", 0.032);
-    threshold_max = GetProgramOptionAsDouble(argc,argv, "--don_thresh_max", 0.1);
+    don_small = GetProgramOptionAsDouble(argc,argv,      "--don_small",      0.03);
+    don_large = GetProgramOptionAsDouble(argc,argv,      "--don_large",      0.5);
+    threshold_min = GetProgramOptionAsDouble(argc,argv,  "--don_thresh_min", 0.032);
+    threshold_max = GetProgramOptionAsDouble(argc,argv,  "--don_thresh_max", 0.1);
 
     //Cluster Params
-    cluster_radius  = GetProgramOptionAsDouble(argc,argv, "--cluster_rad", 0.02);
-    cluster_min     = GetProgramOptionAsInt(argc, argv, "--cluster_min",  100);
-    cluster_max     = GetProgramOptionAsInt(argc, argv, "--cluster_max",  10000);
+    cluster_radius  = GetProgramOptionAsDouble(argc,argv,   "--cluster_rad",  0.02);
+    cluster_min     = GetProgramOptionAsInt(argc, argv,     "--cluster_min",  100);
+    cluster_max     = GetProgramOptionAsInt(argc, argv,     "--cluster_max",  10000);
 
     //Refine Params
-    registration_window_size = GetProgramOptionAsInt(argc, argv, "--registration_window",  5);
-    preference_loop_closure_registration = GetProgramOptionAsDouble(argc, argv, "--loop_closure_registration",  0.5);
-    voxel_size = GetProgramOptionAsDouble(argc, argv, "--voxel_size", 0.05);
+    registration_window_size= GetProgramOptionAsInt(argc, argv,   "--registration_window",        5);
+    loop_close_reg          = GetProgramOptionAsDouble(argc, argv,"--loop_closure_registration",  0.5);
+    voxel_size              = GetProgramOptionAsDouble(argc, argv,"--voxel_size",                 0.05);
 
     //Set threshold
     threshold.set_option(RS2_OPTION_MIN_DISTANCE,min_depth);
     threshold.set_option(RS2_OPTION_MAX_DISTANCE,max_depth);
     
     //Set Filter opts
-    dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, dec_mag);  
-    spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, spat_mag);
-    spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, spat_a);
-    spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, spat_d);
-    temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, temp_a);
-    temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, temp_d);
+    dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE,      dec_mag);  
+    spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE,     spat_mag);
+    spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA,  spat_a);
+    spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA,  spat_d);
+    temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA,  temp_a);
+    temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA,  temp_d);
 
     depth_to_disparity = rs2::disparity_transform(true);
     disparity_to_depth = rs2::disparity_transform(false);
-}
-
-//Set Alignment, default arg? TODO:
-rs2::align Config::Aligner(){
-    return rs2::align(RS2_STREAM_COLOR);
 }
 
 
@@ -183,12 +182,19 @@ std::string Config::PoseFileScene()
     return ss.str();
 }
 
+std::string Config::GPSFile()
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/gps.csv";
+    return ss.str();
+}
+
 int Config::GetFragmentCount() 
 {
 
-    //TODO
-    // Use fragment dir to get fragment count
-     
+    //TODO Use fragment dir to get fragment count
+    
     std::stringstream ss;
     ss << session_path <<  "/fragment";
 

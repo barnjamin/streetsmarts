@@ -14,7 +14,6 @@
 #include "utils.h"
 
 void record_imu(Config conf, Pose pose, rs2::frame_queue q) {
-
     while(rs2::frame frame = q.wait_for_frame()){
         auto stype = frame.get_profile().stream_type();
         auto mframe = frame.as<rs2::motion_frame>();
@@ -34,7 +33,6 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     depth_image->PrepareImage(conf.width, conf.height, 1, 2);
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
 
-
     int img_idx;
     while(rs2::frame frame = q.wait_for_frame()) {
         rs2::frameset fs = frame.as<rs2::frameset>();
@@ -50,8 +48,11 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
         memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
-        open3d::WriteImage(conf.DepthFile(img_idx), *depth_image);
-        open3d::WriteImage(conf.ColorFile(img_idx), *color_image);
+        std::thread write_depth(open3d::WriteImage, conf.DepthFile(img_idx), *depth_image, 100);
+        std::thread write_color(open3d::WriteImage, conf.ColorFile(img_idx), *color_image, 100);
+
+        write_depth.join();
+        write_color.join();
 
         img_idx++;
     }
