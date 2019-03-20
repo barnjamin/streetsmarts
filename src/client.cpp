@@ -14,7 +14,7 @@ int main(int argc, char * argv[]) try
 
     Pose pose(conf.fps);
 
-    GPS gps;
+    GPS gps(conf.GPSFile());
     std::thread gps_thread;
     if(conf.capture_gps){
         open3d::PrintInfo("Initializing GPS\n");
@@ -25,18 +25,13 @@ int main(int argc, char * argv[]) try
         open3d::PrintInfo("GPS Inititalized, starting stream\n");
 
         gps.Start();
-
-        gps_thread = std::thread([&](){
-            std::ofstream gps_file;
-            gps_file.open(conf.GPSFile());
-            while(gps.Sleep()) gps_file << gps.GetPosition();
-            gps_file.close();
-        });
     }
 
     open3d::PrintInfo("Initializing Image pipeline\n");
 
     rs2::pipeline pipe;
+
+
     rs2::frame_queue imu_q;
     rs2::frame_queue img_q;
 

@@ -96,6 +96,46 @@ Eigen::Matrix4d imu_extrinsic(rs2::pipeline_profile prof)
     return ext.matrix();
 }
 
+rs2::sensor get_rgb_sensor(rs2::device dev) {
+    rs2::sensor s;
+    for(auto sensor : dev.query_sensors()){
+        if (!sensor.supports(RS2_CAMERA_INFO_NAME)) continue ;
+
+        if (std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)).compare("RGB Camera")) {
+            return sensor; 
+        }
+    }
+    return s;
+}
+
+rs2::sensor get_stereo_sensor(rs2::device dev) {
+    rs2::sensor s;
+    for(auto sensor : dev.query_sensors()){
+        if (!sensor.supports(RS2_CAMERA_INFO_NAME)) continue;
+
+        if (std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)).compare("Stereo Module")) {
+            return sensor; 
+        }
+    }
+    return s;
+}
+
+rs2::sensor get_motion_sensor(rs2::device dev) {
+    rs2::sensor s;
+    for(auto sensor : dev.query_sensors()){
+        if (!sensor.supports(RS2_CAMERA_INFO_NAME)) continue;
+
+        if (std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)).compare("Motion Module")) {
+            return sensor; 
+        }
+    }
+    return s;
+}
+
+rs2::device get_first_device(){
+        rs2::context ctx;
+        return ctx.query_devices().front();
+}
 
 float get_depth_scale(rs2::device dev)
 {
@@ -109,6 +149,28 @@ float get_depth_scale(rs2::device dev)
         }
     }
     throw std::runtime_error("Device does not have a depth sensor");
+}
+
+bool set_white_balance(float val){
+    auto dev = get_first_device();
+    auto cam = get_rgb_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_WHITE_BALANCE)){
+        cam.set_option(RS2_OPTION_WHITE_BALANCE, val);
+        return true;
+    }
+
+    return false;
+}
+
+bool set_exposure(float val){
+    auto dev = get_first_device();
+    auto cam = get_rgb_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_EXPOSURE)){
+        cam.set_option(RS2_OPTION_EXPOSURE, val);
+    }
+    return false;
 }
 
 

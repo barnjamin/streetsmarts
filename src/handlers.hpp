@@ -13,6 +13,8 @@
 #include "config.h"
 #include "utils.h"
 
+//TODO: Log time of image and imu readings to file
+
 void record_imu(Config conf, Pose pose, rs2::frame_queue q) {
     while(rs2::frame frame = q.wait_for_frame()){
         auto stype = frame.get_profile().stream_type();
@@ -155,7 +157,7 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
 
             //Update Target to world
-            trans_odometry =  trans * trans_odometry;
+            trans_odometry =  trans_odometry * trans;
 
             Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
 
@@ -189,10 +191,10 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
 
         PointCloud pcl;
         pcl.points_ = mesh->vertices_;
-        pcl.normals_ = mesh->vertex_normals_;
+        pcl.normals_= mesh->vertex_normals_;
         pcl.colors_ = mesh->vertex_colors_;
 
-        WritePointCloudToPLY(conf.FragmentFile(fragment_idx), pcl); //TODO:: true
+        WritePointCloudToPLY(conf.FragmentFile(fragment_idx), pcl); 
     }
 }
 

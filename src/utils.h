@@ -25,6 +25,15 @@ open3d::PinholeCameraIntrinsic   get_intrinsics(rs2::pipeline_profile);
 Eigen::Matrix4d imu_extrinsic(rs2::pipeline_profile);
 void VisualizeRegistration(const open3d::PointCloud &source, const open3d::PointCloud &target, const Eigen::Matrix4d &Transformation);
 
+rs2::sensor get_rgb_sensor(rs2::device dev);
+rs2::sensor get_stereo_sensor(rs2::device dev);
+rs2::sensor get_motion_sensor(rs2::device dev);
+
+rs2::device get_first_device(rs2::device dev);
+
+bool set_white_balance(float val);
+bool set_exposure(float val);
+
 void WriteLossesToLog(std::ofstream &fout, int frame_idx, std::vector<std::vector<float>> &losses);
 
 float invSqrt(float x);

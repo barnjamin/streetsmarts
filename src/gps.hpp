@@ -11,11 +11,14 @@
 
 // https://github.com/GAVLab/ublox
 
+inline void DefaultInfoMsgCallback(const std::string &msg) {
+    //std::cout << "Ublox Info: " << msg << std::endl;
+}
+
 class GPS {
     ublox::Ublox sensor;
 
     ublox::NavStatus status;
-    ublox::NavSol pos;
   
     std::string port;
     int         baud;
@@ -25,28 +28,35 @@ class GPS {
     unsigned int interval;
     std::thread  poll_thread;
 
+    std::ofstream gps_file;
 
     std::mutex  mtx;
 public:
-    GPS(){
+    GPS(std::string log_file){
         port = std::string("/dev/ttyACM1");
         baud = 115200;
         rate = 1;  
+
+        gps_file.open(log_file);
+
+        sensor.log_info_ = DefaultInfoMsgCallback;
+        sensor.log_debug_ = DefaultInfoMsgCallback;
 
         sensor.set_nav_status_callback([&](ublox::NavStatus &s, double &ts){
             status = s;
         });
 
-        sensor.set_nav_solution_callback([&](ublox::NavSol& p, double &ts){
-            std::lock_guard<std::mutex> lck(mtx);
-            pos = p;
+        sensor.set_nav_solution_callback([&](ublox::NavSol& pos, double &ts){
+            gps_file << ts << "," << pos.ecefX << "," << pos.ecefY << "," << pos.ecefZ
+                << "," << pos.pAcc << "," << pos.sAcc << "," << pos.pDop
+                << "," << pos.ecefVX << "," << pos.ecefVY << "," << pos.ecefVZ 
+                << std::endl;
         });
     }
 
     GPS(const GPS& g){
         sensor   = g.sensor;
         status   = g.status;
-        pos      = g.pos;
         port     = g.port;
         baud     = g.baud;
         running  = g.running;
@@ -73,26 +83,12 @@ public:
         return true;
     };
 
-    std::string GetPosition(){
-        std::lock_guard<std::mutex> lck(mtx);
-
-        std::stringstream line;
-        line << pos.ecefX << "," << pos.ecefY << "," << pos.ecefZ
-            << "," << pos.pAcc << "," << pos.sAcc << "," << pos.pDop
-            << "," << pos.ecefVX << "," << pos.ecefVY << "," << pos.ecefVZ 
-            << std::endl;
-
-        std::cout << "gps sol: "<< line.str();
-
-        return line.str();
-    }
-
     void Stop() { 
-        if(!running){
-            return;
-        }
+        if(!running) return;
 
         running = false;
+        gps_file.close();
+
         poll_thread.join();
         sensor.Disconnect(); 
     };
@@ -108,10 +104,7 @@ public:
 
     void Start() {
         poll_thread = std::thread([&](){
-            while(Sleep()){
-                std::cout << "Polling" << std::endl;
-                sensor.PollMessage(MSG_CLASS_NAV, MSG_ID_NAV_SOL);
-            }
+            while(Sleep()) sensor.PollMessage(MSG_CLASS_NAV, MSG_ID_NAV_SOL);
         });
     };
 };

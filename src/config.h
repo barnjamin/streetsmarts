@@ -4,6 +4,10 @@
 
 class Config {
 public:
+
+    float exposure;
+    float white_balance;
+
     int width;
     int height;
     int fps;

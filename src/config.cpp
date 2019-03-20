@@ -1,9 +1,10 @@
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include <Core/Core.h>
-#include "config.h"
 #include <iostream>
 #include <iomanip>
 #include <unistd.h>
+#include "config.h"
+#include "utils.h"
 
 std::string generate_local_session(std::string prefix) {
     using namespace open3d;
@@ -45,6 +46,18 @@ Config::Config(int argc, char ** argv) {
     }else if (session_path == "") {
         session_path = generate_local_session(session_prefix); 
     }
+
+
+    if(ProgramOptionExists(argc, argv, "--exposure")){
+        exposure = GetProgramOptionAsDouble(argc, argv, "--exposure", 166);
+        set_exposure(exposure);
+    }
+
+    if(ProgramOptionExists(argc, argv, "--wbalance")){
+        white_balance = GetProgramOptionAsDouble(argc, argv, "--wbalance", 4600);
+        set_white_balance(white_balance);
+    }
+
 
     //Camera params
     width               = GetProgramOptionAsInt(argc,argv,  "--width",  640);
@@ -114,6 +127,7 @@ Config::Config(int argc, char ** argv) {
 
     depth_to_disparity = rs2::disparity_transform(true);
     disparity_to_depth = rs2::disparity_transform(false);
+
 }
 
 
