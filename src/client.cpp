@@ -67,6 +67,7 @@ int main(int argc, char * argv[]) try
     open3d::PrintInfo("Kicked off threads, waiting for finish\n");
 
     img_thread.join();
+
     pipe.stop();
 
     if(conf.capture_imu) imu_thread.join();

@@ -43,13 +43,15 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
-    int img_idx;
-    while(rs2::frame frame = q.wait_for_frame()) {
-        rs2::frameset fs = frame.as<rs2::frameset>();
-        fs = align.process(fs);
+    rs2::frame frame;
+    rs2::frameset fs;
+    rs2::frame color_frame, depth_frame;
+    for(int img_idx = 0; img_idx < conf.fragments * conf.frames_per_fragment; img_idx++) {
+        frame = q.wait_for_frame();
+        fs = align.process(frame.as<rs2::frameset>());
 
-        auto color_frame = fs.first(RS2_STREAM_COLOR);
-        auto depth_frame = fs.get_depth_frame();	       
+        color_frame = fs.first(RS2_STREAM_COLOR);
+        depth_frame = fs.get_depth_frame();	       
 
         if (!depth_frame || !color_frame) { return; }
 
