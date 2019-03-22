@@ -5,16 +5,16 @@
 TODO:
 
 
+
+Physical Params:
+    Angle of camera
+    D435 vs D415
+
 Test Scripts:
-    d435i
-    d415
-    fps
-    auto-exposure
-    white balance
-    height/width
-    filter params
-    Align params
-    
+    fps (30/60/90)
+    auto-exposure (on/off)
+    white balance (on/off)
+    filter params (on/off)
 
 Reconstruction:
     Timestamps for images

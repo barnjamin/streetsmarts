@@ -1,6 +1,5 @@
 #include <librealsense2/rs.hpp> 
 #include <thread>
-#include <chrono>
 #include <Core/Registration/PoseGraph.h>
 #include <Core/Registration/GlobalOptimization.h>
 #include <Core/Utility/Timer.h>
@@ -63,9 +62,8 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
         std::thread write_depth(open3d::WriteImage, conf.DepthFile(img_idx), *depth_image, 100);
         std::thread write_color(open3d::WriteImage, conf.ColorFile(img_idx), *color_image, 100);
 
-        unsigned long ms = std::chrono::system_clock::now().time_since_epoch() / std::chrono::milliseconds(1);
         timestamp_file << img_idx << "," << depth_frame.get_timestamp() << "," 
-            << color_frame.get_timestamp()  << "," << ms << std::endl;
+            << color_frame.get_timestamp()  << "," << get_timestamp() << std::endl;
 
         write_depth.join();
         write_color.join();
@@ -148,9 +146,8 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
             memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
-            unsigned long ms = std::chrono::system_clock::now().time_since_epoch() / std::chrono::milliseconds(1);
             timestamp_file << frame_idx << "," << depth_frame.get_timestamp() << "," 
-                << color_frame.get_timestamp()  << "," << ms << std::endl;
+                << color_frame.get_timestamp()  << "," << get_timestamp() << std::endl;
 
             //Upload images to GPU
             rgbd_source.Upload(*depth_image, *color_image);

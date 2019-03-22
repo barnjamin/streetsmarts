@@ -1,4 +1,5 @@
 #include <fstream>
+#include <chrono>
 #include <iostream>
 #include <ctime>
 #include <iomanip>
@@ -11,6 +12,10 @@
 #include <Eigen/Geometry>
 #include <Visualization/Visualization.h>
 
+
+unsigned long get_timestamp() {
+    return std::chrono::system_clock::now().time_since_epoch() / std::chrono::milliseconds(1);
+}
 
 void VisualizeRegistration(const open3d::PointCloud &source,
                            const open3d::PointCloud &target,

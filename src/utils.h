@@ -19,6 +19,8 @@ struct Intrinsic {
 };
 
 
+unsigned long get_timestamp();
+
 cv::Mat     frame_to_mat(const rs2::frame& f);
 float       get_depth_scale(rs2::device dev);
 open3d::PinholeCameraIntrinsic   get_intrinsics(rs2::pipeline_profile); 

@@ -68,7 +68,12 @@ int main(int argc, char * argv[]) try
 
     img_thread.join();
 
+    open3d::PrintInfo("Finished capturing images\n");
+
     pipe.stop();
+
+    open3d::PrintInfo("Stopped pipeline\n");
+
 
     if(conf.capture_imu) imu_thread.join();
 
@@ -76,6 +81,8 @@ int main(int argc, char * argv[]) try
         gps.Stop();
         gps_thread.join();
     }
+
+    open3d::PrintInfo("Cleaned up\n");
 
     return EXIT_SUCCESS;
 

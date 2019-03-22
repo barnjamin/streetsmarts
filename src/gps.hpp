@@ -74,6 +74,7 @@ public:
         // nav sol at $rate
         sensor.ConfigureMessageRate(MSG_CLASS_NAV, MSG_ID_NAV_SOL, rate); 
 
+        std::cout << "Waiting for fix" << std::endl;
         // wait for 3D fix
         while (status.fixtype != 0x03) usleep(200*1000);
 

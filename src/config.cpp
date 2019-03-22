@@ -48,12 +48,22 @@ Config::Config(int argc, char ** argv) {
     }
 
 
+
     if(ProgramOptionExists(argc, argv, "--exposure")){
+        // Min Value : 1
+        // Max Value     : 10000
+        // Default Value : 166
+        // Step : 1
         exposure = GetProgramOptionAsDouble(argc, argv, "--exposure", 166);
         set_exposure(exposure);
     }
 
     if(ProgramOptionExists(argc, argv, "--wbalance")){
+        // Min Value     : 2800
+        // Max Value     : 6500
+        // Default Value : 4600
+        // Step          : 10
+
         white_balance = GetProgramOptionAsDouble(argc, argv, "--wbalance", 4600);
         set_white_balance(white_balance);
     }
@@ -67,7 +77,7 @@ Config::Config(int argc, char ** argv) {
 
     //Capture params
     capture_gps     = !(ProgramOptionExists(argc, argv, "--no_gps"));
-    capture_imu     = !(ProgramOptionExists(argc, argv, "--no_imu"));
+    capture_imu     = ProgramOptionExists(argc, argv, "--capture_imu");
 
     make_fragments  = ProgramOptionExists(argc, argv,   "--make_fragments");
 
@@ -81,6 +91,8 @@ Config::Config(int argc, char ** argv) {
 
     use_filter  = ProgramOptionExists(argc,argv,        "--use_filter");
     dec_mag     = GetProgramOptionAsDouble(argc,argv,   "--dec-mag",    1.0) ;
+
+    //Unused
     spat_mag    = GetProgramOptionAsDouble(argc,argv,   "--spat-mag",   1.0);
     spat_a      = GetProgramOptionAsDouble(argc,argv,   "--spat-a",     0.5);
     spat_d      = GetProgramOptionAsDouble(argc,argv,   "--spat-d",     25);
@@ -92,8 +104,8 @@ Config::Config(int argc, char ** argv) {
     tsdf_truncation = GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.03);
 
     //RGBD Image params
-    min_depth   = GetProgramOptionAsDouble(argc,argv,   "--min_depth",      0.5);
-    max_depth   = GetProgramOptionAsDouble(argc,argv,   "--max_depth",      3.0);
+    min_depth   = GetProgramOptionAsDouble(argc,argv,   "--min_depth",      0.1);
+    max_depth   = GetProgramOptionAsDouble(argc,argv,   "--max_depth",      5.0);
     depth_factor= GetProgramOptionAsDouble(argc,argv,   "--depth_factor",   1000.0);
 
 
@@ -240,9 +252,9 @@ int Config::GetFragmentCount()
 
 rs2::frame Config::Filter(rs2::depth_frame depth)
 {
-    depth = dec_filter.process(depth);
-    depth = depth_to_disparity.process(depth);
-    depth = spat_filter.process(depth);
-    depth = temp_filter.process(depth);
-    return disparity_to_depth.process(depth);
+    return dec_filter.process(depth);
+    //depth = depth_to_disparity.process(depth);
+    //depth = spat_filter.process(depth);
+    //depth = temp_filter.process(depth);
+    //return disparity_to_depth.process(depth);
 }
