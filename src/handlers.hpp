@@ -27,7 +27,7 @@ void record_imu(Config conf, Pose pose, rs2::frame_queue q) {
 }
 
 void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) {
-    rs2::align align(RS2_STREAM_COLOR);
+    rs2::align align(conf.aligner);
 
     auto depth_image = std::make_shared<open3d::Image>();
     auto color_image = std::make_shared<open3d::Image>();
@@ -65,7 +65,7 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
     using namespace open3d;
     using namespace open3d::cuda;
 
-    rs2::align align(RS2_STREAM_COLOR);
+    rs2::align align(conf.aligner);
 
 
     PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);

@@ -67,10 +67,18 @@ Config::Config(int argc, char ** argv) {
 
     //Capture params
     capture_gps     = !(ProgramOptionExists(argc, argv, "--no_gps"));
-    capture_imu     = ProgramOptionExists(argc, argv,   "--capture_imu");
+    capture_imu     = !(ProgramOptionExists(argc, argv, "--no_imu"));
+
     make_fragments  = ProgramOptionExists(argc, argv,   "--make_fragments");
 
     //Post Processing
+    bool align_depth_to_color = ProgramOptionExists(argc, argv, "--align_depth_to_color");
+    if(align_depth_to_color){
+        aligner = RS2_STREAM_COLOR ;
+    }else{
+        aligner = RS2_STREAM_DEPTH;
+    }
+
     use_filter  = ProgramOptionExists(argc,argv,        "--use_filter");
     dec_mag     = GetProgramOptionAsDouble(argc,argv,   "--dec-mag",    1.0) ;
     spat_mag    = GetProgramOptionAsDouble(argc,argv,   "--spat-mag",   1.0);

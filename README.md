@@ -1,22 +1,34 @@
 ##Street Smarts
 
 
-
-
-
 ```
-Front End
-    Generate Initial Pose Graph and Fragments
-    Pass Fragments/Pose Graph/IMU/GPS to server
+TODO:
 
-Back End
-    Optimize PoseGraph to generate submap 
-    Update Pose Correction to Improve Estimation
-    Incorporate submap to map
 
-Detector
-    Find discontinuity of color and normals on road surface 
-    Annotate with prediction of impairment type    
+Test Scripts:
+    d435i
+    d415
+    fps
+    auto-exposure
+    white balance
+    height/width
+    filter params
+    Align params
+    
+
+Reconstruction:
+    Timestamps for images
+    Covariance matrix from DOP?
+    Loop Closure from distance 
+
+Analysis:
+
+
+Web:
+    Capture Controller
+    Point cloud viewer
+
+
 
 ```
 

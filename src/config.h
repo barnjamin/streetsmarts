@@ -62,6 +62,7 @@ public:
     double voxel_size;
     int registration_window_size;
 
+    rs2_stream aligner;
     rs2::threshold_filter threshold;
 
     rs2::decimation_filter dec_filter;
