@@ -78,6 +78,7 @@ public:
 
     std::string GPSFile();
     std::string IntrinsicFile();
+    std::string ImageTimestampFile();
 
     std::string PoseFile(int idx);
     std::string DepthFile(int i_idx);

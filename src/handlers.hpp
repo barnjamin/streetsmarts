@@ -1,6 +1,6 @@
 #include <librealsense2/rs.hpp> 
 #include <thread>
-
+#include <chrono>
 #include <Core/Registration/PoseGraph.h>
 #include <Core/Registration/GlobalOptimization.h>
 #include <Core/Utility/Timer.h>
@@ -14,7 +14,6 @@
 #include "utils.h"
 
 //TODO: Log time of image and imu readings to file
-
 void record_imu(Config conf, Pose pose, rs2::frame_queue q) {
     while(rs2::frame frame = q.wait_for_frame()){
         auto stype = frame.get_profile().stream_type();
@@ -35,6 +34,15 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     depth_image->PrepareImage(conf.width, conf.height, 1, 2);
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
 
+    std::ofstream timestamp_file;
+    timestamp_file.open(conf.ImageTimestampFile());
+
+    open3d::PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
+    open3d::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
+
+    //Discard first $framestart frames
+    for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
+
     int img_idx;
     while(rs2::frame frame = q.wait_for_frame()) {
         rs2::frameset fs = frame.as<rs2::frameset>();
@@ -53,6 +61,10 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
         std::thread write_depth(open3d::WriteImage, conf.DepthFile(img_idx), *depth_image, 100);
         std::thread write_color(open3d::WriteImage, conf.ColorFile(img_idx), *color_image, 100);
 
+        unsigned long ms = std::chrono::system_clock::now().time_since_epoch() / std::chrono::milliseconds(1);
+        timestamp_file << img_idx << "," << depth_frame.get_timestamp() << "," 
+            << color_frame.get_timestamp()  << "," << ms << std::endl;
+
         write_depth.join();
         write_color.join();
 
@@ -67,6 +79,8 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
 
     rs2::align align(conf.aligner);
 
+    std::ofstream timestamp_file;
+    timestamp_file.open(conf.ImageTimestampFile());
 
     PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
     WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
@@ -132,6 +146,9 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
             memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
+            unsigned long ms = std::chrono::system_clock::now().time_since_epoch() / std::chrono::milliseconds(1);
+            timestamp_file << frame_idx << "," << depth_frame.get_timestamp() << "," 
+                << color_frame.get_timestamp()  << "," << ms << std::endl;
 
             //Upload images to GPU
             rgbd_source.Upload(*depth_image, *color_image);

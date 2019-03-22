@@ -72,11 +72,11 @@ Config::Config(int argc, char ** argv) {
     make_fragments  = ProgramOptionExists(argc, argv,   "--make_fragments");
 
     //Post Processing
-    bool align_depth_to_color = ProgramOptionExists(argc, argv, "--align_depth_to_color");
-    if(align_depth_to_color){
-        aligner = RS2_STREAM_COLOR ;
-    }else{
+    bool align_color_to_depth = ProgramOptionExists(argc, argv, "--align_color_to_depth");
+    if(align_color_to_depth){
         aligner = RS2_STREAM_DEPTH;
+    }else{
+        aligner = RS2_STREAM_COLOR;
     }
 
     use_filter  = ProgramOptionExists(argc,argv,        "--use_filter");
@@ -203,6 +203,13 @@ std::string Config::PoseFileScene()
     
     std::stringstream ss;
     ss << session_path <<  "/scene/pose.json";
+    return ss.str();
+}
+
+std::string Config::ImageTimestampFile()
+{
+    std::stringstream ss;
+    ss << session_path <<  "/timestamps.csv";
     return ss.str();
 }
 

@@ -61,12 +61,12 @@ Eigen::Matrix4d Pose::GetTransform() {
 
 //TODO:
 void Pose::UpdateGyro(rs2_vector data, double ts) {
-    std::cout << "Gyro ts: " << ts << std::endl;
+    //std::cout << "Gyro ts: " << ts << std::endl;
 }
 
 //TODO:
 void Pose::UpdateAccel(rs2_vector data, double ts) {
-    std::cout << "Accel ts: " << ts << std::endl;
+    //std::cout << "Accel ts: " << ts << std::endl;
 }
 
 //void Pose::Update(std::vector<double> accel, std::vector<double> gyro, double timestamp) {
