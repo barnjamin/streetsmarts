@@ -10,19 +10,19 @@
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include "utils.h"
 #include <Eigen/Geometry>
-#include <Visualization/Visualization.h>
+#include <Open3D/Visualization/Visualizer/Visualizer.h>
 
 
 unsigned long get_timestamp() {
     return std::chrono::system_clock::now().time_since_epoch() / std::chrono::milliseconds(1);
 }
 
-void VisualizeRegistration(const open3d::PointCloud &source,
-                           const open3d::PointCloud &target,
+void VisualizeRegistration(const open3d::geometry::PointCloud &source,
+                           const open3d::geometry::PointCloud &target,
                            const Eigen::Matrix4d &Transformation) {
     using namespace open3d;
-    std::shared_ptr<PointCloud> source_transformed_ptr(new PointCloud);
-    std::shared_ptr<PointCloud> target_ptr(new PointCloud);
+    std::shared_ptr<geometry::PointCloud> source_transformed_ptr(new geometry::PointCloud);
+    std::shared_ptr<geometry::PointCloud> target_ptr(new geometry::PointCloud);
     *source_transformed_ptr = source;
     *target_ptr = target;
     
@@ -31,7 +31,7 @@ void VisualizeRegistration(const open3d::PointCloud &source,
     target_ptr->PaintUniformColor(Eigen::Vector3d(0,0,1.0));
     source_transformed_ptr->PaintUniformColor(Eigen::Vector3d(1.0,0,0));
 
-    DrawGeometries({source_transformed_ptr, target_ptr}, "Registration result");
+    visualization::DrawGeometries({source_transformed_ptr, target_ptr}, "Registration result");
 }
 
 // Convert rs2::frame to cv::Mat
@@ -66,13 +66,13 @@ cv::Mat frame_to_mat(const rs2::frame& f)
 	throw std::runtime_error("Frame format is not supported yet!");
 }
 
-open3d::PinholeCameraIntrinsic get_intrinsics(rs2::pipeline_profile prof)
+open3d::camera::PinholeCameraIntrinsic get_intrinsics(rs2::pipeline_profile prof)
 {
     auto depth_stream = prof.get_stream(RS2_STREAM_DEPTH)
                                  .as<rs2::video_stream_profile>();
     auto intrin = depth_stream.get_intrinsics();
 
-    open3d::PinholeCameraIntrinsic intrinsics(depth_stream.width(), depth_stream.height(), 
+    open3d::camera::PinholeCameraIntrinsic intrinsics(depth_stream.width(), depth_stream.height(), 
             intrin.fx, intrin.fy, intrin.ppx, intrin.ppy);
 
     return intrinsics;

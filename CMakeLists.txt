@@ -42,7 +42,7 @@ include_directories(
   ${IMGUI}
   ${relasense_INCLUDE_DIR}
   ${Open3D_INCLUDE_DIRS}
-  /usr/local/Open3d/include/
+  /usr/local/include/Open3D
   /usr/local/cuda/include/
   ${OPENGL_INCLUDE_DIRS}  
   ${GLUT_INCLUDE_DIRS}

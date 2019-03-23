@@ -1,8 +1,7 @@
 #include <librealsense2/rs.hpp> 
 #include <thread>
 
-#include <Core/Core.h>
-#include <IO/IO.h>
+#include <Open3D/Open3D.h>
 #include "gps.hpp"
 #include "pose.h"
 #include "config.h"
@@ -17,17 +16,17 @@ int main(int argc, char * argv[]) try
     GPS gps(conf.GPSFile());
     std::thread gps_thread;
     if(conf.capture_gps){
-        open3d::PrintInfo("Initializing GPS\n");
+        open3d::utility::PrintInfo("Initializing GPS\n");
         if(!gps.Connect()){
             std::cout << "Failed to connect" << std::endl;
             return 1;
         }
-        open3d::PrintInfo("GPS Inititalized, starting stream\n");
+        open3d::utility::PrintInfo("GPS Inititalized, starting stream\n");
 
         gps.Start();
     }
 
-    open3d::PrintInfo("Initializing Image pipeline\n");
+    open3d::utility::PrintInfo("Initializing Image pipeline\n");
 
     rs2::pipeline pipe;
 
@@ -41,13 +40,14 @@ int main(int argc, char * argv[]) try
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
+    //cfg.enable_stream(RS2_STREAM_INFRARED, conf.width, conf.height, RS2_FORMAT_Y8, conf.fps);
 
     if(conf.capture_imu){
         cfg.enable_stream(RS2_STREAM_ACCEL);
         cfg.enable_stream(RS2_STREAM_GYRO);
     }
 
-    open3d::PrintInfo("Starting Image pipeline\n");
+    open3d::utility::PrintInfo("Starting Image pipeline\n");
     rs2::pipeline_profile profile = pipe.start(cfg, [&](rs2::frame frame){
         if (frame.is<rs2::frameset>()) img_q.enqueue(frame);
         else imu_q.enqueue(frame); 
@@ -64,15 +64,15 @@ int main(int argc, char * argv[]) try
         img_thread = std::thread(record_img, conf, profile, img_q);
     }
 
-    open3d::PrintInfo("Kicked off threads, waiting for finish\n");
+    open3d::utility::PrintInfo("Kicked off threads, waiting for finish\n");
 
     img_thread.join();
 
-    open3d::PrintInfo("Finished capturing images\n");
+    open3d::utility::PrintInfo("Finished capturing images\n");
 
     pipe.stop();
 
-    open3d::PrintInfo("Stopped pipeline\n");
+    open3d::utility::PrintInfo("Stopped pipeline\n");
 
 
     if(conf.capture_imu) imu_thread.join();
@@ -82,7 +82,7 @@ int main(int argc, char * argv[]) try
         gps_thread.join();
     }
 
-    open3d::PrintInfo("Cleaned up\n");
+    open3d::utility::PrintInfo("Cleaned up\n");
 
     return EXIT_SUCCESS;
 

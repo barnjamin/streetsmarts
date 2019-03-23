@@ -1,11 +1,7 @@
 #include <string>
 #include <vector>
 
-#include <Core/Core.h>
-#include <IO/IO.h>
-#include <Core/Registration/PoseGraph.h>
-#include <Core/Registration/GlobalOptimization.h>
-#include <Core/Utility/Timer.h>
+#include <Open3D/Open3d.h>
 
 #include <Cuda/Odometry/RGBDOdometryCuda.h>
 #include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
@@ -23,6 +19,7 @@
 
 using namespace open3d;
 using namespace open3d::cuda;
+using namespace open3d::utility;
 using namespace cv;
 using namespace std;
 
@@ -49,12 +46,12 @@ int main(int argc, char * argv[]) try
     rs2::pipeline_profile profile = pipe.start(cfg);
 
     PrintInfo("Saving intrinsic\n");
-    PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
-    WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
+    camera::PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
+    io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
 
 
-    auto depth_image = std::make_shared<Image>();
-    auto color_image = std::make_shared<Image>();
+    auto depth_image = std::make_shared<geometry::Image>();
+    auto color_image = std::make_shared<geometry::Image>();
     depth_image->PrepareImage(conf.width, conf.height, 1, 2);
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
 

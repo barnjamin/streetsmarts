@@ -1,14 +1,13 @@
 #include <librealsense2/rs.hpp> 
 #include <thread>
-#include <Core/Registration/PoseGraph.h>
-#include <Core/Registration/GlobalOptimization.h>
-#include <Core/Utility/Timer.h>
+#include <Open3D/Open3D.h>
+#include <Open3D/Registration/PoseGraph.h>
+#include <Open3D/Registration/GlobalOptimization.h>
+#include <Open3D/Utility/Timer.h>
 
 #include <Cuda/Odometry/RGBDOdometryCuda.h>
 #include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
 #include <Cuda/Integration/ScalableMeshVolumeCuda.h>
-#include <Core/Core.h>
-#include <IO/IO.h>
 #include "config.h"
 #include "utils.h"
 
@@ -27,24 +26,26 @@ void record_imu(Config conf, Pose pose, rs2::frame_queue q) {
 void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) {
     rs2::align align(conf.aligner);
 
-    auto depth_image = std::make_shared<open3d::Image>();
-    auto color_image = std::make_shared<open3d::Image>();
+    auto depth_image = std::make_shared<open3d::geometry::Image>();
+    auto color_image = std::make_shared<open3d::geometry::Image>();
+    auto infra_image = std::make_shared<open3d::geometry::Image>();
 
     depth_image->PrepareImage(conf.width, conf.height, 1, 2);
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
+    infra_image->PrepareImage(conf.width, conf.height, 1, 1);
 
     std::ofstream timestamp_file;
     timestamp_file.open(conf.ImageTimestampFile());
 
-    open3d::PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
-    open3d::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
+    open3d::camera::PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
+    open3d::io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
 
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
     rs2::frame frame;
     rs2::frameset fs;
-    rs2::frame color_frame, depth_frame;
+    rs2::frame color_frame, depth_frame, infra_frame;
     for(int img_idx = 0; img_idx < conf.fragments * conf.frames_per_fragment; img_idx++) {
         frame = q.wait_for_frame();
         fs = align.process(frame.as<rs2::frameset>());
@@ -56,11 +57,24 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 
         if(conf.use_filter){ depth_frame = conf.Filter(depth_frame); }
 
+        //infra_frame = fs.get_infrared_frame();
+        //bool emitter_on = true;
+        //if(depth_frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER_MODE)){
+        //    std::cout << "It supports it" << std::endl;
+        //    emitter_on = depth_frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER_MODE);
+        //    if(!emitter_on){
+        //        std::cout << "Emitter off, saving infra" << std::endl;
+        //        memcpy(infra_image->data_.data(), infra_frame.get_data(), conf.width * conf.height);
+        //        open3d::WriteImage(conf.InfraFile(img_idx), *infra_image);
+        //    }
+        //}
+
+
         memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
-        std::thread write_depth(open3d::WriteImage, conf.DepthFile(img_idx), *depth_image, 100);
-        std::thread write_color(open3d::WriteImage, conf.ColorFile(img_idx), *color_image, 100);
+        std::thread write_depth(open3d::io::WriteImage, conf.DepthFile(img_idx), *depth_image, 100);
+        std::thread write_color(open3d::io::WriteImage, conf.ColorFile(img_idx), *color_image, 100);
 
         timestamp_file << img_idx << "," << depth_frame.get_timestamp() << "," 
             << color_frame.get_timestamp()  << "," << get_timestamp() << std::endl;
@@ -82,19 +96,19 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
     std::ofstream timestamp_file;
     timestamp_file.open(conf.ImageTimestampFile());
 
-    PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
-    WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
+    camera::PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
+    io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
 
     PinholeCameraIntrinsicCuda cuda_intrinsic(intrinsic);
 
-    PrintInfo("Discarding first %d frames\n", conf.framestart);
+    utility::PrintInfo("Discarding first %d frames\n", conf.framestart);
 
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
 
-    auto depth_image = std::make_shared<Image>();
-    auto color_image = std::make_shared<Image>();
+    auto depth_image = std::make_shared<geometry::Image>();
+    auto color_image = std::make_shared<geometry::Image>();
 
     depth_image->PrepareImage(conf.width, conf.height, 1, 2);
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
@@ -105,21 +119,21 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
     RGBDImageCuda rgbd_target(conf.width, conf.height, conf.max_depth, conf.depth_factor);
     RGBDImageCuda rgbd_source(conf.width, conf.height, conf.max_depth, conf.depth_factor);
 
-    FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
+    utility::FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
 
-    PrintInfo("Starting to make fragments\n");
+    utility::PrintInfo("Starting to make fragments\n");
     for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
     {
-        PrintInfo("Fragment %d\n", fragment_idx);
+        utility::PrintInfo("Fragment %d\n", fragment_idx);
 
         RGBDOdometryCuda<3> odometry;
         odometry.SetIntrinsics(intrinsic);
-        odometry.SetParameters(OdometryOption({20, 10, 5}, 
+        odometry.SetParameters(odometry::OdometryOption({20, 10, 5}, 
                     conf.max_depth_diff, conf.min_depth, conf.max_depth), 0.5f);
 
         Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
-        PoseGraph pose_graph;
-        pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry));
+        registration::PoseGraph pose_graph;
+        pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
 
         float voxel_length = conf.tsdf_cubic_size / 512.0;
         TransformCuda tsdf_trans = TransformCuda::Identity();
@@ -152,8 +166,8 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             //Upload images to GPU
             rgbd_source.Upload(*depth_image, *color_image);
 
-            std::thread write_depth(WriteImage, conf.DepthFile(frame_idx), *depth_image, 100);
-            std::thread write_color(WriteImage, conf.ColorFile(frame_idx), *color_image, 100);
+            std::thread write_depth(io::WriteImage, conf.DepthFile(frame_idx), *depth_image, 100);
+            std::thread write_color(io::WriteImage, conf.ColorFile(frame_idx), *color_image, 100);
 
             if(i==0) { 
                 rgbd_target.CopyFrom(rgbd_source); 
@@ -178,8 +192,8 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
 
             //Update PoseGraph
-            pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
-            pose_graph.edges_.emplace_back(PoseGraphEdge(i - 1, i, trans, information, false));
+            pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry_inv));
+            pose_graph.edges_.emplace_back(registration::PoseGraphEdge(i - 1, i, trans, information, false));
 
             //Integrate fragment
             tsdf_trans.FromEigen(trans_odometry);
@@ -193,7 +207,7 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
 
             timer.Signal();
         }
-        WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
+        io::WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
 
         //Generate Mesh and write to disk
         tsdf_volume.GetAllSubvolumes();
@@ -205,12 +219,12 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
         mesher.MarchingCubes(tsdf_volume);
         auto mesh = mesher.mesh().Download();
 
-        PointCloud pcl;
+        geometry::PointCloud pcl;
         pcl.points_ = mesh->vertices_;
         pcl.normals_= mesh->vertex_normals_;
         pcl.colors_ = mesh->vertex_colors_;
 
-        WritePointCloudToPLY(conf.FragmentFile(fragment_idx), pcl); 
+        io::WritePointCloudToPLY(conf.FragmentFile(fragment_idx), pcl); 
     }
 }
 

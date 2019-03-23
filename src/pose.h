@@ -2,7 +2,7 @@
 #include <librealsense2/rs.hpp> 
 #include <Eigen/Geometry>
 #include <vector>
-#include <Core/Core.h>
+#include <Open3D/Open3D.h>
 #include <Registration/PoseGraph.h>
 
 #define betaDef		0.25f // 2 * proportional gain
@@ -14,7 +14,7 @@ class Pose {
     Eigen::Vector3d vel;
 
     //Pose graph for Open3d stuffs
-    open3d::PoseGraph pg;
+    open3d::registration::PoseGraph pg;
 
     //Vector of positions
     std::vector<Eigen::Vector3d> path;

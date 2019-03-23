@@ -2,8 +2,8 @@
 #include <iostream>
 #include <Eigen/Geometry>
 #include <vector>
-#include <Core/Core.h>
-#include <Registration/PoseGraph.h>
+#include <Open3D/Open3D.h>
+#include <Open3D/Registration/PoseGraph.h>
 #include "pose.h"
 #include <math.h>
 
@@ -26,7 +26,7 @@ Pose::Pose(int frames_per_sec, Eigen::Matrix4d extrinsic) {
     pos = Eigen::Vector3d(0,0,0);
     vel = Eigen::Vector3d(0,0,0);
 
-    pg.nodes_.push_back(open3d::PoseGraphNode(Eigen::Matrix4d::Identity()));
+    pg.nodes_.push_back(open3d::registration::PoseGraphNode(Eigen::Matrix4d::Identity()));
 }
 
 void Pose::Reset(){
@@ -36,7 +36,7 @@ void Pose::Reset(){
     path = std::vector<Eigen::Vector3d>();
     orientations = std::vector<Eigen::Quaterniond>();
 
-    pg = open3d::PoseGraph();
+    pg = open3d::registration::PoseGraph();
 }
 
 Eigen::Matrix4d Pose::GetTransform() {
