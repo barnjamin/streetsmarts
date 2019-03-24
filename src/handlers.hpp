@@ -1,5 +1,6 @@
 #include <librealsense2/rs.hpp> 
 #include <thread>
+#include <atomic>
 #include <Open3D/Open3D.h>
 #include <Open3D/Registration/PoseGraph.h>
 #include <Open3D/Registration/GlobalOptimization.h>
@@ -11,15 +12,22 @@
 #include "config.h"
 #include "utils.h"
 
-//TODO: Log time of image and imu readings to file
-void record_imu(Config conf, Pose pose, rs2::frame_queue q) {
-    while(rs2::frame frame = q.wait_for_frame()){
+void record_imu(Config conf, std::atomic<bool>& running, rs2::frame_queue q) {
+    std::ofstream imu_file;
+    imu_file.open(conf.IMUFile());
+    while(running){
+        rs2::frame frame = q.wait_for_frame();
         auto stype = frame.get_profile().stream_type();
         auto mframe = frame.as<rs2::motion_frame>();
         auto vec = mframe.get_motion_data();
         auto ts = mframe.get_timestamp();
-        if(stype == RS2_STREAM_GYRO) pose.UpdateGyro(vec, ts);
-        else pose.UpdateAccel(vec, ts);
+
+        std::string t;
+        if(stype == RS2_STREAM_GYRO) t = "g";
+        else t = "a";
+        
+        imu_file << t << "," << get_timestamp() << "," << ts 
+            << "," << vec.x << "," << vec.y << "," << vec.z << std::endl;
     }
 }
 

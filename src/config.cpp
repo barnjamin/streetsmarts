@@ -155,6 +155,13 @@ Config::Config(int argc, char ** argv) {
 
 }
 
+std::string Config::IMUFile()
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/imu.csv";
+    return ss.str();
+}
 
 std::string Config::IntrinsicFile()
 {

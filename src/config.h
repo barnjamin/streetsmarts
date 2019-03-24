@@ -77,6 +77,7 @@ public:
     Config(int argc, char ** argv);
 
     std::string GPSFile();
+    std::string IMUFile();
     std::string IntrinsicFile();
     std::string ImageTimestampFile();
 

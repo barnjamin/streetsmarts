@@ -1,6 +1,7 @@
 #include <librealsense2/rs.hpp> 
 #include <thread>
 
+#include <atomic>
 #include <Open3D/Open3D.h>
 #include "gps.hpp"
 #include "pose.h"
@@ -54,8 +55,9 @@ int main(int argc, char * argv[]) try
     });
 
 
+    std::atomic<bool> running(true);
     if(conf.capture_imu){
-        imu_thread = std::thread(record_imu, conf, pose, imu_q);
+        imu_thread = std::thread(record_imu, conf, std::ref(running), imu_q);
     }
 
     if(conf.make_fragments){
@@ -70,12 +72,16 @@ int main(int argc, char * argv[]) try
 
     open3d::utility::PrintInfo("Finished capturing images\n");
 
+    if(conf.capture_imu) {
+        running = false;
+        imu_thread.join();
+    }
+
     pipe.stop();
 
     open3d::utility::PrintInfo("Stopped pipeline\n");
 
 
-    if(conf.capture_imu) imu_thread.join();
 
     if(conf.capture_gps) {
         gps.Stop();
