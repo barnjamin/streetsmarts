@@ -6,15 +6,12 @@
 #include <iostream>
 #include <csignal>
 
-#include <Core/Core.h>
-#include <IO/IO.h>
-#include <Core/Registration/PoseGraph.h>
-#include <Core/Registration/GlobalOptimization.h>
-#include <Core/Utility/Timer.h>
+#include <Open3D/Open3D.h>
+#include <Cuda/Open3DCuda.h>
 
-#include <Cuda/Odometry/RGBDOdometryCuda.h>
-#include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
-#include <Cuda/Integration/ScalableMeshVolumeCuda.h>
+#include <Open3D/Registration/GlobalOptimization.h>
+#include <Open3D/Registration/GlobalOptimizationMethod.h>
+
 
 
 #include <opencv2/opencv.hpp>
@@ -25,6 +22,13 @@
 
 using namespace open3d;
 using namespace open3d::cuda;
+using namespace open3d::utility;
+using namespace open3d::geometry;
+using namespace open3d::registration;
+using namespace open3d::integration;
+using namespace open3d::odometry;
+using namespace open3d::io;
+using namespace open3d::camera;
 using namespace cv;
 using namespace std;
 
@@ -46,19 +50,20 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
 
     // world_to_source
     Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
-    PoseGraph pose_graph;
-    pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry));
+    registration::PoseGraph pose_graph;
+    pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
 
-    for (int s = 0; s < config.frames_per_fragment-1; ++s) {
+    for (int s = 0; s < config.frames_per_fragment-1; s ++) {
         Image depth, color;
 
         int src_frame_idx = (fragment_id * config.frames_per_fragment) + s;
+
         ReadImage(config.DepthFile(src_frame_idx), depth);
         ReadImage(config.ColorFile(src_frame_idx), color);
 
         rgbd_source.Upload(depth, color);
 
-        int tgt_frame_idx = src_frame_idx + 1;
+        int tgt_frame_idx = src_frame_idx+1;
 
         ReadImage(config.DepthFile(tgt_frame_idx), depth);
         ReadImage(config.ColorFile(tgt_frame_idx), color);
@@ -73,14 +78,14 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
 
         // source_to_target * world_to_source = world_to_target
-        trans_odometry = trans * trans_odometry;
+        trans_odometry =   trans * trans_odometry ;
 
         // target_to_world
         Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
 
         pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
         pose_graph.edges_.emplace_back(PoseGraphEdge( 
-                    src_frame_idx, tgt_frame_idx , trans, information, false));
+                    s, s+1, trans, information, false));
     }
 
 
@@ -109,7 +114,6 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     float voxel_length = config.tsdf_cubic_size / 512.0;
 
-
     PinholeCameraIntrinsic intrinsic_;
     ReadIJsonConvertible(config.IntrinsicFile(), intrinsic_);
 
@@ -119,7 +123,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
 
-    for (int i = 0; i < config.frames_per_fragment; ++i) {
+    for (int i = 0; i < config.frames_per_fragment; i++) {
         PrintDebug("Integrating frame %d ...\n", i);
 
         Image depth, color;
@@ -149,8 +153,8 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     WritePointCloudToPLY(config.FragmentFile(fragment_id), pcl);
 
     /** Write downsampled thumbnail fragments **/
-    auto pcl_downsampled = VoxelDownSample(pcl, config.voxel_size);
-    WritePointCloudToPLY(config.ThumbnailFragmentFile(fragment_id), *pcl_downsampled);
+    //auto pcl_downsampled = VoxelDownSample(pcl, config.voxel_size);
+    //WritePointCloudToPLY(config.ThumbnailFragmentFile(fragment_id), *pcl_downsampled);
 }
 
 int main(int argc, char * argv[])
@@ -161,8 +165,7 @@ int main(int argc, char * argv[])
     timer.Start();
 
     for (int i = 0; i < conf.fragments; ++i) {
-
-        //PrintInfo("Processing fragment %d / %d\n", i, num_fragments - 1);
+        PrintInfo("Processing fragment %d / %d\n", i, conf.fragments - 1);
 
         MakePoseGraphForFragment(i, conf);
         OptimizePoseGraphForFragment(i, conf);

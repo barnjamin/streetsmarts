@@ -1,11 +1,8 @@
 #include <string>
 #include <vector>
 
-#include <Open3D/Open3d.h>
-
-#include <Cuda/Odometry/RGBDOdometryCuda.h>
-#include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
-#include <Cuda/Integration/ScalableMeshVolumeCuda.h>
+#include <Open3D/Open3D.h>
+#include <Cuda/Open3DCuda.h>
 
 
 #include <opencv2/opencv.hpp>

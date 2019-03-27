@@ -1,19 +1,18 @@
 #include <vector>
 #include <string>
 
-#include <Core/Core.h>
-#include <IO/IO.h>
-#include <Visualization/Visualization.h>
-
-#include <Core/Registration/Registration.h>
-#include <Core/Registration/PoseGraph.h>
-
-#include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
-#include <Cuda/Integration/ScalableMeshVolumeCuda.h>
+#include <Open3D/Open3D.h>
+#include <Cuda/Open3DCuda.h>
 
 #include "config.h"
 
 using namespace open3d;
+using namespace open3d::geometry;
+using namespace open3d::integration;
+using namespace open3d::registration;
+using namespace open3d::utility;
+using namespace open3d::camera;
+using namespace open3d::io;
 
 int main(int argc, char ** argv)
 {
@@ -47,7 +46,7 @@ int main(int argc, char ** argv)
             int frame_idx = (fragment_id * conf.frames_per_fragment) + img_id;
             if(!ReadImage(conf.DepthFile(frame_idx), depth) ||
                 !ReadImage(conf.ColorFile(frame_idx), color)) {
-                PrintInfo("Failed to read %d_%d\n", fragment_id, img_id);
+                PrintInfo("Failed to read frame_idx: %d\n", frame_idx);
                 continue;
             }
 
@@ -55,6 +54,7 @@ int main(int argc, char ** argv)
 
             Eigen::Matrix4d pose = global_pose_graph.nodes_[fragment_id].pose_ * local_pose_graph.nodes_[img_id].pose_;
 
+            //trans.FromEigen(pose.inverse());
             trans.FromEigen(pose);
 
             PrintInfo("Integrating %d and %d\n", fragment_id, img_id);
@@ -66,8 +66,11 @@ int main(int argc, char ** argv)
     PrintInfo("Getting subvolumes\n");
     tsdf_volume.GetAllSubvolumes();
 
-    PrintInfo("Creating mesher\n");
-    cuda::ScalableMeshVolumeCuda<8> mesher(100000, cuda::VertexWithNormalAndColor, 10000000, 20000000);
+    PrintInfo("Creating mesher: %d\n", 
+        tsdf_volume.active_subvolume_entry_array().size());
+    cuda::ScalableMeshVolumeCuda<8> mesher(
+        tsdf_volume.active_subvolume_entry_array().size(),
+        cuda::VertexWithNormalAndColor, 20000000, 40000000);
 
     PrintInfo("Meshing\n");
     mesher.MarchingCubes(tsdf_volume);

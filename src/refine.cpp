@@ -4,19 +4,21 @@
 
 #include <vector>
 #include <string>
-#include <Core/Core.h>
-#include <IO/IO.h>
+#include <Open3D/Open3D.h>
+#include <Cuda/Open3DCuda.h>
 
-#include <Cuda/Registration/RegistrationCuda.h>
-#include <Cuda/Registration/ColoredICPCuda.h>
-#include <Cuda/Registration/FastGlobalRegistrationCuda.h>
+#include <Open3D/Registration/GlobalOptimization.h>
+#include <Open3D/Registration/GlobalOptimizationMethod.h>
 
-#include <Core/Registration/PoseGraph.h>
-#include <Core/Registration/GlobalOptimization.h>
 
 #include "config.h"
 
 using namespace open3d;
+using namespace open3d::utility;
+using namespace open3d::geometry;
+using namespace open3d::registration;
+using namespace open3d::integration;
+using namespace open3d::io;
 
 struct Match {
     bool success;
@@ -38,7 +40,7 @@ std::vector<Match> RegisterFragments(Config &config) {
 
     int start, stop;
     int frag_count = config.GetFragmentCount();
-    for (int s = 0; s < frag_count-1; s++) {
+    for (int s = 0; s < frag_count; s++) {
         auto source_raw = CreatePointCloudFromFile(config.FragmentFile(s));
         auto source = VoxelDownSample(*source_raw,config.voxel_size);
 
@@ -49,8 +51,9 @@ std::vector<Match> RegisterFragments(Config &config) {
 
         std::cout << init_source_to_target << std::endl;
 
-        //std::tie(start, stop) = GetWindow(s, frag_count, config.registration_window_size);
-        for (int t = s+1; t < frag_count; t++) {
+        std::tie(start, stop) = GetWindow(s, frag_count, config.registration_window_size);
+        for (int t = start; t < stop; t++) {
+        //for (int t = s+1; t < frag_count; t++) {
             auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
             auto target = VoxelDownSample(*target_raw, config.voxel_size);
 

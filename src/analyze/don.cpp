@@ -1,11 +1,13 @@
-#include <Core/Core.h>
-#include <IO/IO.h>
-#include <Visualization/Visualization.h>
+#include <Open3D/Open3D.h>
 #include <vector>
 #include <math.h>
 #include "../config.h"
 
 using namespace open3d;
+using namespace open3d::io;
+using namespace open3d::geometry;
+using namespace open3d::visualization;
+using namespace open3d::utility;
 
 enum FilterType {WITHIN_RANGE, OUTSIDE_RANGE};
 enum GroupType {EUCLIDIAN, GAUSSIAN};
@@ -32,8 +34,8 @@ int main(int argc, char ** argv)
 
     std::vector<std::shared_ptr<const Geometry>> geoms;
 
-    auto result = RemoveStatisticalOutliers(*pcd, 20, 0.05);
-    pcd = std::get<0>(result);
+    //auto result = RemoveStatisticalOutliers(*pcd, 20, 0.05);
+    //pcd = std::get<0>(result);
 
     pcd = VoxelDownSample(*pcd, conf.don_downsample);
 
@@ -48,13 +50,13 @@ int main(int argc, char ** argv)
 
     geoms.push_back(DoN);
 
-    //Eigen::Matrix4d side_by_side;
-    //side_by_side << 1,0,0,10,
-    //                0,1,0,0,
-    //                0,0,1,0,
-    //                0,0,0,1;
-    //pcd->Transform(side_by_side);
-    //geoms.push_back(pcd);
+    Eigen::Matrix4d side_by_side;
+    side_by_side << 1,0,0,10,
+                    0,1,0,0,
+                    0,0,1,0,
+                    0,0,0,1;
+    pcd->Transform(side_by_side);
+    geoms.push_back(pcd);
 
     DrawGeometries(geoms);
     WritePointCloud("diff_of_norm.pcd", *DoN, false, true);

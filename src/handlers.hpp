@@ -6,9 +6,7 @@
 #include <Open3D/Registration/GlobalOptimization.h>
 #include <Open3D/Utility/Timer.h>
 
-#include <Cuda/Odometry/RGBDOdometryCuda.h>
-#include <Cuda/Integration/ScalableTSDFVolumeCuda.h>
-#include <Cuda/Integration/ScalableMeshVolumeCuda.h>
+#include <Cuda/Open3DCuda.h>
 #include "config.h"
 #include "utils.h"
 
@@ -89,8 +87,6 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 
         write_depth.join();
         write_color.join();
-
-        img_idx++;
     }
 }
 

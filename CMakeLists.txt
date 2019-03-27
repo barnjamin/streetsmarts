@@ -10,6 +10,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 message("mod path: ${CMAKE_MODULE_PATH}")
 
 
+find_package(CUDA 9.1 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(OpenGL)
 find_package(GLUT)
@@ -42,8 +43,8 @@ include_directories(
   ${IMGUI}
   ${relasense_INCLUDE_DIR}
   ${Open3D_INCLUDE_DIRS}
+  /usr/include/
   /usr/local/include/Open3D
-  /usr/local/cuda/include/
   ${OPENGL_INCLUDE_DIRS}  
   ${GLUT_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
@@ -51,6 +52,7 @@ include_directories(
   /home/ben/ublox/include/
   /home/ben/serial/include/
   /home/ben/streetsmarts/src/
+  ${CUDA_INCLUD_DIRS}
   ${IMGUI}
 ) 
 
@@ -67,20 +69,22 @@ set(DEPENDENCIES
 	glfw 
 	${Open3D_LIBRARIES} 
 	Eigen3::Eigen 
-	/home/ben/Open3D/build/lib/libCuda.a
+    /home/ben/Open3D/build/lib/libOpen3DCuda.a
     ${PCL_LIBRARIES} 
     ${GeographicLib_LIBRARIES}
+    ${CUDA_LIBRARIES}
     /home/ben/ublox/lib/libublox.a
     /home/ben/serial/lib/libserial.a
+    /usr/lib/x86_64-linux-gnu/libcurand.so
 )
 
 #set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp)
 #add_executable(cluster ${CLUSTER_SOURCE})
 #target_link_libraries(cluster ${DEPENDENCIES})
 #
-#set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
-#add_executable(analyze ${ANALYZE_SOURCE})
-#target_link_libraries(analyze ${DEPENDENCIES})
+set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
+add_executable(analyze ${ANALYZE_SOURCE})
+target_link_libraries(analyze ${DEPENDENCIES})
 #
 #set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
 #add_executable(kitti ${KITTI_SOURCE})
@@ -94,30 +98,35 @@ set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp s
 add_executable(client ${CLIENT_SOURCE})
 target_link_libraries(client ${DEPENDENCIES})
 
-set(GUI_SOURCE src/gui/main.cpp ${IMGUI_SOURCES})
-
-message("FUCK ${GUI_SOURCE}")
-add_executable(gui ${GUI_SOURCE})
-include_directories(gui ${IMGUI})
-message("FUCKSKI ${IMGUI}")
-target_link_libraries(gui ${DEPENDENCIES})
+#set(GUI_SOURCE src/gui/main.cpp ${IMGUI_SOURCES})
+#add_executable(gui ${GUI_SOURCE})
+#include_directories(gui ${IMGUI})
+#target_link_libraries(gui ${DEPENDENCIES})
 
 #set(POSER_SOURCE src/poser/main.cpp src/poser/odom_estimation.cpp src/poser/nlacg_odom.cpp)
 #add_executable(poser ${POSER_SOURCE})
 #target_link_libraries(poser ${DEPENDENCIES})
 
-#set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp)
-#add_executable(make_fragments ${FRAGMENT_SOURCE})
-#target_link_libraries(make_fragments ${DEPENDENCIES})
-#
-#set(REFINE_SOURCE src/refine.cpp src/utils.cpp src/config.cpp)
-#add_executable(refine ${REFINE_SOURCE})
-#target_link_libraries(refine ${DEPENDENCIES})
-#
-#set(INTEGRATE_SOURCE src/integrate.cpp src/utils.cpp src/config.cpp)
-#add_executable(integrate ${INTEGRATE_SOURCE})
-#target_link_libraries(integrate ${DEPENDENCIES})
-#
+set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp)
+add_executable(make_fragments ${FRAGMENT_SOURCE})
+target_link_libraries(make_fragments ${DEPENDENCIES})
+
+set(REFINE_SOURCE src/refine.cpp src/utils.cpp src/config.cpp)
+add_executable(refine ${REFINE_SOURCE})
+target_link_libraries(refine ${DEPENDENCIES})
+
+set(INTEGRATE_SOURCE src/integrate.cpp src/utils.cpp src/config.cpp)
+add_executable(integrate ${INTEGRATE_SOURCE})
+target_link_libraries(integrate ${DEPENDENCIES})
+
+set(VPG_SOURCE src/view_pg.cpp src/utils.cpp src/config.cpp)
+add_executable(vpg ${VPG_SOURCE})
+target_link_libraries(vpg ${DEPENDENCIES})
+
+set(VRGBD_SOURCE src/view_rgbd.cpp src/utils.cpp src/config.cpp)
+add_executable(vrgbd ${VRGBD_SOURCE})
+target_link_libraries(vrgbd ${DEPENDENCIES})
+
 #set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp)
 #add_executable(gps ${GPS_SOURCE})
 #target_link_libraries(gps ${DEPENDENCIES})

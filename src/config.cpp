@@ -74,6 +74,8 @@ Config::Config(int argc, char ** argv) {
     }
 
 
+    img_idx = utility::GetProgramOptionAsInt(argc,argv,  "--iidx",  10);
+
     //Camera params
     width               = utility::GetProgramOptionAsInt(argc,argv,  "--width",  640);
     height              = utility::GetProgramOptionAsInt(argc,argv,  "--height", 480);
@@ -82,7 +84,7 @@ Config::Config(int argc, char ** argv) {
 
     //Capture params
     capture_gps     = !(utility::ProgramOptionExists(argc, argv, "--no_gps"));
-    capture_imu     = utility::ProgramOptionExists(argc, argv, "--capture_imu");
+    capture_imu     = !(utility::ProgramOptionExists(argc, argv, "--no_imu"));
 
     make_fragments  = utility::ProgramOptionExists(argc, argv,   "--make_fragments");
 
@@ -105,8 +107,8 @@ Config::Config(int argc, char ** argv) {
     temp_d      = utility::GetProgramOptionAsDouble(argc,argv,   "--temp-d",     50);
 
     //Integration Params
-    tsdf_cubic_size = utility::GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic",      5.0);
-    tsdf_truncation = utility::GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.03);
+    tsdf_cubic_size = utility::GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic",      7.0);
+    tsdf_truncation = utility::GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.08);
 
     //RGBD Image params
     min_depth   = utility::GetProgramOptionAsDouble(argc,argv,   "--min_depth",      0.1);

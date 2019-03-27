@@ -13,6 +13,8 @@ public:
     int fps;
     int framestart;
 
+    int img_idx;
+
     bool capture_gps;
     bool capture_imu;
     bool make_fragments;
