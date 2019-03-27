@@ -125,10 +125,15 @@ Config::Config(int argc, char ** argv) {
 
     //DoN params
     don_downsample = utility::GetProgramOptionAsDouble(argc,argv, "--don_downsample", 0.02);
-    don_small = utility::GetProgramOptionAsDouble(argc,argv,      "--don_small",      0.03);
-    don_large = utility::GetProgramOptionAsDouble(argc,argv,      "--don_large",      0.5);
-    threshold_min = utility::GetProgramOptionAsDouble(argc,argv,  "--don_thresh_min", 0.032);
-    threshold_max = utility::GetProgramOptionAsDouble(argc,argv,  "--don_thresh_max", 0.1);
+
+    don_small = utility::GetProgramOptionAsDouble(argc,argv,      "--don_small",      0.04);
+    don_large = utility::GetProgramOptionAsDouble(argc,argv,      "--don_large",      0.4);
+
+    //threshold_min = utility::GetProgramOptionAsDouble(argc,argv,  "--don_thresh_min", 0.032);
+    //threshold_max = utility::GetProgramOptionAsDouble(argc,argv,  "--don_thresh_max", 0.1);
+
+    threshold_min = utility::GetProgramOptionAsDouble(argc,argv,  "--don_thresh_min", 0.0);
+    threshold_max = utility::GetProgramOptionAsDouble(argc,argv,  "--don_thresh_max", 0.9);
 
     //Cluster Params
     cluster_radius  = utility::GetProgramOptionAsDouble(argc,argv,   "--cluster_rad",  0.02);
