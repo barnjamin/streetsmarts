@@ -203,17 +203,17 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     capture_gps     = value.get( "gps", false).asBool();
     capture_imu     = value.get( "imu", false).asBool();
 
-    make_fragments  = value.get("make_fragments", false).asBool();
+    make_fragments  = value.get("make-fragments", false).asBool();
 
     //Post Processing
-    bool align_color_to_depth = value.get("align_color_to_depth", false).asBool();
+    bool align_color_to_depth = value.get("align-color-to-depth", false).asBool();
     if(align_color_to_depth){
         aligner = RS2_STREAM_DEPTH;
     }else{
         aligner = RS2_STREAM_COLOR;
     }
 
-    use_filter  = value.get("use_filter", false).asBool();
+    use_filter  = value.get("use-filter", false).asBool();
     dec_mag     = value.get("dec-mag",    1.0).asDouble();
 
     //Unused
@@ -224,40 +224,40 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     temp_d      = value.get("temp-d",     50).asDouble();
 
     //Integration Params
-    tsdf_cubic_size = value.get("tsdf_cubic",      7.0/depth_mult).asDouble();
-    tsdf_truncation = value.get("tsdf_truncation", 0.05/depth_mult).asDouble();
+    tsdf_cubic_size = value.get("tsdf-cubic",      7.0/depth_mult).asDouble();
+    tsdf_truncation = value.get("tsdf-truncation", 0.05/depth_mult).asDouble();
 
     //RGBD Image params
-    min_depth   = value.get("min_depth",      0.01/depth_mult).asDouble();
-    max_depth   = value.get("max_depth",      3.0/depth_mult).asDouble();
-    depth_factor= value.get("depth_factor",   1000*depth_mult).asDouble();
+    min_depth   = value.get("min-depth",      0.01/depth_mult).asDouble();
+    max_depth   = value.get("max-depth",      3.0/depth_mult).asDouble();
+    depth_factor= value.get("depth-factor",   1000*depth_mult).asDouble();
 
     //Odometry Params
-    use_imu             = value.get("use_imu", false).asBool();
+    use_imu             = value.get("use-imu", false).asBool();
     fragments           = value.get(  "fragments",          8).asInt();
-    frames_per_fragment = value.get(  "frames_per_fragment",30).asInt();
-    max_depth_diff      = value.get( "max_depth_diff",     0.007*depth_mult).asDouble();
-    loop_close_odom     = value.get( "loop_closure_odom",  0.2).asDouble();
+    frames_per_fragment = value.get(  "frames-per-fragment",30).asInt();
+    max_depth_diff      = value.get( "max-depth-diff",     0.007*depth_mult).asDouble();
+    loop_close_odom     = value.get( "loop-closure-odom",  0.2).asDouble();
     
     //Refine Params
-    registration_window_size= value.get("registration_window",        5).asInt();
+    registration_window_size= value.get("registration-window",        5).asInt();
 
-    loop_close_reg          = value.get("loop_closure_registration",  0.8).asDouble();
-    voxel_size              = value.get("voxel_size",                 0.005/depth_mult).asDouble();
+    loop_close_reg          = value.get("loop-closure-registration",  0.8).asDouble();
+    voxel_size              = value.get("voxel-size",                 0.005/depth_mult).asDouble();
 
     //DoN params
-    don_downsample = value.get("don_downsample", 0.02/depth_mult).asDouble();
+    don_downsample = value.get("don-downsample", 0.02/depth_mult).asDouble();
 
-    don_small = value.get("don_small",      0.04/depth_mult).asDouble();
-    don_large = value.get("don_large",      0.4/depth_mult).asDouble();
+    don_small = value.get("don-small",      0.04/depth_mult).asDouble();
+    don_large = value.get("don-large",      0.4/depth_mult).asDouble();
 
-    threshold_min = value.get("don_thresh_min", 0.01/depth_mult).asDouble();//, 0.032);
-    threshold_max = value.get("don_thresh_max", 0.9/depth_mult).asDouble();//, 0.1);
+    threshold_min = value.get("don-thresh-min", 0.01/depth_mult).asDouble();//, 0.032);
+    threshold_max = value.get("don-thresh-max", 0.9/depth_mult).asDouble();//, 0.1);
 
     //Cluster Params
-    cluster_radius  = value.get( "cluster_rad",  0.02/depth_mult).asDouble();
-    cluster_min     = value.get("cluster_min",  100).asInt();
-    cluster_max     = value.get("cluster_max",  10000).asInt();
+    cluster_radius  = value.get( "cluster-rad",  0.02/depth_mult).asDouble();
+    cluster_min     = value.get("cluster-min",  100).asInt();
+    cluster_max     = value.get("cluster-max",  10000).asInt();
 
 
     return true;
