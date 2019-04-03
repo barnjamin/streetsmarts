@@ -20,7 +20,11 @@ int main(int argc, char ** argv)
     Config conf(argc, argv);
 
     cuda::TransformCuda trans = cuda::TransformCuda::Identity();
-    cuda::ScalableTSDFVolumeCuda<8> tsdf_volume(10000, 200000, conf.tsdf_cubic_size / 512.0, conf.tsdf_truncation, trans);
+
+    float voxel_length = conf.tsdf_cubic_size / 512.0;
+
+    cuda::ScalableTSDFVolumeCuda<8> tsdf_volume(100000, 200000,
+            voxel_length, (float) conf.tsdf_truncation, trans);
 
     PoseGraph global_pose_graph;
     ReadPoseGraph(conf.PoseFileScene(), global_pose_graph);
@@ -33,7 +37,7 @@ int main(int argc, char ** argv)
 
     cuda::PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
 
-    cuda::RGBDImageCuda rgbd(conf.width, conf.height); //conf.max_depth);
+    cuda::RGBDImageCuda rgbd(conf.width, conf.height, conf.max_depth, conf.depth_factor);
     for(int fragment_id=0; fragment_id<conf.GetFragmentCount(); fragment_id++){
 
         PoseGraph local_pose_graph;
@@ -66,11 +70,11 @@ int main(int argc, char ** argv)
     PrintInfo("Getting subvolumes\n");
     tsdf_volume.GetAllSubvolumes();
 
-    PrintInfo("Creating mesher: %d\n", 
-        tsdf_volume.active_subvolume_entry_array().size());
+    PrintInfo("Active Subvolumes: %d\n", 
+            tsdf_volume.active_subvolume_entry_array().size());
     cuda::ScalableMeshVolumeCuda<8> mesher(
         tsdf_volume.active_subvolume_entry_array().size(),
-        cuda::VertexWithNormalAndColor, 20000000, 40000000);
+        cuda::VertexWithNormalAndColor, 10000000, 20000000);
 
     PrintInfo("Meshing\n");
     mesher.MarchingCubes(tsdf_volume);

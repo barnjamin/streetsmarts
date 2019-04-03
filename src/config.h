@@ -1,8 +1,10 @@
 #pragma once
 
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
+#include <json/json.h>
+#include <Open3D/Open3D.h>
 
-class Config {
+class Config : public open3d::utility::IJsonConvertible {
 public:
 
     float exposure;
@@ -12,6 +14,8 @@ public:
     int height;
     int fps;
     int framestart;
+    
+    int depth_mult;
 
     int img_idx;
 
@@ -78,6 +82,8 @@ public:
     Config(){}
     Config(int argc, char ** argv);
 
+    void CreateLocalSession();
+
     std::string GPSFile();
     std::string IMUFile();
     std::string IntrinsicFile();
@@ -99,5 +105,8 @@ public:
 
 
     virtual ~Config();    
+
+    bool ConvertToJsonValue(Json::Value &value) const override {};
+    bool ConvertFromJsonValue(const Json::Value &value) override;
 
 };

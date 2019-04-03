@@ -17,9 +17,13 @@ int main(int argc, char **argv) {
 
     int frames = conf.fragments * conf.frames_per_fragment;
     for(int i = conf.img_idx; i<frames*2; i+=2){
+
         geometry::Image depth, color;
+
         io::ReadImage(conf.DepthFile(i), depth);
         io::ReadImage(conf.ColorFile(i), color);
+
+        utility::PrintInfo("%d %f %f\n", i, conf.depth_factor, conf.max_depth);
 
         auto rgbd = geometry::CreateRGBDImageFromColorAndDepth(color, depth, 
                 conf.depth_factor, conf.max_depth, false);

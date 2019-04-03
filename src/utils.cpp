@@ -178,6 +178,48 @@ bool set_exposure(float val){
     return false;
 }
 
+bool set_roi(int xmax, int xmin, int ymax, int ymin){
+    auto dev = get_first_device();
+
+    rs2::region_of_interest roi;
+    roi.max_x = xmax;
+    roi.min_x = xmin;
+    roi.min_y = ymin;
+    roi.max_y = ymax;
+
+    auto cam = get_stereo_sensor(dev);
+    if(cam.is<rs2::roi_sensor>()){
+        cam.as<rs2::roi_sensor>().set_region_of_interest(roi);
+        return true;
+    }
+
+    return false;
+}
+
+bool set_depth_units(float val){
+    auto dev = get_first_device();
+    auto cam = get_stereo_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_DEPTH_UNITS)){
+        cam.set_option(RS2_OPTION_DEPTH_UNITS, val);
+        return true;
+    }
+    return false;
+}
+
+bool set_high_accuracy(){
+    auto dev = get_first_device();
+    auto cam = get_stereo_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_VISUAL_PRESET)){
+        cam.set_option(RS2_OPTION_VISUAL_PRESET, 
+                RS2_RS400_VISUAL_PRESET_HIGH_ACCURACY);
+        return true;
+    }
+
+    return false;
+}
+
 
 void WriteLossesToLog(std::ofstream &fout, int frame_idx, std::vector<std::vector<float>> &losses) 
 {

@@ -123,17 +123,17 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
     RGBDImageCuda rgbd_target(conf.width, conf.height, conf.max_depth, conf.depth_factor);
     RGBDImageCuda rgbd_source(conf.width, conf.height, conf.max_depth, conf.depth_factor);
 
+    RGBDOdometryCuda<3> odometry;
+    odometry.SetIntrinsics(intrinsic);
+    odometry.SetParameters(odometry::OdometryOption({20, 10, 5}, 
+                conf.max_depth_diff, conf.min_depth, conf.max_depth), 0.5f);
+
     utility::FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
 
     utility::PrintInfo("Starting to make fragments\n");
     for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
     {
         utility::PrintInfo("Fragment %d\n", fragment_idx);
-
-        RGBDOdometryCuda<3> odometry;
-        odometry.SetIntrinsics(intrinsic);
-        odometry.SetParameters(odometry::OdometryOption({20, 10, 5}, 
-                    conf.max_depth_diff, conf.min_depth, conf.max_depth), 0.5f);
 
         Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
         registration::PoseGraph pose_graph;
@@ -147,7 +147,7 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
         for(int i = 0; i < conf.frames_per_fragment; i++)
         {
 
-            int frame_idx = (conf.frames_per_fragment * fragment_idx) * i;
+            int frame_idx = (conf.frames_per_fragment * fragment_idx) + i;
 
             rs2::frame frame = q.wait_for_frame();
 
@@ -191,13 +191,14 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
 
             //Update Target to world
-            trans_odometry =  trans_odometry * trans;
+            trans_odometry =  trans * trans_odometry;
 
             Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
 
             //Update PoseGraph
             pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry_inv));
-            pose_graph.edges_.emplace_back(registration::PoseGraphEdge(i - 1, i, trans, information, false));
+            pose_graph.edges_.emplace_back(registration::PoseGraphEdge(i - 1, i, 
+                                            trans, information, false));
 
             //Integrate fragment
             tsdf_trans.FromEigen(trans_odometry);

@@ -51,7 +51,7 @@ int main(int argc, char ** argv)
     geoms.push_back(DoN);
 
     Eigen::Matrix4d side_by_side;
-    side_by_side << 1,0,0,10,
+    side_by_side << 1,0,0,1,
                     0,1,0,0,
                     0,0,1,0,
                     0,0,0,1;

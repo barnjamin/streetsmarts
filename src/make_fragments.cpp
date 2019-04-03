@@ -78,7 +78,7 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
 
         // source_to_target * world_to_source = world_to_target
-        trans_odometry =   trans * trans_odometry ;
+        trans_odometry =   trans * trans_odometry;
 
         // target_to_world
         Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
@@ -119,7 +119,8 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
     TransformCuda trans = TransformCuda::Identity();
-    ScalableTSDFVolumeCuda<8> tsdf_volume( 20000, 400000, voxel_length, (float) config.tsdf_truncation, trans);
+    ScalableTSDFVolumeCuda<8> tsdf_volume( 20000, 400000, 
+            voxel_length, (float) config.tsdf_truncation, trans);
 
     RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
 
@@ -140,7 +141,11 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     }
 
     tsdf_volume.GetAllSubvolumes();
-    ScalableMeshVolumeCuda<8> mesher( tsdf_volume.active_subvolume_entry_array().size(), VertexWithNormalAndColor, 10000000, 20000000);
+
+    ScalableMeshVolumeCuda<8> mesher( 
+            tsdf_volume.active_subvolume_entry_array().size(), 
+            VertexWithNormalAndColor, 10000000, 20000000);
+
     mesher.MarchingCubes(tsdf_volume);
     auto mesh = mesher.mesh().Download();
 

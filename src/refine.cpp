@@ -10,7 +10,7 @@
 #include <Open3D/Registration/GlobalOptimization.h>
 #include <Open3D/Registration/GlobalOptimizationMethod.h>
 
-
+#include "utils.h"
 #include "config.h"
 
 using namespace open3d;
@@ -51,9 +51,9 @@ std::vector<Match> RegisterFragments(Config &config) {
 
         std::cout << init_source_to_target << std::endl;
 
-        std::tie(start, stop) = GetWindow(s, frag_count, config.registration_window_size);
-        for (int t = start; t < stop; t++) {
-        //for (int t = s+1; t < frag_count; t++) {
+        //std::tie(start, stop) = GetWindow(s, frag_count, config.registration_window_size);
+        //for (int t = start; t < stop; t++) {
+        for (int t = s+1; t < frag_count; t++) {
             auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
             auto target = VoxelDownSample(*target_raw, config.voxel_size);
 
@@ -69,6 +69,7 @@ std::vector<Match> RegisterFragments(Config &config) {
 
                 match.trans_source_to_target = registration.transform_source_to_target_;
 
+                //VisualizeRegistration(*source, *target, registration.transform_source_to_target_);
                 match.information = registration.ComputeInformationMatrix();
 
                 match.success = true;

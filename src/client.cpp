@@ -10,7 +10,24 @@
 
 int main(int argc, char * argv[]) try
 {
-    Config conf(argc, argv);
+
+    open3d::utility::SetVerbosityLevel(open3d::utility::VerbosityLevel::VerboseAlways);
+
+    Config conf;
+    // Assume json
+    if(argc==2){
+        std::string config_path = argv[1];
+        if(!open3d::io::ReadIJsonConvertible(config_path, conf)) {
+            open3d::utility::PrintError("Failed to read config\n");
+            return 1;
+        }
+    }else{
+        conf = Config(argc, argv);
+    }
+
+    open3d::utility::PrintInfo("Starting..\n");
+
+    conf.CreateLocalSession();
 
     Pose pose(conf.fps);
 
@@ -41,7 +58,7 @@ int main(int argc, char * argv[]) try
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
-    //cfg.enable_stream(RS2_STREAM_INFRARED, conf.width, conf.height, RS2_FORMAT_Y8, conf.fps);
+    cfg.enable_stream(RS2_STREAM_INFRARED, conf.width, conf.height, RS2_FORMAT_Y8, conf.fps);
 
     if(conf.capture_imu){
         cfg.enable_stream(RS2_STREAM_ACCEL);
