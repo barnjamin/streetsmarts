@@ -94,7 +94,7 @@ target_link_libraries(analyze ${DEPENDENCIES})
 #add_executable(capture_frames ${CAPTURE_SOURCE})
 #target_link_libraries(capture_frames ${DEPENDENCIES})
 
-set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose.cpp src/gps.hpp)
+set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose.cpp src/gps.hpp  src/fragments.hpp)
 add_executable(client ${CLIENT_SOURCE})
 target_link_libraries(client ${DEPENDENCIES})
 
@@ -107,7 +107,7 @@ target_link_libraries(client ${DEPENDENCIES})
 #add_executable(poser ${POSER_SOURCE})
 #target_link_libraries(poser ${DEPENDENCIES})
 
-set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp)
+set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
 add_executable(make_fragments ${FRAGMENT_SOURCE})
 target_link_libraries(make_fragments ${DEPENDENCIES})
 

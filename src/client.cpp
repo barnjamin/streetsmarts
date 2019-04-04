@@ -11,7 +11,7 @@
 int main(int argc, char * argv[]) try
 {
 
-    open3d::utility::SetVerbosityLevel(open3d::utility::VerbosityLevel::VerboseAlways);
+    //open3d::utility::SetVerbosityLevel(open3d::utility::VerbosityLevel::VerboseAlways);
 
     Config conf;
     // Assume json
@@ -71,7 +71,6 @@ int main(int argc, char * argv[]) try
         else imu_q.enqueue(frame); 
     });
 
-
     std::atomic<bool> running(true);
     if(conf.capture_imu){
         imu_thread = std::thread(record_imu, conf, std::ref(running), imu_q);
@@ -79,6 +78,9 @@ int main(int argc, char * argv[]) try
 
     if(conf.make_fragments){
         img_thread = std::thread(make_fragments, conf, profile, img_q);
+
+        // Kick off thread to watch posegraph dir
+        // on new file, optimize pg and create fragment
     }else{
         img_thread = std::thread(record_img, conf, profile, img_q);
     }

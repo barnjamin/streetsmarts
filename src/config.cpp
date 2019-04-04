@@ -166,13 +166,13 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     }
 
     session_path = value.get("session", "").asString();
-    session_prefix = value.get("session_prefix", "").asString();
+    session_prefix = value.get("session-prefix", "").asString();
 
     if (session_path == "latest"){
         session_path =  "/home/ben/local-sessions/latest";
     }
 
-    depth_mult = value.get("depth_mult", 10).asInt();
+    depth_mult = value.get("depth-mult", 10).asInt();
 
     if(value.get("high_accuracy", false).asBool()){
         set_depth_units(0.001/depth_mult);
@@ -289,7 +289,7 @@ std::string Config::FragmentFile(int idx)
 {
     std::stringstream ss;
     ss << session_path <<  "/fragment/";
-    ss << std::setw(5) << std::setfill('0') << idx << ".ply";
+    ss << std::setw(5) << std::setfill('0') << idx << ".pcd";
     return ss.str();
 }
 

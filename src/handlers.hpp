@@ -9,6 +9,9 @@
 #include <Cuda/Open3DCuda.h>
 #include "config.h"
 #include "utils.h"
+#include "fragments.hpp"
+
+void optimize_and_integrate(int idx, Config conf);
 
 void record_imu(Config conf, std::atomic<bool>& running, rs2::frame_queue q) {
     std::ofstream imu_file;
@@ -63,19 +66,6 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 
         if(conf.use_filter){ depth_frame = conf.Filter(depth_frame); }
 
-        //infra_frame = fs.get_infrared_frame();
-        //bool emitter_on = true;
-        //if(depth_frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER_MODE)){
-        //    std::cout << "It supports it" << std::endl;
-        //    emitter_on = depth_frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER_MODE);
-        //    if(!emitter_on){
-        //        std::cout << "Emitter off, saving infra" << std::endl;
-        //        memcpy(infra_image->data_.data(), infra_frame.get_data(), conf.width * conf.height);
-        //        open3d::WriteImage(conf.InfraFile(img_idx), *infra_image);
-        //    }
-        //}
-
-
         memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
@@ -110,6 +100,7 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
+    std::thread make_fragments;
 
     auto depth_image = std::make_shared<geometry::Image>();
     auto color_image = std::make_shared<geometry::Image>();
@@ -138,11 +129,6 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
         Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
         registration::PoseGraph pose_graph;
         pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
-
-        float voxel_length = conf.tsdf_cubic_size / 512.0;
-        TransformCuda tsdf_trans = TransformCuda::Identity();
-        ScalableTSDFVolumeCuda<8> tsdf_volume(20000, 400000, voxel_length, 
-                conf.tsdf_truncation, tsdf_trans);
 
         for(int i = 0; i < conf.frames_per_fragment; i++)
         {
@@ -200,10 +186,6 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             pose_graph.edges_.emplace_back(registration::PoseGraphEdge(i - 1, i, 
                                             trans, information, false));
 
-            //Integrate fragment
-            tsdf_trans.FromEigen(trans_odometry);
-            tsdf_volume.Integrate(rgbd_source, cuda_intrinsic, tsdf_trans);
-            
             //Overwrite previous
             rgbd_target.CopyFrom(rgbd_source);
 
@@ -214,22 +196,24 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
         }
         io::WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
 
-        //Generate Mesh and write to disk
-        tsdf_volume.GetAllSubvolumes();
+        //Make sure we've finished the last one
+        if(fragment_idx > 0){
+            utility::PrintInfo("Waiting for: %d\n", fragment_idx-1);
+            make_fragments.join();
+            utility::PrintInfo("Finished waiting for: %d\n", fragment_idx-1);
+        }
 
-        ScalableMeshVolumeCuda<8> mesher(
-                tsdf_volume.active_subvolume_entry_array().size(), 
-                VertexWithNormalAndColor, 10000000, 20000000);
-
-        mesher.MarchingCubes(tsdf_volume);
-        auto mesh = mesher.mesh().Download();
-
-        geometry::PointCloud pcl;
-        pcl.points_ = mesh->vertices_;
-        pcl.normals_= mesh->vertex_normals_;
-        pcl.colors_ = mesh->vertex_colors_;
-
-        io::WritePointCloudToPLY(conf.FragmentFile(fragment_idx), pcl); 
+        //Kick off thread to optimize pg and create fragment
+        make_fragments = std::thread(optimize_and_integrate, fragment_idx, conf);
     }
+
+    //Wait for the last one before returning
+    make_fragments.join();
 }
 
+void optimize_and_integrate(int idx, Config conf) {
+    utility::PrintInfo("Starting thread for: %d\n", idx);
+    OptimizePoseGraphForFragment(idx, conf);
+    IntegrateForFragment(idx, conf);
+    utility::PrintInfo("Finishing thread for: %d\n", idx);
+}
