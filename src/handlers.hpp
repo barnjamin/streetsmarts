@@ -11,8 +11,6 @@
 #include "utils.h"
 #include "fragments.hpp"
 
-void optimize_and_integrate(int idx, Config conf);
-
 void record_imu(Config conf, std::atomic<bool>& running, rs2::frame_queue q) {
     std::ofstream imu_file;
     imu_file.open(conf.IMUFile());
@@ -81,7 +79,8 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 }
 
 
-void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) {
+void make_posegraph(Config conf, rs2::pipeline_profile profile, 
+                        rs2::frame_queue q, std::queue<int> &pg_queue) {
     using namespace open3d;
     using namespace open3d::cuda;
 
@@ -99,8 +98,6 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
 
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
-
-    std::thread make_fragments;
 
     auto depth_image = std::make_shared<geometry::Image>();
     auto color_image = std::make_shared<geometry::Image>();
@@ -195,25 +192,24 @@ void make_fragments(Config conf, rs2::pipeline_profile profile, rs2::frame_queue
             timer.Signal();
         }
         io::WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
-
-        //Make sure we've finished the last one
-        if(fragment_idx > 0){
-            utility::PrintInfo("Waiting for: %d\n", fragment_idx-1);
-            make_fragments.join();
-            utility::PrintInfo("Finished waiting for: %d\n", fragment_idx-1);
-        }
-
-        //Kick off thread to optimize pg and create fragment
-        make_fragments = std::thread(optimize_and_integrate, fragment_idx, conf);
+        pg_queue.push(fragment_idx);
     }
 
-    //Wait for the last one before returning
-    make_fragments.join();
 }
 
-void optimize_and_integrate(int idx, Config conf) {
-    utility::PrintInfo("Starting thread for: %d\n", idx);
-    OptimizePoseGraphForFragment(idx, conf);
-    IntegrateForFragment(idx, conf);
-    utility::PrintInfo("Finishing thread for: %d\n", idx);
+void make_fragments(Config conf, std::queue<int> &pg_queue, std::atomic<bool>& running) {
+    utility::PrintInfo("hi im in this thread\n");
+    while(running){
+        while (!pg_queue.empty()) {
+            int idx = pg_queue.front();
+            utility::PrintInfo("hey i got: %d\n", idx);
+            OptimizePoseGraphForFragment(idx, conf);
+            IntegrateForFragment(idx, conf);
+            pg_queue.pop();
+        }
+
+        //Sleep for a bit 
+        usleep(1000);
+    }
+    utility::PrintInfo("hi im leaving this thread\n");
 }

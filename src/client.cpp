@@ -1,6 +1,6 @@
 #include <librealsense2/rs.hpp> 
 #include <thread>
-
+#include <queue>
 #include <atomic>
 #include <Open3D/Open3D.h>
 #include "gps.hpp"
@@ -48,12 +48,10 @@ int main(int argc, char * argv[]) try
 
     rs2::pipeline pipe;
 
-
     rs2::frame_queue imu_q;
     rs2::frame_queue img_q;
 
     std::thread imu_thread;
-    std::thread img_thread;
 
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
@@ -76,14 +74,12 @@ int main(int argc, char * argv[]) try
         imu_thread = std::thread(record_imu, conf, std::ref(running), imu_q);
     }
 
-    if(conf.make_fragments){
-        img_thread = std::thread(make_fragments, conf, profile, img_q);
 
-        // Kick off thread to watch posegraph dir
-        // on new file, optimize pg and create fragment
-    }else{
-        img_thread = std::thread(record_img, conf, profile, img_q);
-    }
+    std::queue<int>  pg_queue;
+    std::queue<int>  frag_queue;
+
+    std::thread img_thread(make_posegraph, conf, profile, img_q, std::ref(pg_queue));
+    std::thread frag_thread(make_fragments, conf, std::ref(pg_queue), std::ref(running));
 
     open3d::utility::PrintInfo("Kicked off threads, waiting for finish\n");
 
@@ -91,21 +87,21 @@ int main(int argc, char * argv[]) try
 
     open3d::utility::PrintInfo("Finished capturing images\n");
 
-    if(conf.capture_imu) {
-        running = false;
-        imu_thread.join();
+    running = false;
+
+    if(conf.capture_gps) {
+        gps.Stop();
+        gps_thread.join();
     }
+
+    if(conf.capture_imu) imu_thread.join();
 
     pipe.stop();
 
     open3d::utility::PrintInfo("Stopped pipeline\n");
 
 
-
-    if(conf.capture_gps) {
-        gps.Stop();
-        gps_thread.join();
-    }
+    frag_thread.join();
 
     open3d::utility::PrintInfo("Cleaned up\n");
 
