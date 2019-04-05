@@ -84,6 +84,8 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     using namespace open3d;
     using namespace open3d::cuda;
 
+    rs2::frameset frameset;
+    rs2::frame color_frame, depth_frame;
     rs2::align align(conf.aligner);
 
     std::ofstream timestamp_file;
@@ -94,35 +96,27 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 
     PinholeCameraIntrinsicCuda cuda_intrinsic(intrinsic);
 
-    utility::PrintInfo("Discarding first %d frames\n", conf.framestart);
-
-    //Discard first $framestart frames
-    for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
-
     auto depth_image = std::make_shared<geometry::Image>();
     auto color_image = std::make_shared<geometry::Image>();
 
     depth_image->PrepareImage(conf.width, conf.height, 1, 2);
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
 
-    rs2::frameset frameset;
-    rs2::frame color_frame, depth_frame;
-
-    RGBDImageCuda rgbd_target(conf.width, conf.height, conf.max_depth, conf.depth_factor);
-    RGBDImageCuda rgbd_source(conf.width, conf.height, conf.max_depth, conf.depth_factor);
-
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsic);
     odometry.SetParameters(odometry::OdometryOption({20, 10, 5}, 
                 conf.max_depth_diff, conf.min_depth, conf.max_depth), 0.5f);
 
+    RGBDImageCuda rgbd_target(conf.width, conf.height, conf.max_depth, conf.depth_factor);
+    RGBDImageCuda rgbd_source(conf.width, conf.height, conf.max_depth, conf.depth_factor);
+
+    //Discard first $framestart frames
+    for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
+
     utility::FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
 
-    utility::PrintInfo("Starting to make fragments\n");
     for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
     {
-        utility::PrintInfo("Fragment %d\n", fragment_idx);
-
         Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
         registration::PoseGraph pose_graph;
         pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
@@ -130,9 +124,9 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
         for(int i = 0; i < conf.frames_per_fragment; i++)
         {
 
-            int frame_idx = (conf.frames_per_fragment * fragment_idx) + i;
-
             rs2::frame frame = q.wait_for_frame();
+
+            int frame_idx = (conf.frames_per_fragment * fragment_idx) + i;
 
             //Get processed aligned frame
             frameset = align.process(frame.as<rs2::frameset>());
@@ -198,11 +192,10 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 }
 
 void make_fragments(Config conf, std::queue<int> &pg_queue, std::atomic<bool>& running) {
-    utility::PrintInfo("hi im in this thread\n");
+
     while(running){
         while (!pg_queue.empty()) {
             int idx = pg_queue.front();
-            utility::PrintInfo("hey i got: %d\n", idx);
             OptimizePoseGraphForFragment(idx, conf);
             IntegrateForFragment(idx, conf);
             pg_queue.pop();
@@ -211,5 +204,4 @@ void make_fragments(Config conf, std::queue<int> &pg_queue, std::atomic<bool>& r
         //Sleep for a bit 
         usleep(1000);
     }
-    utility::PrintInfo("hi im leaving this thread\n");
 }
