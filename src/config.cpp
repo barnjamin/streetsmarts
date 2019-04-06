@@ -4,6 +4,7 @@
 
 #include <json/json.h>
 #include <librealsense2/rs.hpp>
+#include <librealsense2/rsutil.h>
 
 #include <Open3D/Open3D.h>
 
@@ -40,6 +41,27 @@ std::string generate_local_session(std::string prefix) {
 }
 
 Config::~Config() { }
+
+float Config::GetInvalidDepth(rs2::depth_frame depth_frame, rs2_intrinsics& intrinsics) {
+    rs2::disparity_frame disp_frame = depth_to_disparity.process(depth_frame);
+    float baseline = disp_frame.get_baseline();
+    
+    //TODO, why?
+    float distance = 2000; // mm
+
+    std::array<float, 2> fov;
+    rs2_fov( &intrinsics, &fov[0] );
+    float horizontal_fov = fov[0] * M_PI / 180.0; // radian
+
+    // DBR
+    float distance_band_ratio = baseline / std::floor( 2.0 * distance * std::tan( horizontal_fov / 2.0 ) );
+
+    // IDB
+    uint32_t depth_width = depth_frame.get_width();
+    float invalid_depth_band = depth_width * distance_band_ratio;
+
+    return invalid_depth_band * 2;
+}
 
 Config::Config(int argc, char ** argv) {
     using namespace open3d;

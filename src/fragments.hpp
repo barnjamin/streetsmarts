@@ -6,6 +6,14 @@
 #include <iostream>
 #include <csignal>
 
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <bitset>
+#include <fstream>
+#include <ublox/ublox.h>
+#include <mutex>
+
 #include <Open3D/Open3D.h>
 #include <Cuda/Open3DCuda.h>
 
@@ -29,6 +37,66 @@ using namespace open3d::io;
 using namespace open3d::camera;
 using namespace cv;
 using namespace std;
+
+void MakePoseGraphForFragmentTester(int fragment_id, Config &config) {
+
+    PinholeCameraIntrinsic intrinsic;
+    ReadIJsonConvertible(config.IntrinsicFile(), intrinsic);
+
+    RGBDOdometryCuda<3> odometry;
+    odometry.SetIntrinsics(intrinsic);
+    odometry.SetParameters(OdometryOption({20, 10, 5},
+                                          config.max_depth_diff,
+                                          config.min_depth,
+                                          config.max_depth), 0.5f);
+
+    Image depth, color;
+
+    // world_to_source
+    Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
+    registration::PoseGraph pose_graph;
+    pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
+
+    RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
+    RGBDImageCuda rgbd_target(config.width, config.height, config.max_depth, config.depth_factor);
+    for (int s = 0; s < config.frames_per_fragment; s++) {
+
+        int src_frame_idx = (fragment_id * config.frames_per_fragment) + s;
+        int tgt_frame_idx = src_frame_idx+1;
+
+        ReadImage(config.DepthFile(src_frame_idx), depth);
+        ReadImage(config.ColorFile(src_frame_idx), color);
+        rgbd_target.Upload(depth, color);
+
+        if(s==0){
+            rgbd_source.CopyFrom(rgbd_source);
+            continue;
+        }
+
+        PrintInfo("RGBD Odometry between (%d %d)\n", src_frame_idx, tgt_frame_idx);
+
+        odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+        odometry.Initialize(rgbd_source, rgbd_target);
+        odometry.ComputeMultiScale();
+
+        Eigen::Matrix4d trans = odometry.transform_source_to_target_;
+        Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
+
+        // source_to_target * world_to_source = world_to_target
+        trans_odometry =   trans * trans_odometry;
+
+        // target_to_world
+        Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
+
+        pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
+        pose_graph.edges_.emplace_back(PoseGraphEdge( 
+                    s-1, s, trans, information, false));
+
+        rgbd_source.CopyFrom(rgbd_target);
+    }
+
+    WritePoseGraph(config.PoseFile(fragment_id), pose_graph);
+}
 
 void MakePoseGraphForFragment(int fragment_id, Config &config) {
 
@@ -68,6 +136,7 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         rgbd_target.Upload(depth, color);
 
         PrintInfo("RGBD Odometry between (%d %d)\n", src_frame_idx, tgt_frame_idx);
+
         odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
         odometry.Initialize(rgbd_source, rgbd_target);
         odometry.ComputeMultiScale();
@@ -123,7 +192,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
 
     for (int i = 0; i < config.frames_per_fragment; i++) {
-        PrintDebug("Integrating frame %d ...\n", i);
+        PrintInfo("Integrating frame %d ...\n", i);
 
         Image depth, color;
         int frame_idx = (config.frames_per_fragment * fragment_id)+i;

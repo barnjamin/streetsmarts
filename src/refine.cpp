@@ -69,40 +69,20 @@ std::vector<Match> RegisterFragments(Config &config) {
 
                 match.trans_source_to_target = registration.transform_source_to_target_;
 
-                //VisualizeRegistration(*source, *target, registration.transform_source_to_target_);
                 match.information = registration.ComputeInformationMatrix();
-
                 match.success = true;
             } else {
-                //PrintInfo("FGR");
                 //cuda::FastGlobalRegistrationCuda fgr;
                 //fgr.Initialize(*source, *target);
 
                 //auto result = fgr.ComputeRegistration();
                 //match.trans_source_to_target = result.transformation_;
 
-                ///**!!! THIS SHOULD BE REFACTORED !!!**/
-                //cuda::RegistrationCuda registration(
-                //    TransformationEstimationType::PointToPoint);
-                //auto source_copy = *source;
+                //match.information = cuda::RegistrationCuda::ComputeInformationMatrix(
+                //    *source, *target, config.voxel_size * 1.4f, result.transformation_);
 
-                //source_copy.Transform(result.transformation_);
-                //registration.Initialize(source_copy, *target,
-                //                        config.voxel_size * 1.4f);
-                //registration.transform_source_to_target_ = result.transformation_;
-
-                //match.information = registration.ComputeInformationMatrix();
-
-                //match.success = match.trans_source_to_target.trace() != 4.0
-                //    && match.information(5, 5) /
-                //        std::min(source->points_.size(),
-                //                 target->points_.size()) >= 0.3;
-                //if (match.success) {
-                //    PrintInfo("Global registration (%d %d) computed\n",
-                //               match.s, match.t);
-                //} else {
-                //    PrintInfo("Skip (%d %d).\n", match.s, match.t);
-                //}
+                //match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
+                //        std::min(source->points_.size(), target->points_.size()) >= 0.3;
             }
 
             matches.push_back(match);

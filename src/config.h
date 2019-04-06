@@ -1,6 +1,7 @@
 #pragma once
 
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
+#include <librealsense2/rsutil.h> // Include RealSense Cross Platform API
 #include <json/json.h>
 #include <Open3D/Open3D.h>
 
@@ -78,7 +79,6 @@ public:
     rs2::disparity_transform depth_to_disparity;
     rs2::disparity_transform disparity_to_depth;
 
-
     Config(){}
     Config(int argc, char ** argv);
 
@@ -103,6 +103,7 @@ public:
 
     int GetFragmentCount();
 
+    float GetInvalidDepth(rs2::depth_frame, rs2_intrinsics&);
 
     virtual ~Config();    
 

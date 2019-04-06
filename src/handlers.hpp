@@ -44,7 +44,7 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     std::ofstream timestamp_file;
     timestamp_file.open(conf.ImageTimestampFile());
 
-    open3d::camera::PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
+    open3d::camera::PinholeCameraIntrinsic intrinsic = get_open3d_intrinsic(profile);
     open3d::io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
 
     //Discard first $framestart frames
@@ -78,7 +78,6 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     }
 }
 
-
 void make_posegraph(Config conf, rs2::pipeline_profile profile, 
                         rs2::frame_queue q, std::queue<int> &pg_queue) {
     using namespace open3d;
@@ -91,7 +90,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     std::ofstream timestamp_file;
     timestamp_file.open(conf.ImageTimestampFile());
 
-    camera::PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
+    camera::PinholeCameraIntrinsic intrinsic = get_open3d_intrinsic(profile);
     io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
 
     PinholeCameraIntrinsicCuda cuda_intrinsic(intrinsic);
@@ -145,22 +144,19 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
                 << color_frame.get_timestamp()  << "," << get_timestamp() << std::endl;
 
             //Upload images to GPU
-            rgbd_source.Upload(*depth_image, *color_image);
+            rgbd_target.Upload(*depth_image, *color_image);
 
             std::thread write_depth(io::WriteImage, conf.DepthFile(frame_idx), *depth_image, 100);
             std::thread write_color(io::WriteImage, conf.ColorFile(frame_idx), *color_image, 100);
 
             if(i==0) { 
-                rgbd_target.CopyFrom(rgbd_source); 
+                rgbd_source.CopyFrom(rgbd_target); 
                 write_depth.join();
                 write_color.join();
                 continue; 
             }
 
-            //Reset Odometry transform
             odometry.transform_source_to_target_ =  Eigen::Matrix4d::Identity();
-
-            //Initialize odometry with current and previous images
             odometry.Initialize(rgbd_source, rgbd_target);
             odometry.ComputeMultiScale();
 
@@ -178,7 +174,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
                                             trans, information, false));
 
             //Overwrite previous
-            rgbd_target.CopyFrom(rgbd_source);
+            rgbd_source.CopyFrom(rgbd_target);
 
             write_depth.join();
             write_color.join();

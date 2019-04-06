@@ -5,8 +5,13 @@
 #include <Cuda/Open3DCuda.h>
 
 
+#include <array>
+#include <cmath>
+
 #include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp> 
+#include <librealsense2/rsutil.h>
+
 #include "utils.h" 
 #include "pose.h"
 #include "config.h"
@@ -27,59 +32,54 @@ int main(int argc, char * argv[]) try
     std::cout << "Writing to " << conf.session_path<<std::endl;
 
     PrintInfo("Initializing camera...\n");
-    rs2::pipeline pipe;
+    rs2::pipeline pipeline;
     rs2::config cfg;
-    rs2::frameset frameset;
-    rs2::frame color_frame, depth_frame;
-    rs2_vector accel_data, gyro_data;
+    rs2::colorizer color_map;
 
     rs2::align align(RS2_STREAM_COLOR);
 
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
-    cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
-    cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
 
-    rs2::pipeline_profile profile = pipe.start(cfg);
+    rs2::pipeline_profile pipeline_profile = pipeline.start(cfg);
 
-    PrintInfo("Saving intrinsic\n");
-    camera::PinholeCameraIntrinsic intrinsic = get_intrinsics(profile);
-    io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
+    for(int i=0; i<conf.framestart; i++) pipeline.wait_for_frames(); 
+
+    // BaseLine
+    rs2::frameset frameset = pipeline.wait_for_frames();
+    rs2::depth_frame depth_frame = frameset.get_depth_frame();
+
+    auto intrin = get_color_intrinsic(pipeline_profile);
+
+    auto invalid_depth_band = conf.GetInvalidDepth(depth_frame, intrin);
+
+    cv::Mat df = frame_to_mat(depth_frame);
+
+    auto cmap = frame_to_mat(color_map.process(depth_frame));
 
 
-    auto depth_image = std::make_shared<geometry::Image>();
-    auto color_image = std::make_shared<geometry::Image>();
-    depth_image->PrepareImage(conf.width, conf.height, 1, 2);
-    color_image->PrepareImage(conf.width, conf.height, 3, 1);
+    cv::Rect invalid(0, 0, invalid_depth_band*2, conf.height);
+    cv::rectangle(cmap, invalid, cv::Scalar(0,0,0), CV_FILLED, 8, 0);
 
-    FPSTimer timer("Process RGBD stream", conf.fragments * conf.frames_per_fragment);
+    cv::imshow("raw", df);
+    cv::imshow("mapped", cmap);
 
-    PrintInfo("Discarding first %d frames\n", conf.framestart);
-    for(int i=0; i<conf.framestart; i++) rs2::frameset frameset = pipe.wait_for_frames(); 
+    cv::waitKey(0);
 
-    PrintInfo("Starting to read frames...");
-    for(int i = 0; i < conf.fragments * conf.frames_per_fragment; ++i)
-    {
-        frameset = pipe.wait_for_frames();
+    //PrintInfo("Starting to read frames...");
+    //for(int i = 0; i < conf.fragments * conf.frames_per_fragment; ++i)
+    //{
+    //    frameset = pipe.wait_for_frames();
 
-        //Get processed aligned frame
-        frameset = align.process(frameset);
+    //    //Get processed aligned frame
+    //    frameset = align.process(frameset);
 
-        color_frame = frameset.first(RS2_STREAM_COLOR);
-        depth_frame = frameset.get_depth_frame();	       
+    //    color_frame = frameset.first(RS2_STREAM_COLOR);
+    //    depth_frame = frameset.get_depth_frame();	       
 
-        if (!depth_frame || !color_frame) { continue; }
 
-        if(conf.use_filter){ depth_frame = conf.Filter(depth_frame); }
 
-        memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
-        memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
-
-        WriteImage(conf.DepthFile(i), *depth_image);
-        WriteImage(conf.ColorFile(i), *color_image);
-
-        timer.Signal();
-    }
+    //}
 
     return EXIT_SUCCESS;
 

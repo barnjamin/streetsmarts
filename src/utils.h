@@ -22,7 +22,12 @@ unsigned long get_timestamp();
 
 cv::Mat     frame_to_mat(const rs2::frame& f);
 float       get_depth_scale(rs2::device dev);
-open3d::camera::PinholeCameraIntrinsic   get_intrinsics(rs2::pipeline_profile); 
+
+open3d::camera::PinholeCameraIntrinsic   get_open3d_intrinsic(rs2::pipeline_profile); 
+rs2_intrinsics get_depth_intrinsic(rs2::pipeline_profile); 
+rs2_intrinsics get_color_intrinsic(rs2::pipeline_profile); 
+
+
 Eigen::Matrix4d imu_extrinsic(rs2::pipeline_profile);
 void VisualizeRegistration(const open3d::geometry::PointCloud &source, 
                             const open3d::geometry::PointCloud &target, 

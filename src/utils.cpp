@@ -66,16 +66,29 @@ cv::Mat frame_to_mat(const rs2::frame& f)
 	throw std::runtime_error("Frame format is not supported yet!");
 }
 
-open3d::camera::PinholeCameraIntrinsic get_intrinsics(rs2::pipeline_profile prof)
+
+open3d::camera::PinholeCameraIntrinsic get_open3d_intrinsic(rs2::pipeline_profile prof) {
+
+    auto intrin = get_color_intrinsic(prof);
+
+    return open3d::camera::PinholeCameraIntrinsic(intrin.width, intrin.height,
+                intrin.fx, intrin.fy, intrin.ppx, intrin.ppy);
+}
+
+rs2_intrinsics get_depth_intrinsic(rs2::pipeline_profile prof)
 {
     auto depth_stream = prof.get_stream(RS2_STREAM_DEPTH)
                                  .as<rs2::video_stream_profile>();
-    auto intrin = depth_stream.get_intrinsics();
 
-    open3d::camera::PinholeCameraIntrinsic intrinsics(depth_stream.width(), depth_stream.height(), 
-            intrin.fx, intrin.fy, intrin.ppx, intrin.ppy);
+    return depth_stream.get_intrinsics();
+}
 
-    return intrinsics;
+rs2_intrinsics get_color_intrinsic(rs2::pipeline_profile prof)
+{
+    auto stream = prof.get_stream(RS2_STREAM_COLOR)
+                                 .as<rs2::video_stream_profile>();
+
+    return stream.get_intrinsics();
 }
 
 Eigen::Matrix4d imu_extrinsic(rs2::pipeline_profile prof) 
