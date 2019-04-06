@@ -192,7 +192,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
 
     for (int i = 0; i < config.frames_per_fragment; i++) {
-        PrintInfo("Integrating frame %d ...\n", i);
+        PrintDebug("Integrating frame %d ...\n", i);
 
         Image depth, color;
         int frame_idx = (config.frames_per_fragment * fragment_id)+i;
