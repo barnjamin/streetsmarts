@@ -17,6 +17,10 @@ unsigned long get_timestamp() {
     return std::chrono::system_clock::now().time_since_epoch() / std::chrono::milliseconds(1);
 }
 
+void PrintStatus(std::string kind, int state, int total) {
+    std::cout << kind << ":" <<state << ":" << total << std::endl;
+}
+
 void VisualizeRegistration(const open3d::geometry::PointCloud &source,
                            const open3d::geometry::PointCloud &target,
                            const Eigen::Matrix4d &Transformation) {

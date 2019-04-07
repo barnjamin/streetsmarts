@@ -60,27 +60,19 @@ void IntegrateScene(Config conf){
             //trans.FromEigen(pose.inverse());
             trans.FromEigen(pose);
 
-            PrintDebug("Integrating %d and %d\n", fragment_id, img_id);
-
             tsdf_volume.Integrate(rgbd, intrinsic, trans);
+            PrintStatus("INTEGRATE", frame_idx, (conf.frames_per_fragment * conf.fragments));
         }
     }
 
-    PrintDebug("Getting subvolumes\n");
     tsdf_volume.GetAllSubvolumes();
-
-    PrintDebug("Active Subvolumes: %d\n", 
-            tsdf_volume.active_subvolume_entry_array().size());
     ScalableMeshVolumeCuda<8> mesher(
         tsdf_volume.active_subvolume_entry_array().size(),
         VertexWithNormalAndColor, 10000000, 20000000);
 
-    PrintDebug("Meshing\n");
     mesher.MarchingCubes(tsdf_volume);
 
-    PrintDebug("Downloading\n");
     auto mesh = mesher.mesh().Download();
 
-    PrintDebug("Writing\n");
     WriteTriangleMeshToPLY(conf.SceneMeshFile(), *mesh);
 }

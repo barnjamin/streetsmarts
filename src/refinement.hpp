@@ -41,7 +41,6 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
         started = true;
 
         if(!frag_queue.empty()){
-            PrintInfo("Creating point cloud for: %d\n", frag_queue.front());
             auto pcd_raw = CreatePointCloudFromFile(config.FragmentFile(frag_queue.front()));
             auto pcd = VoxelDownSample(*pcd_raw,config.voxel_size);
 
@@ -64,9 +63,6 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
             break;
         }
 
-
-
-
         Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_.back().pose_.inverse(); 
 
         for (int idx = 1; idx < fragments.size(); idx++) {
@@ -79,7 +75,6 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
             match.s = s_idx;
             match.t = t_idx;
 
-            PrintInfo("Registration (%d %d) \n", s_idx, t_idx);
             if(t_idx == s_idx+1){ /** Colored ICP **/
                 mtx.lock();
 
@@ -114,6 +109,7 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
         }
 
         fragments.erase(fragments.begin());
+        PrintStatus("REGISTRATION", s_idx, config.fragments);
         s_idx++;
     }
     PrintInfo("Registration finished\n");
@@ -204,8 +200,7 @@ void RefineFragments(Config &config) {
 
         std::tie(match.trans_source_to_target, match.information) = MultiScaleICP(*source, *target, edge.transformation_, config.voxel_size);
 
-        PrintInfo("Point cloud odometry (%d %d)\n", match.s, match.t);
-
+        PrintStatus("REFINE", match.s, config.fragments);
         matches.push_back(match);
     }
 

@@ -115,7 +115,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
-    utility::FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
+    //utility::FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
 
     for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
     {
@@ -191,7 +191,8 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
             write_depth.join();
             write_color.join();
 
-            timer.Signal();
+            //timer.Signal();
+            PrintStatus("RGBDFRAME", frame_idx, conf.frames_per_fragment * conf.fragments);
         }
         io::WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
         pg_queue.push(fragment_idx);
@@ -205,12 +206,18 @@ void make_fragments(Config conf, std::queue<int> &pg_queue,
     while(running){
         while (!pg_queue.empty()) {
             int idx = pg_queue.front();
+
             OptimizePoseGraphForFragment(idx, conf);
+
             mtx.lock();
             IntegrateForFragment(idx, conf);
             mtx.unlock();
+
             frag_queue.push(idx);
+
             pg_queue.pop();
+
+            PrintStatus("FRAGMENT", idx, conf.fragments);
         }
 
         //Sleep for a bit 

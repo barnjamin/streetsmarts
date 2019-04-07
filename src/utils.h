@@ -44,6 +44,8 @@ rs2::device get_first_device(rs2::device dev);
 bool set_white_balance(float val);
 bool set_exposure(float val);
 
+void PrintStatus(std::string kind, int state, int total);
+
 bool set_roi(int xmax, int xmin, int ymax, int ymin);
 bool set_high_accuracy();
 bool set_depth_units(float val);
