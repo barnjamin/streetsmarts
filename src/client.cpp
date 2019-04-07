@@ -7,11 +7,12 @@
 #include "pose.h"
 #include "config.h"
 #include "handlers.hpp"
+#include "refinement.hpp"
 
 int main(int argc, char * argv[]) try
 {
 
-    open3d::utility::SetVerbosityLevel(open3d::utility::VerbosityLevel::VerboseAlways);
+    //open3d::utility::SetVerbosityLevel(open3d::utility::VerbosityLevel::VerboseAlways);
 
     Config conf;
     // Assume json
@@ -53,6 +54,7 @@ int main(int argc, char * argv[]) try
 
     std::thread imu_thread;
 
+
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
@@ -79,7 +81,8 @@ int main(int argc, char * argv[]) try
     std::queue<int>  frag_queue;
 
     std::thread img_thread(make_posegraph, conf, profile, img_q, std::ref(pg_queue));
-    std::thread frag_thread(make_fragments, conf, std::ref(pg_queue), std::ref(running));
+    std::thread frag_thread(make_fragments, conf, std::ref(pg_queue), std::ref(frag_queue), std::ref(running));
+    std::thread refine_thread(refine_fragments_streaming, conf, std::ref(frag_queue), std::ref(running));
 
     open3d::utility::PrintInfo("Kicked off threads, waiting for finish\n");
 
@@ -102,6 +105,7 @@ int main(int argc, char * argv[]) try
 
 
     frag_thread.join();
+    refine_thread.join();
 
     open3d::utility::PrintInfo("Cleaned up\n");
 

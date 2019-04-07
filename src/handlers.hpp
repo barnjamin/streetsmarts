@@ -187,13 +187,15 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 
 }
 
-void make_fragments(Config conf, std::queue<int> &pg_queue, std::atomic<bool>& running) {
+void make_fragments(Config conf, std::queue<int> &pg_queue, 
+        std::queue<int>& frag_queue, std::atomic<bool>& running) {
 
     while(running){
         while (!pg_queue.empty()) {
             int idx = pg_queue.front();
             OptimizePoseGraphForFragment(idx, conf);
             IntegrateForFragment(idx, conf);
+            frag_queue.push(idx);
             pg_queue.pop();
         }
 
@@ -201,3 +203,4 @@ void make_fragments(Config conf, std::queue<int> &pg_queue, std::atomic<bool>& r
         usleep(1000);
     }
 }
+
