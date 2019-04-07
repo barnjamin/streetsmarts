@@ -188,7 +188,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     }
 
     session_path = value.get("session", "").asString();
-    session_prefix = value.get("session-prefix", "").asString();
+    session_prefix = value.get("session-name", "").asString();
 
     if (session_path == "latest"){
         session_path =  "/home/ben/local-sessions/latest";

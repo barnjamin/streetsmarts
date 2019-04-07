@@ -159,11 +159,13 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
                 continue; 
             }
 
+            mtx.lock();
             odometry.transform_source_to_target_ =  Eigen::Matrix4d::Identity();
             odometry.Initialize(rgbd_source, rgbd_target);
             std::tie(success, mat, losses) = odometry.ComputeMultiScale();
             if(!success) {
                 rgbd_source.CopyFrom(rgbd_target); 
+                mtx.unlock();
                 write_depth.join();
                 write_color.join();
                 continue; 
@@ -171,6 +173,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 
             Eigen::Matrix4d trans = odometry.transform_source_to_target_;
             Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
+            mtx.unlock();
 
             //Update Target to world
             trans_odometry =  trans * trans_odometry;

@@ -98,8 +98,9 @@ int main(int argc, char * argv[]) try
         gps_thread.join();
     }
 
-    running = false;
     pipe.stop();
+
+    running = false;
     open3d::utility::PrintInfo("Stopped pipeline\n");
 
     frag_thread.join();

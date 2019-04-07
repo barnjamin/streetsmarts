@@ -93,21 +93,21 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
 
                 match.success = true;
             } else {
-                mtx.lock();
+                //mtx.lock();
 
-                FastGlobalRegistrationCuda fgr;
-                fgr.Initialize(*source, *target);
+                //FastGlobalRegistrationCuda fgr;
+                //fgr.Initialize(*source, *target);
 
-                auto result = fgr.ComputeRegistration();
-                match.trans_source_to_target = result.transformation_;
+                //auto result = fgr.ComputeRegistration();
+                //match.trans_source_to_target = result.transformation_;
 
-                match.information = RegistrationCuda::ComputeInformationMatrix(
-                    *source, *target, config.voxel_size * 1.4f, result.transformation_);
+                //match.information = RegistrationCuda::ComputeInformationMatrix(
+                //    *source, *target, config.voxel_size * 1.4f, result.transformation_);
 
-                mtx.unlock();
+                //mtx.unlock();
 
-                match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
-                        std::min(source->points_.size(), target->points_.size()) >= 0.3;
+                //match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
+                //        std::min(source->points_.size(), target->points_.size()) >= 0.3;
             }
 
             matches.push_back(match);
