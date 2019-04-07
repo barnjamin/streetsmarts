@@ -7,6 +7,7 @@
 #include "config.h"
 
 using namespace open3d;
+using namespace open3d::cuda;
 using namespace open3d::geometry;
 using namespace open3d::integration;
 using namespace open3d::registration;
@@ -14,16 +15,14 @@ using namespace open3d::utility;
 using namespace open3d::camera;
 using namespace open3d::io;
 
-int main(int argc, char ** argv)
-{
+void IntegrateScene(Config conf){
 
-    Config conf(argc, argv);
 
-    cuda::TransformCuda trans = cuda::TransformCuda::Identity();
+    TransformCuda trans = TransformCuda::Identity();
 
     float voxel_length = conf.tsdf_cubic_size / 512.0;
 
-    cuda::ScalableTSDFVolumeCuda<8> tsdf_volume(100000, 200000,
+    ScalableTSDFVolumeCuda<8> tsdf_volume(100000, 200000,
             voxel_length, (float) conf.tsdf_truncation, trans);
 
     PoseGraph global_pose_graph;
@@ -32,18 +31,18 @@ int main(int argc, char ** argv)
     PinholeCameraIntrinsic intrinsic_;
     if(!ReadIJsonConvertible(conf.IntrinsicFile(), intrinsic_)){
         PrintError("Failed to read intrinsic\n");
-        return 1; 
+        return;
     }
 
-    cuda::PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
+    PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
 
-    cuda::RGBDImageCuda rgbd(conf.width, conf.height, conf.max_depth, conf.depth_factor);
+    RGBDImageCuda rgbd(conf.width, conf.height, conf.max_depth, conf.depth_factor);
     for(int fragment_id=0; fragment_id<conf.GetFragmentCount(); fragment_id++){
 
         PoseGraph local_pose_graph;
         ReadPoseGraph(conf.PoseFile(fragment_id), local_pose_graph);
 
-        cuda::TransformCuda trans;
+        TransformCuda trans;
         for (int img_id = 0; img_id < conf.frames_per_fragment; img_id++) {
             Image depth, color;
 
@@ -61,27 +60,27 @@ int main(int argc, char ** argv)
             //trans.FromEigen(pose.inverse());
             trans.FromEigen(pose);
 
-            PrintInfo("Integrating %d and %d\n", fragment_id, img_id);
+            PrintDebug("Integrating %d and %d\n", fragment_id, img_id);
 
             tsdf_volume.Integrate(rgbd, intrinsic, trans);
         }
     }
 
-    PrintInfo("Getting subvolumes\n");
+    PrintDebug("Getting subvolumes\n");
     tsdf_volume.GetAllSubvolumes();
 
-    PrintInfo("Active Subvolumes: %d\n", 
+    PrintDebug("Active Subvolumes: %d\n", 
             tsdf_volume.active_subvolume_entry_array().size());
-    cuda::ScalableMeshVolumeCuda<8> mesher(
+    ScalableMeshVolumeCuda<8> mesher(
         tsdf_volume.active_subvolume_entry_array().size(),
-        cuda::VertexWithNormalAndColor, 10000000, 20000000);
+        VertexWithNormalAndColor, 10000000, 20000000);
 
-    PrintInfo("Meshing\n");
+    PrintDebug("Meshing\n");
     mesher.MarchingCubes(tsdf_volume);
 
-    PrintInfo("Downloading\n");
+    PrintDebug("Downloading\n");
     auto mesh = mesher.mesh().Download();
 
-    PrintInfo("Writing\n");
+    PrintDebug("Writing\n");
     WriteTriangleMeshToPLY(conf.SceneMeshFile(), *mesh);
 }

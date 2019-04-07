@@ -25,54 +25,76 @@ struct Match {
     Eigen::Matrix6d information;
 };
 
-void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std::atomic<bool>& running) {
+void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std::atomic<bool>& running, std::mutex& mtx) {
     std::vector<Match> matches;
     std::vector<std::shared_ptr<PointCloud>> fragments;
     int s_idx = 0;
-    while(running && !(fragments.empty())){
-        if(frag_queue.empty()){
+    bool started(false);
+
+    while(running || !(fragments.empty())){
+
+        if(frag_queue.empty() && !started && running){ //Wait for the next one
             usleep(1000);
             continue;
         }
 
-        auto pcd_raw = CreatePointCloudFromFile(config.FragmentFile(frag_queue.front()));
-        auto pcd = VoxelDownSample(*pcd_raw,config.voxel_size);
+        started = true;
 
-        frag_queue.pop();
+        if(!frag_queue.empty()){
+            PrintInfo("Creating point cloud for: %d\n", frag_queue.front());
+            auto pcd_raw = CreatePointCloudFromFile(config.FragmentFile(frag_queue.front()));
+            auto pcd = VoxelDownSample(*pcd_raw,config.voxel_size);
 
-        fragments.emplace_back(pcd);
+            frag_queue.pop();
 
-        //If we dont ahve enough to compare and the program is stil running, continue
-        if(fragments.size()<config.registration_window_size && !running){
+            fragments.emplace_back(pcd);
+        }
+
+        //If we dont ahve enough to compare or the program is stil running, continue
+        if(fragments.size() < config.registration_window_size && running){
             continue;
         }
 
+        if(fragments.empty()){
+            break; 
+        }
 
         PoseGraph pose_graph_s;
-        ReadPoseGraph(config.PoseFile(s_idx), pose_graph_s);
+        if(!ReadPoseGraph(config.PoseFile(s_idx), pose_graph_s)){
+            break;
+        }
+
+
+
 
         Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_.back().pose_.inverse(); 
 
-        for (int t_idx = s_idx+1; t_idx < fragments.size(); t_idx++) {
-            auto source = fragments[s_idx];
-            auto target = fragments[t_idx];
+        for (int idx = 1; idx < fragments.size(); idx++) {
+            int t_idx = s_idx + idx;
+
+            auto source = fragments[0];
+            auto target = fragments[idx];
 
             Match match;
             match.s = s_idx;
             match.t = t_idx;
 
+            PrintInfo("Registration (%d %d) \n", s_idx, t_idx);
             if(t_idx == s_idx+1){ /** Colored ICP **/
-                PrintInfo("ColoredICP");
+                mtx.lock();
+
                 RegistrationCuda registration(TransformationEstimationType::ColoredICP);
                 registration.Initialize(*source, *target, (float) config.voxel_size * 1.4f, init_source_to_target);
                 registration.ComputeICP();
-
                 match.trans_source_to_target = registration.transform_source_to_target_;
-
                 match.information = registration.ComputeInformationMatrix();
+
+                mtx.unlock();
+
                 match.success = true;
             } else {
-                PrintInfo("FGR");
+                mtx.lock();
+
                 FastGlobalRegistrationCuda fgr;
                 fgr.Initialize(*source, *target);
 
@@ -82,6 +104,8 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
                 match.information = RegistrationCuda::ComputeInformationMatrix(
                     *source, *target, config.voxel_size * 1.4f, result.transformation_);
 
+                mtx.unlock();
+
                 match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
                         std::min(source->points_.size(), target->points_.size()) >= 0.3;
             }
@@ -89,8 +113,10 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
             matches.push_back(match);
         }
 
+        fragments.erase(fragments.begin());
         s_idx++;
     }
+    PrintInfo("Registration finished\n");
 
     PoseGraph pose_graph;
 
@@ -125,6 +151,7 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
 
     auto pose_graph_prunned = CreatePoseGraphWithoutInvalidEdges(pose_graph, option);
 
+    PrintInfo("Wrote pose graph\n");
     WritePoseGraph(config.PoseFileScene(), *pose_graph_prunned);
 }
 

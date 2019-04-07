@@ -79,7 +79,7 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 }
 
 void make_posegraph(Config conf, rs2::pipeline_profile profile, 
-                        rs2::frame_queue q, std::queue<int> &pg_queue) {
+                        rs2::frame_queue q, std::queue<int> &pg_queue, std::mutex& mtx) {
     using namespace open3d;
     using namespace open3d::cuda;
 
@@ -109,6 +109,9 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     RGBDImageCuda rgbd_target(conf.width, conf.height, conf.max_depth, conf.depth_factor);
     RGBDImageCuda rgbd_source(conf.width, conf.height, conf.max_depth, conf.depth_factor);
 
+    bool success;
+    Eigen::Matrix4d mat;
+    std::vector<std::vector<float>> losses;
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
@@ -158,7 +161,13 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 
             odometry.transform_source_to_target_ =  Eigen::Matrix4d::Identity();
             odometry.Initialize(rgbd_source, rgbd_target);
-            odometry.ComputeMultiScale();
+            std::tie(success, mat, losses) = odometry.ComputeMultiScale();
+            if(!success) {
+                rgbd_source.CopyFrom(rgbd_target); 
+                write_depth.join();
+                write_color.join();
+                continue; 
+            }
 
             Eigen::Matrix4d trans = odometry.transform_source_to_target_;
             Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
@@ -188,13 +197,15 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 }
 
 void make_fragments(Config conf, std::queue<int> &pg_queue, 
-        std::queue<int>& frag_queue, std::atomic<bool>& running) {
+        std::queue<int>& frag_queue, std::atomic<bool>& running, std::mutex& mtx) {
 
     while(running){
         while (!pg_queue.empty()) {
             int idx = pg_queue.front();
             OptimizePoseGraphForFragment(idx, conf);
+            mtx.lock();
             IntegrateForFragment(idx, conf);
+            mtx.unlock();
             frag_queue.push(idx);
             pg_queue.pop();
         }

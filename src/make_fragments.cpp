@@ -15,7 +15,7 @@ int main(int argc, char * argv[])
     for (int i = 0; i < conf.fragments; ++i) {
         PrintInfo("Processing fragment %d / %d\n", i, conf.fragments - 1);
 
-        MakePoseGraphForFragmentTester(i, conf);
+        MakePoseGraphForFragment(i, conf);
         OptimizePoseGraphForFragment(i, conf);
         IntegrateForFragment(i, conf);
 

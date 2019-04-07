@@ -8,6 +8,7 @@
 #include "config.h"
 #include "handlers.hpp"
 #include "refinement.hpp"
+#include "integrate.hpp"
 
 int main(int argc, char * argv[]) try
 {
@@ -77,12 +78,13 @@ int main(int argc, char * argv[]) try
     }
 
 
+    std::mutex mtx;
     std::queue<int>  pg_queue;
     std::queue<int>  frag_queue;
 
-    std::thread img_thread(make_posegraph, conf, profile, img_q, std::ref(pg_queue));
-    std::thread frag_thread(make_fragments, conf, std::ref(pg_queue), std::ref(frag_queue), std::ref(running));
-    std::thread refine_thread(refine_fragments_streaming, conf, std::ref(frag_queue), std::ref(running));
+    std::thread img_thread(make_posegraph, conf, profile, img_q, std::ref(pg_queue), std::ref(mtx));
+    std::thread frag_thread(make_fragments, conf, std::ref(pg_queue), std::ref(frag_queue), std::ref(running), std::ref(mtx));
+    std::thread refine_thread(refine_fragments_streaming, conf, std::ref(frag_queue), std::ref(running), std::ref(mtx));
 
     open3d::utility::PrintInfo("Kicked off threads, waiting for finish\n");
 
@@ -90,24 +92,27 @@ int main(int argc, char * argv[]) try
 
     open3d::utility::PrintInfo("Finished capturing images\n");
 
-    running = false;
 
     if(conf.capture_gps) {
         gps.Stop();
         gps_thread.join();
     }
 
-    if(conf.capture_imu) imu_thread.join();
-
+    running = false;
     pipe.stop();
-
     open3d::utility::PrintInfo("Stopped pipeline\n");
-
 
     frag_thread.join();
     refine_thread.join();
 
-    open3d::utility::PrintInfo("Cleaned up\n");
+    if(conf.capture_imu) imu_thread.join();
+
+    open3d::utility::PrintInfo("Refining Fragments\n");
+    RefineFragments(conf);
+
+    open3d::utility::PrintInfo("Integrating Scene\n");
+    IntegrateScene(conf);
+
 
     return EXIT_SUCCESS;
 
