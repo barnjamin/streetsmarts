@@ -18,7 +18,7 @@ unsigned long get_timestamp() {
 }
 
 void PrintStatus(std::string kind, int state, int total) {
-    std::cout << kind << ":" <<state << ":" << total << std::endl;
+    std::cout << kind << ":" << state + 1 << ":" << total << std::endl;
 }
 
 void VisualizeRegistration(const open3d::geometry::PointCloud &source,
@@ -173,29 +173,51 @@ float get_depth_scale(rs2::device dev)
     throw std::runtime_error("Device does not have a depth sensor");
 }
 
-bool set_white_balance(float val){
+bool set_stereo_whitebalance(bool on){
     auto dev = get_first_device();
-    auto cam = get_rgb_sensor(dev);
+    auto cam = get_stereo_sensor(dev);
 
-    if(cam.supports(RS2_OPTION_WHITE_BALANCE)){
-        cam.set_option(RS2_OPTION_WHITE_BALANCE, val);
+    if(cam.supports(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE)){
+        cam.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, on?1:0);
         return true;
     }
 
     return false;
 }
 
-bool set_exposure(float val){
+bool set_stereo_autoexposure(bool on){
     auto dev = get_first_device();
     auto cam = get_rgb_sensor(dev);
 
-    if(cam.supports(RS2_OPTION_EXPOSURE)){
-        cam.set_option(RS2_OPTION_EXPOSURE, val);
+    if(cam.supports(RS2_OPTION_ENABLE_AUTO_EXPOSURE)){
+        cam.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE, on?1:0);
     }
     return false;
 }
 
-bool set_roi(int xmax, int xmin, int ymax, int ymin){
+bool set_rgb_whitebalance(bool on){
+    auto dev = get_first_device();
+    auto cam = get_rgb_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE)){
+        cam.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, on?1:0);
+        return true;
+    }
+
+    return false;
+}
+
+bool set_rgb_autoexposure(bool on){
+    auto dev = get_first_device();
+    auto cam = get_rgb_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_ENABLE_AUTO_EXPOSURE)){
+        cam.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE, on?1:0);
+    }
+    return false;
+}
+
+bool set_roi(int xmin, int xmax, int ymin, int ymax){
     auto dev = get_first_device();
 
     rs2::region_of_interest roi;
@@ -206,6 +228,7 @@ bool set_roi(int xmax, int xmin, int ymax, int ymin){
 
     auto cam = get_stereo_sensor(dev);
     if(cam.is<rs2::roi_sensor>()){
+        auto roi = cam.as<rs2::roi_sensor>().get_region_of_interest();
         cam.as<rs2::roi_sensor>().set_region_of_interest(roi);
         return true;
     }
@@ -229,14 +252,24 @@ bool set_high_accuracy(){
     auto cam = get_stereo_sensor(dev);
 
     if(cam.supports(RS2_OPTION_VISUAL_PRESET)){
-        cam.set_option(RS2_OPTION_VISUAL_PRESET, 
-                RS2_RS400_VISUAL_PRESET_HIGH_ACCURACY);
+        cam.set_option(RS2_OPTION_VISUAL_PRESET, RS2_RS400_VISUAL_PRESET_HIGH_ACCURACY);
         return true;
     }
 
     return false;
 }
 
+bool set_max_laser_power(){
+    auto dev = get_first_device();
+    auto cam = get_stereo_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_LASER_POWER)){
+        cam.set_option(RS2_OPTION_LASER_POWER, 360);
+        return true;
+    }
+
+    return false;
+}
 
 void WriteLossesToLog(std::ofstream &fout, int frame_idx, std::vector<std::vector<float>> &losses) 
 {

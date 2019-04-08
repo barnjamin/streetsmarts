@@ -76,7 +76,7 @@ int main(int argc, char * argv[]) try
 
     std::thread img_thread(make_posegraph, conf, profile, img_q, std::ref(pg_queue), std::ref(mtx));
     std::thread frag_thread(make_fragments, conf, std::ref(pg_queue), std::ref(frag_queue), std::ref(running), std::ref(mtx));
-    std::thread refine_thread(refine_fragments_streaming, conf, std::ref(frag_queue), std::ref(running), std::ref(mtx));
+    //std::thread refine_thread(refine_fragments_streaming, conf, std::ref(frag_queue), std::ref(running), std::ref(mtx));
 
     img_thread.join();
 
@@ -90,10 +90,11 @@ int main(int argc, char * argv[]) try
     running = false;
 
     frag_thread.join();
-    refine_thread.join();
+    //refine_thread.join();
 
     if(conf.capture_imu) imu_thread.join();
 
+    RegisterFragments(conf);
     RefineFragments(conf);
     IntegrateScene(conf);
 

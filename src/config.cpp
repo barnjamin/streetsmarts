@@ -75,22 +75,23 @@ Config::Config(int argc, char ** argv) {
     }
 
 
-    depth_mult = utility::GetProgramOptionAsInt(argc, argv, "--depth_mult", 10);
+    depth_mult = utility::GetProgramOptionAsInt(argc, argv, "--depth_mult", 1);
 
-    if(utility::ProgramOptionExists(argc, argv, "--high_accuracy")){
-        set_depth_units(0.001/depth_mult);
-        set_roi(100,540,100,200);
-        set_high_accuracy();
-    }
+    if(utility::ProgramOptionExists(argc, argv, "--set_cam_opts")){
 
-    if(utility::ProgramOptionExists(argc, argv, "--exposure")){
-        exposure = utility::GetProgramOptionAsDouble(argc, argv, "--exposure", 166);
-        set_exposure(exposure);
-    }
 
-    if(utility::ProgramOptionExists(argc, argv, "--wbalance")){
-        white_balance = utility::GetProgramOptionAsDouble(argc, argv, "--wbalance", 4600);
-        set_white_balance(white_balance);
+        set_stereo_autoexposure(utility::ProgramOptionExists(argc, argv, "--stereo_exposure"));
+        set_stereo_whitebalance(utility::ProgramOptionExists(argc, argv, "--stereo_whitebalance"));
+
+        set_rgb_autoexposure(utility::ProgramOptionExists(argc, argv, "--rgb_exposure"));
+        set_rgb_whitebalance(utility::ProgramOptionExists(argc, argv, "--rgb_whitebalance"));
+
+        if(utility::ProgramOptionExists(argc, argv, "--high_accuracy")){
+            set_high_accuracy();
+            set_depth_units(0.001/depth_mult);
+            //set_roi(100,540,100,200);
+            set_max_laser_power();
+        }
     }
 
 
@@ -127,8 +128,8 @@ Config::Config(int argc, char ** argv) {
     temp_d      = utility::GetProgramOptionAsDouble(argc, argv,   "--temp-d",     50);
 
     //Integration Params
-    tsdf_cubic_size = utility::GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic",      7.0/depth_mult);
-    tsdf_truncation = utility::GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.05/depth_mult);
+    tsdf_cubic_size = utility::GetProgramOptionAsDouble(argc, argv, "--tsdf_cubic",      3.0/depth_mult);
+    tsdf_truncation = utility::GetProgramOptionAsDouble(argc, argv, "--tsdf_truncation", 0.04/depth_mult);
 
     //RGBD Image params
     min_depth   = utility::GetProgramOptionAsDouble(argc, argv,   "--min_depth",      0.01/depth_mult);
@@ -139,8 +140,8 @@ Config::Config(int argc, char ** argv) {
     use_imu             = utility::ProgramOptionExists(argc, argv,        "--use_imu");
     fragments           = utility::GetProgramOptionAsInt(argc, argv,      "--fragments",          8);
     frames_per_fragment = utility::GetProgramOptionAsInt(argc, argv,      "--frames_per_fragment",30);
-    max_depth_diff      = utility::GetProgramOptionAsDouble(argc, argv,  "--max_depth_diff",     0.007*depth_mult);
-    loop_close_odom     = utility::GetProgramOptionAsDouble(argc, argv,  "--loop_closure_odom",  0.2);
+    max_depth_diff      = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth_diff",     0.07*depth_mult);
+    loop_close_odom     = utility::GetProgramOptionAsDouble(argc, argv,   "--loop_closure_odom",  0.2);
     
     //Refine Params
     registration_window_size= utility::GetProgramOptionAsInt(argc, argv,   "--registration_window",        5);
@@ -194,29 +195,31 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
         session_path =  "/home/ben/local-sessions/latest";
     }
 
-    depth_mult = value.get("depth-mult", 10).asInt();
+    depth_mult = value.get("depth-mult", 1).asInt();
 
-    if(value.get("high_accuracy", false).asBool()){
-        set_depth_units(0.001/depth_mult);
-        set_roi(100,540,100,200);
-        set_high_accuracy();
-    }
+    if(value.get("set-cam-opts", false).asBool()){
 
-    if(value.get("exposure", false).asBool()){
-        exposure = value.get("exposure", 166).asDouble();
-        set_exposure(exposure);
-    }
+        set_stereo_autoexposure(value.get("stereo-autoexposure", true).asBool());
+        set_stereo_whitebalance(value.get("stereo-whitebalance", true).asBool());
 
-    if(value.get("wbalance", false).asBool()){
-        white_balance = value.get("wbalance", 4600).asDouble();
-        set_white_balance(white_balance);
+        set_rgb_autoexposure(value.get("rgb-autoexposure", false).asBool());
+        set_rgb_whitebalance(value.get("rgb-whitebalance", false).asBool());
+
+        if(value.get("high-accuracy", false).asBool()){
+            set_high_accuracy();
+
+            set_depth_units(0.001/depth_mult);
+
+            set_max_laser_power();
+            //set_roi(100, 540 ,100,200);
+        }
     }
 
 
     img_idx = value.get("iidx",  10).asInt();
 
     //Camera params
-    width               = value.get( "width",  640).asInt();
+    width               = value.get("width",  640).asInt();
     height              = value.get("height", 480).asInt();
     fps                 = value.get("fps",    30).asInt();
     framestart          = value.get("fstart", 30).asInt();
@@ -256,10 +259,10 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
 
     //Odometry Params
     use_imu             = value.get("use-imu", false).asBool();
-    fragments           = value.get(  "fragments",          8).asInt();
-    frames_per_fragment = value.get(  "frames-per-fragment",30).asInt();
-    max_depth_diff      = value.get( "max-depth-diff",     0.007*depth_mult).asDouble();
-    loop_close_odom     = value.get( "loop-closure-odom",  0.2).asDouble();
+    fragments           = value.get("fragments",          8).asInt();
+    frames_per_fragment = value.get("frames-per-fragment",30).asInt();
+    max_depth_diff      = value.get("max-depth-diff",     0.007*depth_mult).asDouble();
+    loop_close_odom     = value.get("loop-closure-odom",  0.2).asDouble();
     
     //Refine Params
     registration_window_size= value.get("registration-window",        5).asInt();

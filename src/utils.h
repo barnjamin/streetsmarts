@@ -41,8 +41,13 @@ rs2::sensor get_motion_sensor(rs2::device dev);
 
 rs2::device get_first_device(rs2::device dev);
 
-bool set_white_balance(float val);
-bool set_exposure(float val);
+bool set_rgb_whitebalance(bool on);
+bool set_rgb_autoexposure(bool on);
+
+bool set_stereo_whitebalance(bool on);
+bool set_stereo_autoexposure(bool on);
+
+bool set_max_laser_power();
 
 void PrintStatus(std::string kind, int state, int total);
 
