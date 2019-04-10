@@ -109,7 +109,7 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
         }
 
         fragments.erase(fragments.begin());
-        PrintStatus("REGISTRATION", s_idx, config.fragments);
+        config.LogStatus("REGISTRATION", s_idx, config.fragments);
         s_idx++;
     }
     PrintInfo("Registration finished\n");
@@ -203,7 +203,7 @@ void RegisterFragments(Config config){
             matches.push_back(match);
         }
 
-        PrintStatus("REGISTRATION", s, config.fragments);
+        config.LogStatus("REGISTRATION", s, config.fragments);
     }
 
     PrintInfo("Registration finished\n");
@@ -295,7 +295,7 @@ void RefineFragments(Config &config) {
 
         std::tie(match.trans_source_to_target, match.information) = MultiScaleICP(*source, *target, edge.transformation_, config.voxel_size);
 
-        PrintStatus("REFINE", match.s, config.fragments-1);
+        config.LogStatus("REFINE", match.s, config.fragments-1);
         matches.push_back(match);
     }
 

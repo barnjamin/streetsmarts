@@ -2,6 +2,9 @@
     "session-name":"test",
     "set-cam-opts":true,
 
+    "logfile":"true",
+    "stdout":true,
+
     "high-accuracy":true,
 
     "stereo-autoexposure":true,

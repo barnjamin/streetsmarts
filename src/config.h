@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fstream>
+#include <iostream>
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include <librealsense2/rsutil.h> // Include RealSense Cross Platform API
 #include <json/json.h>
@@ -79,6 +81,7 @@ public:
     int rgb_gamma;
     int rgb_saturation;
     int rgb_gain;
+    int rgb_sharpness;
 
     rs2_stream aligner;
     rs2::threshold_filter threshold;
@@ -99,6 +102,9 @@ public:
     std::string IMUFile();
     std::string IntrinsicFile();
     std::string ImageTimestampFile();
+
+    void LogStatus(std::string kind, int state, int total);
+    std::ofstream* logfile;
 
     std::string PoseFile(int idx);
     std::string DepthFile(int i_idx);

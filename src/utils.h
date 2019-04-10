@@ -58,6 +58,7 @@ bool set_depth_units(float val);
 bool set_rgb_gamma(int val);
 bool set_rgb_gain(int val);
 bool set_rgb_saturation(int val);
+bool set_rgb_sharpness(int val);
 
 void WriteLossesToLog(std::ofstream &fout, int frame_idx, std::vector<std::vector<float>> &losses);
 

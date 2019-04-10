@@ -12,6 +12,7 @@ message("mod path: ${CMAKE_MODULE_PATH}")
 
 find_package(CUDA 9.1 REQUIRED)
 find_package(OpenCV REQUIRED)
+
 find_package(OpenGL)
 find_package(GLUT)
 find_package(PCL)
@@ -20,10 +21,9 @@ find_package(Open3D)
 find_package(realsense2)
 find_package (GeographicLib REQUIRED)
 
-
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${Open3D_EXE_LINKER_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${Open3D_EXE_LINKER_FLAGS} ")
 
 add_compile_options(-Wno-deprecated-declarations)
 add_compile_options(-Wno-unused-result)
@@ -32,6 +32,7 @@ add_definitions(-DUNIX)
 add_definitions(-O3)
 add_definitions(${PCL_DEFINITIONS})
 add_definitions (${GeographicLib_DEFINITIONS})
+add_definitions(${OpenCV_DEFINITIONS})
 
 set(IMGUI /home/ben/librealsense/third-party/imgui)
 
@@ -78,21 +79,30 @@ set(DEPENDENCIES
     /usr/lib/x86_64-linux-gnu/libcurand.so
 )
 
+
 #set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp)
 #add_executable(cluster ${CLUSTER_SOURCE})
 #target_link_libraries(cluster ${DEPENDENCIES})
-#
+
 set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
 add_executable(analyze ${ANALYZE_SOURCE})
 target_link_libraries(analyze ${DEPENDENCIES})
-#
+
 #set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
 #add_executable(kitti ${KITTI_SOURCE})
 #target_link_libraries(kitti ${DEPENDENCIES})
 
-set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
-add_executable(capture_frames ${CAPTURE_SOURCE})
-target_link_libraries(capture_frames ${DEPENDENCIES})
+#set(SUPERPIX_SOURCE src/superpix.cpp)
+#add_executable(superpix ${SUPERPIX_SOURCE})
+#target_link_libraries(superpix ${DEPENDENCIES})
+
+#set(SEGMENT_SOURCE src/segment.cpp src/config.cpp src/utils.cpp)
+#add_executable(segment ${SEGMENT_SOURCE})
+#target_link_libraries(segment ${DEPENDENCIES})
+
+#set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
+#add_executable(capture_frames ${CAPTURE_SOURCE})
+#target_link_libraries(capture_frames ${DEPENDENCIES})
 
 set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose.cpp src/gps.hpp src/fragments.hpp src/refinement.hpp src/integrate.hpp)
 add_executable(client ${CLIENT_SOURCE})

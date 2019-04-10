@@ -42,6 +42,21 @@ std::string generate_local_session(std::string prefix) {
 
 Config::~Config() { }
 
+void Config::LogStatus(std::string kind, int state, int total) {
+
+    std::stringstream out;
+    out << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total << std::endl;
+
+    if(logfile == NULL || !logfile->is_open()){
+        logfile = new std::ofstream(session_path+"/status.log");
+    }
+
+    std::cout<< out.str() << std::endl;
+
+    //write to logfile
+    (*logfile) <<  out.str() << std::endl;
+}
+
 float Config::GetInvalidDepth(rs2::depth_frame depth_frame, rs2_intrinsics& intrinsics) {
     rs2::disparity_frame disp_frame = depth_to_disparity.process(depth_frame);
     float baseline = disp_frame.get_baseline();
@@ -102,7 +117,6 @@ Config::Config(int argc, char ** argv) {
             set_high_accuracy();
         }
     }
-
 
     img_idx = utility::GetProgramOptionAsInt(argc, argv,  "--iidx",  10);
 
@@ -224,10 +238,12 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
         rgb_gamma = value.get("rgb-gamma", 450).asInt();
         rgb_saturation = value.get("rgb-saturation", 10).asInt();
         rgb_gain = value.get("rgb-gain", 128).asInt();
+        rgb_sharpness = value.get("rgb-sharpness", 100).asInt();
 
         if(!set_rgb_gamma(rgb_gamma)) std::cout << "Failed to set gamma" << std::endl;
         if(!set_rgb_saturation(rgb_saturation)) std::cout << "Failed to set sat" << std::endl;
         if(!set_rgb_gain(rgb_gain)) std::cout << "Failed to set gain" << std::endl;
+        if(!set_rgb_sharpness(rgb_sharpness)) std::cout << "Failed to set gain" << std::endl;
 
         set_roi(100, 540 ,100,200);
 

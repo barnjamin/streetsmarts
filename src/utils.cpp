@@ -18,7 +18,7 @@ unsigned long get_timestamp() {
 }
 
 void PrintStatus(std::string kind, int state, int total) {
-    std::cout << kind << ":" << state + 1 << ":" << total << std::endl;
+    std::cout << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total << std::endl;
 }
 
 void VisualizeRegistration(const open3d::geometry::PointCloud &source,
@@ -55,7 +55,7 @@ cv::Mat frame_to_mat(const rs2::frame& f)
 	else if (f.get_profile().format() == RS2_FORMAT_RGB8)
 	{
 		auto r = Mat(Size(w, h), CV_8UC3, (void*)f.get_data(), Mat::AUTO_STEP);
-		cvtColor(r, r, CV_RGB2BGR);
+		cvtColor(r, r, cv::COLOR_RGB2BGR);
 		return r;
 	}
 	else if (f.get_profile().format() == RS2_FORMAT_Z16)
@@ -206,6 +206,17 @@ bool set_rgb_gamma(int val){
     return false;
 }
 
+bool set_rgb_sharpness(int val){
+    auto dev = get_first_device();
+    auto cam = get_rgb_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_SHARPNESS)){
+        cam.set_option(RS2_OPTION_SHARPNESS, val);
+        return true;
+    }
+    return false;
+}
+
 bool set_stereo_whitebalance(bool on){
     auto dev = get_first_device();
     auto cam = get_stereo_sensor(dev);
@@ -256,6 +267,7 @@ bool set_rgb_autoexposure(bool on){
 
 bool set_roi(int xmin, int xmax, int ymin, int ymax){
     auto dev = get_first_device();
+    auto cam = get_stereo_sensor(dev);
 
     rs2::region_of_interest roi;
     roi.max_x = xmax;
@@ -263,9 +275,7 @@ bool set_roi(int xmin, int xmax, int ymin, int ymax){
     roi.min_y = ymin;
     roi.max_y = ymax;
 
-    auto cam = get_stereo_sensor(dev);
     if(cam.is<rs2::roi_sensor>()){
-        auto roi = cam.as<rs2::roi_sensor>().get_region_of_interest();
         cam.as<rs2::roi_sensor>().set_region_of_interest(roi);
         return true;
     }

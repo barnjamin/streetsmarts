@@ -17,7 +17,6 @@ using namespace open3d::io;
 
 void IntegrateScene(Config conf){
 
-
     TransformCuda trans = TransformCuda::Identity();
 
     float voxel_length = conf.tsdf_cubic_size / 512.0;
@@ -61,7 +60,7 @@ void IntegrateScene(Config conf){
             trans.FromEigen(pose);
 
             tsdf_volume.Integrate(rgbd, intrinsic, trans);
-            PrintStatus("INTEGRATE", frame_idx, (conf.frames_per_fragment * conf.fragments));
+            conf.LogStatus("INTEGRATE", frame_idx, (conf.frames_per_fragment * conf.fragments));
         }
     }
 

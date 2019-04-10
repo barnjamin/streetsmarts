@@ -208,7 +208,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
             write_color.join();
 
             //timer.Signal();
-            PrintStatus("RGBDFRAME", frame_idx, conf.frames_per_fragment * conf.fragments);
+            conf.LogStatus("RGBDFRAME", frame_idx, conf.frames_per_fragment * conf.fragments);
         }
         io::WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
         pg_queue.push(fragment_idx);
@@ -233,7 +233,7 @@ void make_fragments(Config conf, std::queue<int> &pg_queue,
 
             pg_queue.pop();
 
-            PrintStatus("FRAGMENT", idx, conf.fragments);
+            conf.LogStatus("FRAGMENT", idx, conf.fragments);
         }
 
         //Sleep for a bit 
