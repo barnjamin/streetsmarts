@@ -7,7 +7,18 @@ using namespace open3d::utility;
 
 int main(int argc, char * argv[])
 {
-    Config conf(argc, argv);
+    Config conf;
+    
+    // Assume json
+    if(argc==2){
+        std::string config_path = argv[1];
+        if(!open3d::io::ReadIJsonConvertible(config_path, conf)) {
+            open3d::utility::PrintError("Failed to read config\n");
+            return 1;
+        }
+    }else{
+        conf = Config(argc, argv);
+    }
 
     Timer timer;
     timer.Start();

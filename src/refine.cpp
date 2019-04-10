@@ -37,27 +37,24 @@ std::vector<Match> RegisterFragments(Config &config) {
     int start, stop;
     int frag_count = config.GetFragmentCount();
     for (int s = 0; s < frag_count; s++) {
-        auto source = CreatePointCloudFromFile(config.FragmentFile(s));
-        //auto source = VoxelDownSample(*source_raw,config.voxel_size);
+        auto source_raw = CreatePointCloudFromFile(config.FragmentFile(s));
+        auto source = VoxelDownSample(*source_raw,config.voxel_size);
 
         PoseGraph pose_graph_s;
         ReadPoseGraph(config.PoseFile(s), pose_graph_s);
 
         Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_.back().pose_.inverse(); 
 
-
-        //std::tie(start, stop) = GetWindow(s, frag_count, config.registration_window_size);
-        //for (int t = start; t < stop; t++) {
         for (int t = s+1; t < frag_count; t++) {
-            auto target = CreatePointCloudFromFile(config.FragmentFile(t));
-            //auto target = VoxelDownSample(*target_raw, config.voxel_size);
+            auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
+            auto target = VoxelDownSample(*target_raw, config.voxel_size);
 
             Match match;
             match.s = s;
             match.t = t;
 
             if(t == s+1){ /** Colored ICP **/
-                PrintInfo("ColoredICP");
+                PrintInfo("ColoredICP\n");
                 cuda::RegistrationCuda registration(TransformationEstimationType::ColoredICP);
                 registration.Initialize(*source, *target, (float) config.voxel_size * 1.4f, init_source_to_target);
                 registration.ComputeICP();
@@ -67,6 +64,7 @@ std::vector<Match> RegisterFragments(Config &config) {
                 match.information = registration.ComputeInformationMatrix();
                 match.success = true;
             } else {
+                PrintInfo("FGR\n");
                 cuda::FastGlobalRegistrationCuda fgr;
                 fgr.Initialize(*source, *target);
 

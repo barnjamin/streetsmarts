@@ -79,18 +79,27 @@ Config::Config(int argc, char ** argv) {
 
     if(utility::ProgramOptionExists(argc, argv, "--set_cam_opts")){
 
+        stereo_autoexposure = utility::ProgramOptionExists(argc, argv, "--stereo_autoexposure");
+        stereo_whitebalance = utility::ProgramOptionExists(argc, argv, "--stereo_whitebalance");
 
-        set_stereo_autoexposure(utility::ProgramOptionExists(argc, argv, "--stereo_exposure"));
-        set_stereo_whitebalance(utility::ProgramOptionExists(argc, argv, "--stereo_whitebalance"));
+        rgb_autoexposure = utility::ProgramOptionExists(argc, argv, "--rgb_exposure");
+        rgb_whitebalance = utility::ProgramOptionExists(argc, argv, "--rgb_whitebalance");
 
-        set_rgb_autoexposure(utility::ProgramOptionExists(argc, argv, "--rgb_exposure"));
-        set_rgb_whitebalance(utility::ProgramOptionExists(argc, argv, "--rgb_whitebalance"));
 
+        //Initialize to true, after we get 30 frames, we can set to the appropriate setting
+        set_stereo_autoexposure(true);
+        set_stereo_whitebalance(true);
+
+        set_rgb_autoexposure(true);
+        set_rgb_whitebalance(true);
+
+        set_depth_units(0.001/depth_mult);
+        set_max_laser_power();
+
+        set_roi(100,540,100,200);
+        
         if(utility::ProgramOptionExists(argc, argv, "--high_accuracy")){
             set_high_accuracy();
-            set_depth_units(0.001/depth_mult);
-            //set_roi(100,540,100,200);
-            set_max_laser_power();
         }
     }
 
@@ -106,8 +115,6 @@ Config::Config(int argc, char ** argv) {
     //Capture params
     capture_gps     = utility::ProgramOptionExists(argc, argv, "--gps");
     capture_imu     = utility::ProgramOptionExists(argc, argv, "--imu");
-
-    make_fragments  = utility::ProgramOptionExists(argc, argv,   "--make_fragments");
 
     //Post Processing
     bool align_color_to_depth = utility::ProgramOptionExists(argc, argv, "--align_color_to_depth");
@@ -138,13 +145,15 @@ Config::Config(int argc, char ** argv) {
 
     //Odometry Params
     use_imu             = utility::ProgramOptionExists(argc, argv,        "--use_imu");
+
     fragments           = utility::GetProgramOptionAsInt(argc, argv,      "--fragments",          8);
     frames_per_fragment = utility::GetProgramOptionAsInt(argc, argv,      "--frames_per_fragment",30);
+
     max_depth_diff      = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth_diff",     0.07*depth_mult);
     loop_close_odom     = utility::GetProgramOptionAsDouble(argc, argv,   "--loop_closure_odom",  0.2);
     
     //Refine Params
-    registration_window_size= utility::GetProgramOptionAsInt(argc, argv,   "--registration_window",        5);
+    registration_window_size = utility::GetProgramOptionAsInt(argc, argv,   "--registration_window",        5);
 
     loop_close_reg          = utility::GetProgramOptionAsDouble(argc, argv,"--loop_closure_registration",  0.8);
     voxel_size              = utility::GetProgramOptionAsDouble(argc, argv,"--voxel_size",                 0.005/depth_mult);
@@ -199,19 +208,35 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
 
     if(value.get("set-cam-opts", false).asBool()){
 
-        set_stereo_autoexposure(value.get("stereo-autoexposure", true).asBool());
-        set_stereo_whitebalance(value.get("stereo-whitebalance", true).asBool());
+        stereo_autoexposure = value.get("stereo-autoexposure", true).asBool();
+        stereo_whitebalance = value.get("stereo-whitebalance", true).asBool();
 
-        set_rgb_autoexposure(value.get("rgb-autoexposure", false).asBool());
-        set_rgb_whitebalance(value.get("rgb-whitebalance", false).asBool());
+        rgb_autoexposure = value.get("rgb-autoexposure", false).asBool();
+        rgb_whitebalance = value.get("rgb-whitebalance", false).asBool();
+
+        set_stereo_autoexposure(true);
+        set_stereo_whitebalance(true);
+
+        set_rgb_autoexposure(true);
+        set_rgb_whitebalance(true);
+
+
+        rgb_gamma = value.get("rgb-gamma", 450).asInt();
+        rgb_saturation = value.get("rgb-saturation", 10).asInt();
+        rgb_gain = value.get("rgb-gain", 128).asInt();
+
+        if(!set_rgb_gamma(rgb_gamma)) std::cout << "Failed to set gamma" << std::endl;
+        if(!set_rgb_saturation(rgb_saturation)) std::cout << "Failed to set sat" << std::endl;
+        if(!set_rgb_gain(rgb_gain)) std::cout << "Failed to set gain" << std::endl;
+
+        set_roi(100, 540 ,100,200);
+
+        set_depth_units(0.001/depth_mult);
+        set_max_laser_power();
+
 
         if(value.get("high-accuracy", false).asBool()){
             set_high_accuracy();
-
-            set_depth_units(0.001/depth_mult);
-
-            set_max_laser_power();
-            //set_roi(100, 540 ,100,200);
         }
     }
 
@@ -227,8 +252,6 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     //Capture params
     capture_gps     = value.get( "gps", false).asBool();
     capture_imu     = value.get( "imu", false).asBool();
-
-    make_fragments  = value.get("make-fragments", false).asBool();
 
     //Post Processing
     bool align_color_to_depth = value.get("align-color-to-depth", false).asBool();

@@ -123,7 +123,7 @@ rs2::sensor get_rgb_sensor(rs2::device dev) {
     for(auto sensor : dev.query_sensors()){
         if (!sensor.supports(RS2_CAMERA_INFO_NAME)) continue ;
 
-        if (std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)).compare("RGB Camera")) {
+        if (std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)).compare("RGB Camera") == 0) {
             return sensor; 
         }
     }
@@ -135,7 +135,7 @@ rs2::sensor get_stereo_sensor(rs2::device dev) {
     for(auto sensor : dev.query_sensors()){
         if (!sensor.supports(RS2_CAMERA_INFO_NAME)) continue;
 
-        if (std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)).compare("Stereo Module")) {
+        if (std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)).compare("Stereo Module") == 0) {
             return sensor; 
         }
     }
@@ -147,7 +147,7 @@ rs2::sensor get_motion_sensor(rs2::device dev) {
     for(auto sensor : dev.query_sensors()){
         if (!sensor.supports(RS2_CAMERA_INFO_NAME)) continue;
 
-        if (std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)).compare("Motion Module")) {
+        if (std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)).compare("Motion Module") == 0) {
             return sensor; 
         }
     }
@@ -173,12 +173,46 @@ float get_depth_scale(rs2::device dev)
     throw std::runtime_error("Device does not have a depth sensor");
 }
 
+bool set_rgb_saturation(int val){
+    auto dev = get_first_device();
+    auto cam = get_rgb_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_SATURATION)){
+        cam.set_option(RS2_OPTION_SATURATION, val);
+        return true;
+    }
+    return false;
+}
+
+bool set_rgb_gain(int val){
+    auto dev = get_first_device();
+    auto cam = get_rgb_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_GAIN)){
+        cam.set_option(RS2_OPTION_GAIN, val);
+        return true;
+    }
+    return false;
+}
+
+bool set_rgb_gamma(int val){
+    auto dev = get_first_device();
+    auto cam = get_rgb_sensor(dev);
+
+    if(cam.supports(RS2_OPTION_GAMMA)){
+        cam.set_option(RS2_OPTION_GAMMA, val);
+        return true;
+    }
+    return false;
+}
+
 bool set_stereo_whitebalance(bool on){
     auto dev = get_first_device();
     auto cam = get_stereo_sensor(dev);
 
     if(cam.supports(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE)){
-        cam.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, on?1:0);
+        int setting = on?1:0;
+        cam.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, setting);
         return true;
     }
 
@@ -190,7 +224,8 @@ bool set_stereo_autoexposure(bool on){
     auto cam = get_rgb_sensor(dev);
 
     if(cam.supports(RS2_OPTION_ENABLE_AUTO_EXPOSURE)){
-        cam.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE, on?1:0);
+        int setting = on?1:0;
+        cam.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE, setting);
     }
     return false;
 }
@@ -200,7 +235,8 @@ bool set_rgb_whitebalance(bool on){
     auto cam = get_rgb_sensor(dev);
 
     if(cam.supports(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE)){
-        cam.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, on?1:0);
+        int setting = on?1:0;
+        cam.set_option(RS2_OPTION_ENABLE_AUTO_WHITE_BALANCE, setting);
         return true;
     }
 
@@ -212,7 +248,8 @@ bool set_rgb_autoexposure(bool on){
     auto cam = get_rgb_sensor(dev);
 
     if(cam.supports(RS2_OPTION_ENABLE_AUTO_EXPOSURE)){
-        cam.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE, on?1:0);
+        int setting = on?1:0;
+        cam.set_option(RS2_OPTION_ENABLE_AUTO_EXPOSURE, setting);
     }
     return false;
 }

@@ -69,6 +69,17 @@ public:
     double voxel_size;
     int registration_window_size;
 
+
+    bool stereo_autoexposure; 
+    bool stereo_whitebalance; 
+
+    bool rgb_autoexposure; 
+    bool rgb_whitebalance; 
+
+    int rgb_gamma;
+    int rgb_saturation;
+    int rgb_gain;
+
     rs2_stream aligner;
     rs2::threshold_filter threshold;
 

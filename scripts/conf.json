@@ -1,0 +1,26 @@
+{
+    "session-name":"test",
+    "set-cam-opts":true,
+
+    "high-accuracy":true,
+
+    "stereo-autoexposure":true,
+    "stereo-whitebalance":true,
+
+    "rgb-autoexposure":false,
+    "rgb-whitebalance":false,
+
+    "rgb-gain":500,
+    "rgb-gamma":100,
+    "rgb-saturation":5,
+
+    "max-distance":2.5,
+
+    "height":480,
+    "width":848,
+
+    "tsdf_cubic":5.0,
+    "tsdf_truncation":0.003,
+
+    "voxel-size":0.05
+}

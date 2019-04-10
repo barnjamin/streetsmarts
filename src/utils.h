@@ -39,7 +39,7 @@ rs2::sensor get_rgb_sensor(rs2::device dev);
 rs2::sensor get_stereo_sensor(rs2::device dev);
 rs2::sensor get_motion_sensor(rs2::device dev);
 
-rs2::device get_first_device(rs2::device dev);
+rs2::device get_first_device();
 
 bool set_rgb_whitebalance(bool on);
 bool set_rgb_autoexposure(bool on);
@@ -54,6 +54,10 @@ void PrintStatus(std::string kind, int state, int total);
 bool set_roi(int xmax, int xmin, int ymax, int ymin);
 bool set_high_accuracy();
 bool set_depth_units(float val);
+
+bool set_rgb_gamma(int val);
+bool set_rgb_gain(int val);
+bool set_rgb_saturation(int val);
 
 void WriteLossesToLog(std::ofstream &fout, int frame_idx, std::vector<std::vector<float>> &losses);
 

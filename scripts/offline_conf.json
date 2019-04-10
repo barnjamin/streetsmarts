@@ -1,0 +1,14 @@
+{
+    "session-prefix":"test",
+    "session":"latest",
+
+    "max-distance":2.5,
+
+    "height":480,
+    "width":848,
+
+    "tsdf_cubic":5.0,
+    "tsdf_truncation":0.003,
+
+    "voxel-size":0.05
+}
