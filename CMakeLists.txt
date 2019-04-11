@@ -96,9 +96,9 @@ target_link_libraries(analyze ${DEPENDENCIES})
 #add_executable(superpix ${SUPERPIX_SOURCE})
 #target_link_libraries(superpix ${DEPENDENCIES})
 
-#set(SEGMENT_SOURCE src/segment.cpp src/config.cpp src/utils.cpp)
-#add_executable(segment ${SEGMENT_SOURCE})
-#target_link_libraries(segment ${DEPENDENCIES})
+set(SEGMENT_SOURCE src/segment.cpp src/config.cpp src/utils.cpp)
+add_executable(segment ${SEGMENT_SOURCE})
+target_link_libraries(segment ${DEPENDENCIES})
 
 #set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
 #add_executable(capture_frames ${CAPTURE_SOURCE})
