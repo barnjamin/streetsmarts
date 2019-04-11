@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <iostream>
 
+#include <stdlib.h>     /* srand, rand */
+
 #include <librealsense2/rs.hpp> 
 #include <librealsense2/rsutil.h>
 
@@ -28,6 +30,51 @@ static const char* keys =
     "{i image     | | image file}"
     "{a algorithm |1| SLIC(0),SLICO(1),MSLIC(2)}"
     ;
+
+
+std::vector<std::vector<Point>> SampleSubpixels(Mat& I, int cnt) {
+    int channels = I.channels();
+
+    int nRows = I.rows;
+    int nCols = I.cols * channels;
+
+    if (I.isContinuous())
+    {
+        nCols *= nRows;
+        nRows = 1;
+    }
+
+    std::vector<std::vector<Point>> groups; 
+    groups.resize(cnt);
+
+    std::vector<std::vector<Point>> samples;
+    samples.resize(cnt);
+    
+    int i,j;
+    uint* p;
+    for(i = 0; i < nRows; ++i) {
+        p = I.ptr<uint>(i);
+        for ( j = 0; j < nCols; ++j) {
+            groups[p[j]].push_back(Point(i,j)); 
+        }
+    }
+
+    for(int x=0; x<groups.size(); ++x){
+        auto sz = groups[x].size();
+        if(sz==0){
+            continue;
+        }
+
+        for(int s = 0; s<20; s++){
+            int idx = rand() % sz ;
+            samples[x].push_back(groups[x][idx]);
+        }
+    }
+
+    return samples;
+}
+
+
 
 int main(int argc, char** argv)
 {
@@ -108,20 +155,17 @@ int main(int argc, char** argv)
         case 0: //superpixel contours
             imshow(window_name, result);
             break;
-        case 1: //mask
-            imshow(window_name, mask);
-            break;
-        case 2: //labels array
+        case 1: //labels array
         {
-            // use the last x bit to determine the color. Note that this does not
-            // guarantee that 2 neighboring superpixels have different colors.
-            // retrieve the segmentation result
             Mat labels;
             slic->getLabels(labels);
-            const int num_label_bits = 2;
-            labels &= (1 << num_label_bits) - 1;
-            labels *= 1 << (16 - num_label_bits);
-            imshow(window_name, labels);
+            auto samples = SampleSubpixels(labels, slic->getNumberOfSuperpixels());
+            for(auto &grp: samples){
+                for(auto &sample: grp){
+                    std::cout << sample << std::endl; 
+                } 
+            }
+            //imshow(window_name, labels);
             break;
         }
         }
@@ -130,7 +174,7 @@ int main(int argc, char** argv)
         if( c == 'q' || c == 'Q' || c == 27 )
             break;
         else if( c == ' ' )
-            display_mode = (display_mode + 1) % 3;
+            display_mode = (display_mode + 1) % 2;
     }
 
     return 0;
