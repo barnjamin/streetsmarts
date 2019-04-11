@@ -47,14 +47,14 @@ void Config::LogStatus(std::string kind, int state, int total) {
     std::stringstream out;
     out << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total;
 
-    if(logfile == NULL || !logfile->is_open()){
-        logfile = new std::ofstream(session_path+"/status.log");
+    if(logfile == NULL || ! logfile->is_open()){
+        logfile = std::make_shared<std::ofstream>(session_path+"/status.log");
     }
 
     std::cout<< out.str() << std::endl;
 
     //write to logfile
-    (*logfile) <<  out.str() << std::endl;
+    *logfile <<  out.str() << std::endl;
 }
 
 float Config::GetInvalidDepth(rs2::depth_frame depth_frame, rs2_intrinsics& intrinsics) {

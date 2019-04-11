@@ -104,7 +104,7 @@ public:
     std::string ImageTimestampFile();
 
     void LogStatus(std::string kind, int state, int total);
-    std::ofstream* logfile;
+    std::shared_ptr<std::ofstream> logfile = nullptr;
 
     std::string PoseFile(int idx);
     std::string DepthFile(int i_idx);
