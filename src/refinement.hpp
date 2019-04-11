@@ -151,7 +151,7 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
     WritePoseGraph(config.PoseFileScene(), *pose_graph_prunned);
 }
 
-void RegisterFragments(Config config){
+void RegisterFragments(Config& config){
     std::vector<Match> matches;
 
     int start, stop;

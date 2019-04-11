@@ -45,7 +45,7 @@ Config::~Config() { }
 void Config::LogStatus(std::string kind, int state, int total) {
 
     std::stringstream out;
-    out << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total << std::endl;
+    out << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total;
 
     if(logfile == NULL || !logfile->is_open()){
         logfile = new std::ofstream(session_path+"/status.log");

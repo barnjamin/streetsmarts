@@ -15,7 +15,7 @@ using namespace open3d::utility;
 using namespace open3d::camera;
 using namespace open3d::io;
 
-void IntegrateScene(Config conf){
+void IntegrateScene(Config& conf){
 
     TransformCuda trans = TransformCuda::Identity();
 
