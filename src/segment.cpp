@@ -4,6 +4,7 @@
 #include <opencv2/core/utility.hpp>
 #include <opencv2/rgbd.hpp>
 
+#include <Eigen/Geometry>
 #include <opencv2/ximgproc.hpp>
 
 #include <ctype.h>
@@ -32,46 +33,39 @@ static const char* keys =
     ;
 
 
-std::vector<std::vector<Point>> SampleSubpixels(Mat& I, int cnt) {
-    int channels = I.channels();
 
-    int nRows = I.rows;
-    int nCols = I.cols * channels;
-
-    if (I.isContinuous())
-    {
-        nCols *= nRows;
-        nRows = 1;
-    }
+Mat AvgNormals(const Mat &normals, const Mat &labeled, int cnt) {
 
     std::vector<std::vector<Point>> groups; 
     groups.resize(cnt);
 
-    std::vector<std::vector<Point>> samples;
-    samples.resize(cnt);
-    
-    int i,j;
-    uint* p;
-    for(i = 0; i < nRows; ++i) {
-        p = I.ptr<uint>(i);
-        for ( j = 0; j < nCols; ++j) {
-            groups[p[j]].push_back(Point(i,j)); 
+    //Create groups
+    for(int i = 0; i < labeled.rows; ++i) {
+        for (int j = 0; j < labeled.cols; ++j) {
+            groups[labeled.at<int>(i, j)].push_back(Point(i,j)); 
         }
     }
 
-    for(int x=0; x<groups.size(); ++x){
-        auto sz = groups[x].size();
-        if(sz==0){
-            continue;
+    Mat avgd(normals.size(), CV_32FC3);
+    for(int i=0; i<groups.size(); ++i){
+        Vec3f a(0,0,0);
+        for(int j=0; j<groups[i].size(); j++){
+            auto px = groups[i][j];
+            auto n = normals.at<Vec3f>(px.x, px.y);
+            a[0] += abs(n[0]);
+            a[1] += abs(n[1]);
+            a[2] += abs(n[2]);
         }
+        a /= (float)groups[i].size();
+        a = normalize(a);
 
-        for(int s = 0; s<20; s++){
-            int idx = rand() % sz ;
-            samples[x].push_back(groups[x][idx]);
+        for(int j=0; j<groups[i].size(); j++){
+            auto px = groups[i][j];
+            avgd.at<Vec3f>(px.x, px.y) = a;
         }
     }
 
-    return samples;
+    return avgd;
 }
 
 Mat ComputeNormals(Mat depth){
@@ -131,15 +125,12 @@ int main(int argc, char** argv)
     Mat result, mask;
     int display_mode = 0;
 
-    Mat K = (Mat_<double>(3, 3) << 610.0023193359375, 0.0, 425.36004638671875, 0.0, 609.85760498046875, 237.9273681640625, 0.0, 0.0, 1.0);
-
-    auto rn = rgbd::RgbdNormals(conf.height, conf.width, CV_32F, K);
-    rn.initialize();
 
     for (;;)
     {
 
         auto frameset = pipeline.wait_for_frames();
+        double t = (double) getTickCount();
 
         auto fs = align.process(frameset.as<rs2::frameset>());
 
@@ -148,64 +139,42 @@ int main(int argc, char** argv)
 
         Mat fdf;
         df.convertTo(fdf, CV_32FC1);
-        Mat norm = ComputeNormals(fdf);
-        imshow(window_name, norm);
-        
+
+        Mat norms = ComputeNormals(fdf);
+
+        result = frame;
+        Mat converted;
+        cvtColor(frame, converted, COLOR_BGR2HSV);
+
+
+        Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(converted,algorithm+SLIC, region_size, float(ruler));
+        slic->iterate(num_iterations);
+        if (min_element_size>0)
+            slic->enforceLabelConnectivity(min_element_size);
+
+
+        // get the contours for displaying
+        slic->getLabelContourMask(mask, true);
+        result.setTo(Scalar(0, 0, 255), mask);
+
+        Mat labels;
+        slic->getLabels(labels);
+        //imshow(window_name, result);
+
+        auto r = AvgNormals(norms, labels, slic->getNumberOfSuperpixels());
+        imshow(window_name, r);
+
+        t = ((double) getTickCount() - t) / getTickFrequency();
+        cout << "SLIC" << (algorithm?'O':' ')
+             << " segmentation took " << (int) (t * 1000)
+             << " ms with " << slic->getNumberOfSuperpixels() << " superpixels" << endl;
+
+
         int c = waitKey(1) & 0xff;
         if( c == 'q' || c == 'Q' || c == 27 )
             break;
         else if( c == ' ' )
             display_mode = (display_mode + 1) % 2;
-
-        //Mat cdf = frame_to_mat(color_map.process(fs.get_depth_frame()));
-
-        //result = frame;
-        //result = frame;
-        //Mat converted;
-        //cvtColor(frame, converted, COLOR_BGR2HSV);
-
-        //double t = (double) getTickCount();
-
-        //Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(converted,algorithm+SLIC, region_size, float(ruler));
-        //slic->iterate(num_iterations);
-        //if (min_element_size>0)
-        //    slic->enforceLabelConnectivity(min_element_size);
-
-        //t = ((double) getTickCount() - t) / getTickFrequency();
-        //cout << "SLIC" << (algorithm?'O':' ')
-        //     << " segmentation took " << (int) (t * 1000)
-        //     << " ms with " << slic->getNumberOfSuperpixels() << " superpixels" << endl;
-
-        //// get the contours for displaying
-        //slic->getLabelContourMask(mask, true);
-        //result.setTo(Scalar(0, 0, 255), mask);
-
-        //// display output
-        //switch (display_mode)
-        //{
-        //case 0: //superpixel contours
-        //    imshow(window_name, result);
-        //    break;
-        //case 1: //labels array
-        //{
-        //    Mat labels;
-        //    slic->getLabels(labels);
-        //    auto samples = SampleSubpixels(labels, slic->getNumberOfSuperpixels());
-        //    for(auto &grp: samples){
-        //        for(auto &sample: grp){
-        //            std::cout << sample << std::endl; 
-        //        } 
-        //    }
-        //    //imshow(window_name, labels);
-        //    break;
-        //}
-        //}
-
-        //int c = waitKey(1) & 0xff;
-        //if( c == 'q' || c == 'Q' || c == 27 )
-        //    break;
-        //else if( c == ' ' )
-        //    display_mode = (display_mode + 1) % 2;
     }
 
     return 0;
