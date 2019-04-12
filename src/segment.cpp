@@ -74,6 +74,26 @@ std::vector<std::vector<Point>> SampleSubpixels(Mat& I, int cnt) {
     return samples;
 }
 
+Mat ComputeNormals(Mat depth){
+    Mat normals(depth.size(), CV_32FC3);
+
+    std::cout << "Computing normals" << std::endl;
+    for(int x = 0; x < depth.rows; ++x) {
+        for(int y = 0; y < depth.cols; ++y) {
+            float dzdx = (depth.at<float>(x+1, y) - depth.at<float>(x-1, y)) / 2.0;
+            float dzdy = (depth.at<float>(x, y+1) - depth.at<float>(x, y-1)) / 2.0;
+
+            Vec3f d(-dzdx, -dzdy, 1.0f);
+            Vec3f n = normalize(d);
+
+            normals.at<Vec3f>(x, y) = n;
+        }
+    }
+    std::cout << "Done" << std::endl;
+
+    return normals;
+}
+
 
 
 int main(int argc, char** argv)
@@ -125,56 +145,68 @@ int main(int argc, char** argv)
         auto fs = align.process(frameset.as<rs2::frameset>());
 
         Mat frame = frame_to_mat(fs.first(RS2_STREAM_COLOR));
-        //Mat df = frame_to_mat(fs.get_depth_frame());
-        //Mat cdf = frame_to_mat(color_map.process(fs.get_depth_frame()));
+        Mat df = frame_to_mat(fs.get_depth_frame());
 
-        //result = frame;
-        result = frame;
-        Mat converted;
-        cvtColor(frame, converted, COLOR_BGR2HSV);
-
-        double t = (double) getTickCount();
-
-        Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(converted,algorithm+SLIC, region_size, float(ruler));
-        slic->iterate(num_iterations);
-        if (min_element_size>0)
-            slic->enforceLabelConnectivity(min_element_size);
-
-        t = ((double) getTickCount() - t) / getTickFrequency();
-        cout << "SLIC" << (algorithm?'O':' ')
-             << " segmentation took " << (int) (t * 1000)
-             << " ms with " << slic->getNumberOfSuperpixels() << " superpixels" << endl;
-
-        // get the contours for displaying
-        slic->getLabelContourMask(mask, true);
-        result.setTo(Scalar(0, 0, 255), mask);
-
-        // display output
-        switch (display_mode)
-        {
-        case 0: //superpixel contours
-            imshow(window_name, result);
-            break;
-        case 1: //labels array
-        {
-            Mat labels;
-            slic->getLabels(labels);
-            auto samples = SampleSubpixels(labels, slic->getNumberOfSuperpixels());
-            for(auto &grp: samples){
-                for(auto &sample: grp){
-                    std::cout << sample << std::endl; 
-                } 
-            }
-            //imshow(window_name, labels);
-            break;
-        }
-        }
-
+        Mat fdf;
+        df.convertTo(fdf, CV_32FC1);
+        Mat norm = ComputeNormals(fdf);
+        imshow(window_name, norm);
+        
         int c = waitKey(1) & 0xff;
         if( c == 'q' || c == 'Q' || c == 27 )
             break;
         else if( c == ' ' )
             display_mode = (display_mode + 1) % 2;
+
+        //Mat cdf = frame_to_mat(color_map.process(fs.get_depth_frame()));
+
+        //result = frame;
+        //result = frame;
+        //Mat converted;
+        //cvtColor(frame, converted, COLOR_BGR2HSV);
+
+        //double t = (double) getTickCount();
+
+        //Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(converted,algorithm+SLIC, region_size, float(ruler));
+        //slic->iterate(num_iterations);
+        //if (min_element_size>0)
+        //    slic->enforceLabelConnectivity(min_element_size);
+
+        //t = ((double) getTickCount() - t) / getTickFrequency();
+        //cout << "SLIC" << (algorithm?'O':' ')
+        //     << " segmentation took " << (int) (t * 1000)
+        //     << " ms with " << slic->getNumberOfSuperpixels() << " superpixels" << endl;
+
+        //// get the contours for displaying
+        //slic->getLabelContourMask(mask, true);
+        //result.setTo(Scalar(0, 0, 255), mask);
+
+        //// display output
+        //switch (display_mode)
+        //{
+        //case 0: //superpixel contours
+        //    imshow(window_name, result);
+        //    break;
+        //case 1: //labels array
+        //{
+        //    Mat labels;
+        //    slic->getLabels(labels);
+        //    auto samples = SampleSubpixels(labels, slic->getNumberOfSuperpixels());
+        //    for(auto &grp: samples){
+        //        for(auto &sample: grp){
+        //            std::cout << sample << std::endl; 
+        //        } 
+        //    }
+        //    //imshow(window_name, labels);
+        //    break;
+        //}
+        //}
+
+        //int c = waitKey(1) & 0xff;
+        //if( c == 'q' || c == 'Q' || c == 27 )
+        //    break;
+        //else if( c == ' ' )
+        //    display_mode = (display_mode + 1) % 2;
     }
 
     return 0;
