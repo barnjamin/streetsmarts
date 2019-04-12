@@ -77,11 +77,11 @@ std::vector<std::vector<Point>> SampleSubpixels(Mat& I, int cnt) {
 Mat ComputeNormals(Mat depth){
     Mat normals(depth.size(), CV_32FC3);
 
-    std::cout << "Computing normals" << std::endl;
+    int size = 3;
     for(int x = 0; x < depth.rows; ++x) {
         for(int y = 0; y < depth.cols; ++y) {
-            float dzdx = (depth.at<float>(x+1, y) - depth.at<float>(x-1, y)) / 2.0;
-            float dzdy = (depth.at<float>(x, y+1) - depth.at<float>(x, y-1)) / 2.0;
+            float dzdx = (depth.at<float>(x+size, y) - depth.at<float>(x-size, y)) / 2.0;
+            float dzdy = (depth.at<float>(x, y+size) - depth.at<float>(x, y-size)) / 2.0;
 
             Vec3f d(-dzdx, -dzdy, 1.0f);
             Vec3f n = normalize(d);
@@ -89,7 +89,6 @@ Mat ComputeNormals(Mat depth){
             normals.at<Vec3f>(x, y) = n;
         }
     }
-    std::cout << "Done" << std::endl;
 
     return normals;
 }
