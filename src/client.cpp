@@ -12,7 +12,6 @@
 
 int main(int argc, char * argv[]) try
 {
-
     open3d::utility::SetVerbosityLevel(open3d::utility::VerbosityLevel::VerboseWarning);
 
     Config conf;

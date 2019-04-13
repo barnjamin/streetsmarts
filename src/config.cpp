@@ -43,12 +43,12 @@ std::string generate_local_session(std::string prefix) {
 Config::~Config() { }
 
 void Config::LogStatus(std::string kind, int state, int total) {
-
     std::stringstream out;
-    out << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total;
+    out << get_timestamp() << ":" << kind << ":" << state << ":" << total-1;
 
     if(logfile == NULL || ! logfile->is_open()){
-        logfile = std::make_shared<std::ofstream>(session_path+"/status.log");
+        logfile = std::make_shared<std::ofstream>(session_path+"/status.log",  
+                std::fstream::in | std::fstream::out | std::fstream::app);
     }
 
     std::cout<< out.str() << std::endl;
