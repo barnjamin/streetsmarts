@@ -17,6 +17,7 @@ public:
     int height;
     int fps;
     int framestart;
+    int frames;
     
     int depth_mult;
 
@@ -25,6 +26,9 @@ public:
     bool capture_gps;
     bool capture_imu;
     bool make_fragments;
+
+    int overlap_factor;
+    int rgbd_lookback;
 
     int frames_per_fragment;
     int fragments;
@@ -58,6 +62,7 @@ public:
     int cluster_min;   
     int cluster_max;   
 
+
     bool use_imu;
     bool use_filter;
     bool write_losses;
@@ -69,6 +74,8 @@ public:
     double loop_close_odom;
     double loop_close_reg;
     double voxel_size;
+    double final_max_depth;
+
     int registration_window_size;
 
 
@@ -103,6 +110,7 @@ public:
     std::string IntrinsicFile();
     std::string ImageTimestampFile();
 
+    void SetExposure();
     void LogStatus(std::string kind, int state, int total);
     std::shared_ptr<std::ofstream> logfile = nullptr;
 

@@ -41,9 +41,6 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
     infra_image->PrepareImage(conf.width, conf.height, 1, 1);
 
-    std::ofstream timestamp_file;
-    timestamp_file.open(conf.ImageTimestampFile());
-
     open3d::camera::PinholeCameraIntrinsic intrinsic = get_open3d_intrinsic(profile);
     open3d::io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
 
@@ -76,9 +73,6 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
         std::thread write_depth(open3d::io::WriteImage, conf.DepthFile(img_idx), *depth_image, 100);
         std::thread write_color(open3d::io::WriteImage, conf.ColorFile(img_idx), *color_image, 100);
 
-        timestamp_file << img_idx << "," << depth_frame.get_timestamp() << "," 
-            << color_frame.get_timestamp()  << "," << get_timestamp() << std::endl;
-
         write_depth.join();
         write_color.join();
     }
@@ -93,8 +87,6 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     rs2::frame color_frame, depth_frame;
     rs2::align align(conf.aligner);
 
-    std::ofstream timestamp_file;
-    timestamp_file.open(conf.ImageTimestampFile());
 
     camera::PinholeCameraIntrinsic intrinsic = get_open3d_intrinsic(profile);
     io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
@@ -119,101 +111,84 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     Eigen::Matrix4d mat;
     std::vector<std::vector<float>> losses;
 
-    //Discard first $framestart frames
+    //Discard first $framestart frames, letting auto exposure work itself out
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
+    conf.SetExposure();
 
-    set_stereo_autoexposure(conf.stereo_autoexposure);
-    set_stereo_whitebalance(conf.stereo_whitebalance);
+    Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
+    registration::PoseGraph pose_graph;
+    pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
 
-    set_rgb_autoexposure(conf.rgb_autoexposure);
-    set_rgb_whitebalance(conf.rgb_whitebalance);
-    
-    //Discard another $framestart frames
-    for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
-
-    //utility::FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
-
-    for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
+    for(int frame_idx = 0; frame_idx < conf.frames; ++frame_idx)
     {
-        Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
-        registration::PoseGraph pose_graph;
-        pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
 
-        for(int i = 0; i < conf.frames_per_fragment; i++)
-        {
+        rs2::frame frame = q.wait_for_frame();
 
-            rs2::frame frame = q.wait_for_frame();
+        //Get processed aligned frame
+        frameset = align.process(frame.as<rs2::frameset>());
+        color_frame = frameset.first(RS2_STREAM_COLOR);
+        depth_frame = frameset.get_depth_frame();	       
+        if (!depth_frame || !color_frame) { continue; }
 
-            int frame_idx = (conf.frames_per_fragment * fragment_idx) + i;
+        if(conf.use_filter){ depth_frame = conf.Filter(depth_frame); }
 
-            //Get processed aligned frame
-            frameset = align.process(frame.as<rs2::frameset>());
+        memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
+        memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
-            color_frame = frameset.first(RS2_STREAM_COLOR);
-            depth_frame = frameset.get_depth_frame();	       
+        // Upload images to GPU
+        rgbd_target.Upload(*depth_image, *color_image);
 
-            if (!depth_frame || !color_frame) { continue; }
+        std::thread write_depth(io::WriteImage, conf.DepthFile(frame_idx), *depth_image, 100);
+        std::thread write_color(io::WriteImage, conf.ColorFile(frame_idx), *color_image, 100);
 
-            if(conf.use_filter){ depth_frame = conf.Filter(depth_frame); }
-
-            memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
-            memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
-
-            timestamp_file << frame_idx << "," << depth_frame.get_timestamp() << "," 
-                << color_frame.get_timestamp()  << "," << get_timestamp() << std::endl;
-
-            //Upload images to GPU
-            rgbd_target.Upload(*depth_image, *color_image);
-
-            std::thread write_depth(io::WriteImage, conf.DepthFile(frame_idx), *depth_image, 100);
-            std::thread write_color(io::WriteImage, conf.ColorFile(frame_idx), *color_image, 100);
-
-            if(i==0) { 
-                rgbd_source.CopyFrom(rgbd_target); 
-                write_depth.join();
-                write_color.join();
-                continue; 
-            }
-
-            //mtx.lock();
-            odometry.transform_source_to_target_ =  Eigen::Matrix4d::Identity();
-            odometry.Initialize(rgbd_source, rgbd_target);
-            std::tie(success, mat, losses) = odometry.ComputeMultiScale();
-            if(!success) {
-                rgbd_source.CopyFrom(rgbd_target); 
-                //mtx.unlock();
-                write_depth.join();
-                write_color.join();
-                continue; 
-            }
-
-            Eigen::Matrix4d trans = odometry.transform_source_to_target_;
-            Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
-            //mtx.unlock();
-
-            //Update Target to world
-            trans_odometry =  trans * trans_odometry;
-
-            Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
-
-            //Update PoseGraph
-            pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry_inv));
-            pose_graph.edges_.emplace_back(registration::PoseGraphEdge(i - 1, i, 
-                                            trans, information, false));
-
-            //Overwrite previous
-            rgbd_source.CopyFrom(rgbd_target);
-
+        // Nothing to compare it to
+        if(frame_idx == 0) { 
+            rgbd_source.CopyFrom(rgbd_target); 
             write_depth.join();
             write_color.join();
-
-            //timer.Signal();
-            conf.LogStatus("RGBDFRAME", frame_idx, conf.frames_per_fragment * conf.fragments);
+            continue; 
         }
-        io::WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
-        pg_queue.push(fragment_idx);
+
+        odometry.transform_source_to_target_ =  Eigen::Matrix4d::Identity();
+        odometry.Initialize(rgbd_source, rgbd_target);
+        std::tie(success, mat, losses) = odometry.ComputeMultiScale();
+
+        // No solution, skip it
+        if(!success) {
+            //TODO:: include this frame at all?
+            // Write posegraph?
+            rgbd_source.CopyFrom(rgbd_target); 
+            write_depth.join();
+            write_color.join();
+            continue; 
+        }
+
+        Eigen::Matrix4d trans = odometry.transform_source_to_target_;
+        Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
+
+        //Update Target to world
+        trans_odometry =  trans * trans_odometry;
+
+        Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
+
+        //Update PoseGraph
+        pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry_inv));
+        pose_graph.edges_.emplace_back(registration::PoseGraphEdge(frame_idx - 1, frame_idx, 
+                                        trans, information, false));
+
+        //Overwrite previous
+        rgbd_source.CopyFrom(rgbd_target);
+
+        write_depth.join();
+        write_color.join();
+
+        //timer.Signal();
+        conf.LogStatus("RGBDFRAME", frame_idx, 
+                conf.frames_per_fragment * conf.fragments);
     }
 
+    io::WritePoseGraph(conf.PoseFile(0), pose_graph);
+    //pg_queue.push(fragment_idx);
 }
 
 void make_fragments(Config conf, std::queue<int> &pg_queue, 
@@ -223,11 +198,9 @@ void make_fragments(Config conf, std::queue<int> &pg_queue,
         while (!pg_queue.empty()) {
             int idx = pg_queue.front();
 
-            OptimizePoseGraphForFragment(idx, conf);
+            //OptimizePoseGraphForFragment(idx, conf);
 
-            //mtx.lock();
-            IntegrateForFragment(idx, conf);
-            //mtx.unlock();
+            //IntegrateForFragment(idx, conf);
 
             frag_queue.push(idx);
 

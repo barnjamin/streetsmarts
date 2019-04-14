@@ -39,7 +39,7 @@ int main(int argc, char ** argv)
 
     pcd = VoxelDownSample(*pcd, conf.don_downsample);
 
-    //auto trimmed_pc = TrimLongitudinalAxis(*pcd, 0.0, 200);
+    //auto trimmed_pc = TrimLongitudinalAxis(*pcd, 0.5, 200);
     //WritePointCloud("trimmed.pcd", *trimmed_pc);
 
     //Diff of Norms 
@@ -51,7 +51,7 @@ int main(int argc, char ** argv)
     geoms.push_back(DoN);
 
     Eigen::Matrix4d side_by_side;
-    side_by_side << 1,0,0,1,
+    side_by_side << 1,0,0,10,
                     0,1,0,0,
                     0,0,1,0,
                     0,0,0,1;
@@ -106,8 +106,8 @@ std::shared_ptr<PointCloud> DifferenceOfNorm(
         }
 
 
-        //big_pc.colors_[i] =  color_map_ptr->GetColor((delta+0.25)/2);
-        big_pc.colors_[i] =  color_map_ptr->GetColor((delta+0.15));
+        //big_pc.colors_[i] =  color_map_ptr->GetColor((delta + 0.5)/2.0);
+        big_pc.colors_[i] =  color_map_ptr->GetColor((delta+0.25));
     
         if(delta > low_thresh && delta < high_thresh) 
             indicies.push_back(i);

@@ -36,6 +36,8 @@ static const char* keys =
 
 Mat AvgNormals(const Mat &normals, const Mat &labeled, int cnt) {
 
+    Mat avgd(normals.size(), CV_32FC3);
+
     std::vector<std::vector<Point>> groups; 
     groups.resize(cnt);
 
@@ -46,7 +48,6 @@ Mat AvgNormals(const Mat &normals, const Mat &labeled, int cnt) {
         }
     }
 
-    Mat avgd(normals.size(), CV_32FC3);
     for(int i=0; i<groups.size(); ++i){
         Vec3f a(0,0,0);
         for(int j=0; j<groups[i].size(); j++){

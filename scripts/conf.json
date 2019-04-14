@@ -1,9 +1,10 @@
 {
     "session-name":"test",
-    "set-cam-opts":true,
 
     "logfile":"true",
     "stdout":true,
+
+    "set-cam-opts":true,
 
     "high-accuracy":true,
 
@@ -15,15 +16,17 @@
 
     "rgb-gain":500,
     "rgb-gamma":100,
-    "rgb-saturation":5,
+    "rgb-saturation":30,
 
-    "max-distance":2.5,
+    "max-depth":10,
 
     "height":480,
     "width":848,
 
-    "tsdf_cubic":5.0,
-    "tsdf_truncation":0.003,
+    "overlap-factor":1,
+
+    "tsdf-cubic":5.0,
+    "tsdf-truncation":0.03,
 
     "voxel-size":0.05
 }

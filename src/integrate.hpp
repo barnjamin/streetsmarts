@@ -35,8 +35,8 @@ void IntegrateScene(Config& conf){
 
     PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
 
-    RGBDImageCuda rgbd(conf.width, conf.height, conf.max_depth, conf.depth_factor);
-    for(int fragment_id=0; fragment_id<conf.GetFragmentCount(); fragment_id++){
+    RGBDImageCuda rgbd(conf.width, conf.height, conf.final_max_depth, conf.depth_factor);
+    for(int fragment_id=0; fragment_id<conf.fragments; fragment_id++){
 
         PoseGraph local_pose_graph;
         ReadPoseGraph(conf.PoseFile(fragment_id), local_pose_graph);
@@ -45,7 +45,14 @@ void IntegrateScene(Config& conf){
         for (int img_id = 0; img_id < conf.frames_per_fragment; img_id++) {
             Image depth, color;
 
-            int frame_idx = (fragment_id * conf.frames_per_fragment) + img_id;
+            int frame_idx;
+            if(fragment_id == 0){
+                frame_idx = (fragment_id * conf.frames_per_fragment) + img_id;
+            } else {
+                frame_idx = ((fragment_id * conf.frames_per_fragment) - 
+                        (int)((float)conf.frames_per_fragment / (float)conf.overlap_factor))+ img_id;
+            }
+
             if(!ReadImage(conf.DepthFile(frame_idx), depth) ||
                 !ReadImage(conf.ColorFile(frame_idx), color)) {
                 PrintInfo("Failed to read frame_idx: %d\n", frame_idx);
