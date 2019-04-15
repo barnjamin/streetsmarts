@@ -28,6 +28,8 @@ int main(int argc, char * argv[])
 
     OptimizePoseGraphForSession(conf);
 
+    MakeFragmentsFromSession(conf);
+
     //IntegrateForFragment(i, conf);
 
     timer.Stop();

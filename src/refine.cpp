@@ -34,18 +34,16 @@ std::vector<Match> RegisterFragments(Config &config) {
 
     std::vector<Match> matches;
 
-    int start, stop;
+    PoseGraph pose_graph;
+    ReadPoseGraph(config.PoseFile(0), pose_graph);
+
     int frag_count = config.GetFragmentCount();
-    for (int s = 0; s < frag_count; s++) {
+    for (int s = 0; s < frag_count-1; s++) {
         auto source_raw = CreatePointCloudFromFile(config.FragmentFile(s));
         auto source = VoxelDownSample(*source_raw,config.voxel_size);
 
-        PoseGraph pose_graph_s;
-        ReadPoseGraph(config.PoseFile(s), pose_graph_s);
-
-        Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_.back().pose_.inverse(); 
-
-        for (int t = s+1; t < frag_count; t++) {
+        for(int t = s+1; t < frag_count; t++){
+            PrintInfo("register %d to %d\n", s, t);
             auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
             auto target = VoxelDownSample(*target_raw, config.voxel_size);
 
@@ -53,8 +51,11 @@ std::vector<Match> RegisterFragments(Config &config) {
             match.s = s;
             match.t = t;
 
-            if(t == s+1){ /** Colored ICP **/
+            Eigen::Matrix4d init_source_to_target = Eigen::Matrix4d::Identity();
+
+            if(t == s+1){
                 PrintInfo("ColoredICP\n");
+
                 cuda::RegistrationCuda registration(TransformationEstimationType::ColoredICP);
                 registration.Initialize(*source, *target, (float) config.voxel_size * 1.4f, init_source_to_target);
                 registration.ComputeICP();
@@ -63,23 +64,24 @@ std::vector<Match> RegisterFragments(Config &config) {
 
                 match.information = registration.ComputeInformationMatrix();
                 match.success = true;
-            } else {
-                //PrintInfo("FGR\n");
-                //cuda::FastGlobalRegistrationCuda fgr;
-                //fgr.Initialize(*source, *target);
+            }else{
+                PrintInfo("FGR\n");
+                cuda::FastGlobalRegistrationCuda fgr;
+                fgr.Initialize(*source, *target);
 
-                //auto result = fgr.ComputeRegistration();
-                //match.trans_source_to_target = result.transformation_;
+                auto result = fgr.ComputeRegistration();
+                match.trans_source_to_target = result.transformation_;
 
-                //match.information = cuda::RegistrationCuda::ComputeInformationMatrix(
-                //    *source, *target, config.voxel_size * 1.4f, result.transformation_);
+                match.information = cuda::RegistrationCuda::ComputeInformationMatrix(
+                    *source, *target, config.voxel_size * 1.4f, result.transformation_);
 
-                //match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
-                //        std::min(source->points_.size(), target->points_.size()) >= 0.3;
+                match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) /
+                        std::min(source->points_.size(), target->points_.size()) >= 0.3;
             }
 
             matches.push_back(match);
         }
+
     }
 
     return matches;
@@ -252,10 +254,10 @@ int main(int argc, char ** argv)
     OptimizePoseGraphForRegisteredScene(conf);
 
     //Refine
-    PrintInfo("Refining Pose Graph\n");
-    auto refined_matches = RefineFragments(conf);
-    MakePoseGraphForRefinedScene(refined_matches, conf);
-    OptimizePoseGraphForRefinedScene(conf);
+    //PrintInfo("Refining Pose Graph\n");
+    //auto refined_matches = RefineFragments(conf);
+    //MakePoseGraphForRefinedScene(refined_matches, conf);
+    //OptimizePoseGraphForRefinedScene(conf);
 
     return 0;
 }

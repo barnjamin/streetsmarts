@@ -35,40 +35,31 @@ void IntegrateScene(Config& conf){
 
     PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
 
+    PoseGraph local_pose_graph;
+    ReadPoseGraph(conf.PoseFile(0), local_pose_graph);
+
     RGBDImageCuda rgbd(conf.width, conf.height, conf.final_max_depth, conf.depth_factor);
-    for(int fragment_id=0; fragment_id<conf.fragments; fragment_id++){
 
-        PoseGraph local_pose_graph;
-        ReadPoseGraph(conf.PoseFile(fragment_id), local_pose_graph);
+    for (int frame_idx = 0; frame_idx < conf.frames; frame_idx++) {
+        Image depth, color;
 
-        TransformCuda trans;
-        for (int img_id = 0; img_id < conf.frames_per_fragment; img_id++) {
-            Image depth, color;
-
-            int frame_idx;
-            if(fragment_id == 0){
-                frame_idx = (fragment_id * conf.frames_per_fragment) + img_id;
-            } else {
-                frame_idx = ((fragment_id * conf.frames_per_fragment) - 
-                        (int)((float)conf.frames_per_fragment / (float)conf.overlap_factor))+ img_id;
-            }
-
-            if(!ReadImage(conf.DepthFile(frame_idx), depth) ||
-                !ReadImage(conf.ColorFile(frame_idx), color)) {
-                PrintInfo("Failed to read frame_idx: %d\n", frame_idx);
-                continue;
-            }
-
-            rgbd.Upload(depth, color);
-
-            Eigen::Matrix4d pose = global_pose_graph.nodes_[fragment_id].pose_ * local_pose_graph.nodes_[img_id].pose_;
-
-            //trans.FromEigen(pose.inverse());
-            trans.FromEigen(pose);
-
-            tsdf_volume.Integrate(rgbd, intrinsic, trans);
-            conf.LogStatus("INTEGRATE", frame_idx, (conf.frames_per_fragment * conf.fragments));
+        if(!ReadImage(conf.DepthFile(frame_idx), depth) ||
+            !ReadImage(conf.ColorFile(frame_idx), color)) {
+            PrintInfo("Failed to read frame_idx: %d\n", frame_idx);
+            continue;
         }
+
+
+        rgbd.Upload(depth, color);
+
+        int fragment_id = conf.GetFragmentIdForFrame(frame_idx);
+        Eigen::Matrix4d pose = global_pose_graph.nodes_[fragment_id].pose_ * local_pose_graph.nodes_[frame_idx].pose_;
+
+        //trans.FromEigen(pose.inverse());
+        trans.FromEigen(pose);
+
+        tsdf_volume.Integrate(rgbd, intrinsic, trans);
+        //conf.LogStatus("INTEGRATE", frame_idx, (conf.frames_per_fragment * conf.fragments));
     }
 
     tsdf_volume.GetAllSubvolumes();

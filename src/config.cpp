@@ -173,7 +173,7 @@ Config::Config(int argc, char ** argv) {
     overlap_factor      = utility::GetProgramOptionAsInt(argc, argv,      "--overlap_factor",      4);
     rgbd_lookback       = utility::GetProgramOptionAsInt(argc, argv,      "--rgbd_lookback",       2);
 
-    max_depth_diff      = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth_diff",     0.07*depth_mult);
+    max_depth_diff      = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth_diff",     0.075 * depth_mult);
     loop_close_odom     = utility::GetProgramOptionAsDouble(argc, argv,   "--loop_closure_odom",  0.2);
     
     //Refine Params
@@ -315,7 +315,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
 
     overlap_factor      = value.get("overlap-factor",     4).asInt();
     rgbd_lookback       = value.get("rgbd-lookback",      2).asInt();
-    max_depth_diff      = value.get("max-depth-diff",     0.007).asDouble() * depth_mult;
+    max_depth_diff      = value.get("max-depth-diff",     0.075).asDouble() * depth_mult;
     loop_close_odom     = value.get("loop-closure-odom",  0.2).asDouble();
     
     //Refine Params
@@ -343,6 +343,17 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     return true;
 }
 
+int Config::GetFragmentIdForFrame(int frame_id) {
+    return  frame_id / frames_per_fragment;
+}
+
+std::tuple<int,int> Config::GetFramesFromFragment(int fragment_id) {
+    int fstart = fragment_id * frames_per_fragment;
+    if(fragment_id>0){
+        fstart -= (int) (float)frames_per_fragment / (float) overlap_factor;
+    }
+    return std::make_tuple(fstart, (frames_per_fragment * fragment_id) + frames_per_fragment);
+}
 
 void Config::CreateLocalSession()
 {
@@ -451,18 +462,8 @@ std::string Config::GPSFile()
 int Config::GetFragmentCount() 
 {
 
-    //TODO Use fragment dir to get fragment count
-    
-    std::stringstream ss;
-    ss << session_path <<  "/fragment";
+    return frames / frames_per_fragment;
 
-    std::vector<std::string> filenames;
-
-    if(!open3d::utility::filesystem::ListFilesInDirectory(ss.str(), filenames)) {
-        return 0 ;
-    }
-
-    return filenames.size();
 }
 
 rs2::frame Config::Filter(rs2::depth_frame depth)

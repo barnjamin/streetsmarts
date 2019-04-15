@@ -126,6 +126,8 @@ public:
 
     rs2::frame Filter(rs2::depth_frame depth);
 
+    int GetFragmentIdForFrame(int frame_id);
+    std::tuple<int,int> GetFramesFromFragment(int fragment_id);
     int GetFragmentCount();
 
     float GetInvalidDepth(rs2::depth_frame, rs2_intrinsics&);

@@ -39,9 +39,9 @@ using namespace cv;
 using namespace std;
 
 Eigen::Matrix4d PredictTransform(const PoseGraph & pg, int src, int tgt) {
-    Eigen::Matrix4d src_node_pose = Eigen::Matrix4d(pg.nodes_[src].pose_);
-    Eigen::Matrix4d tgt_node_pose = Eigen::Matrix4d(pg.nodes_[tgt].pose_);
-    return tgt_node_pose.inverse() * src_node_pose;
+    Eigen::Matrix4d src_node_pose = pg.nodes_[src].pose_;
+    Eigen::Matrix4d tgt_node_pose = pg.nodes_[tgt].pose_;
+    return  src_node_pose * tgt_node_pose.inverse();
 }
 
 void MakePoseGraphForSession(Config &config) {
@@ -73,6 +73,7 @@ void MakePoseGraphForSession(Config &config) {
     for (int frame_idx = 0; frame_idx < config.frames-1;  ++frame_idx) {
         int tgt_frame_idx = frame_idx + 1;
         Eigen::Matrix4d seed_trans = Eigen::Matrix4d::Identity();
+
         for(int lookback = 0; lookback < config.rgbd_lookback; ++lookback){
             int src_frame_idx = frame_idx - lookback;
 
@@ -134,7 +135,8 @@ void OptimizePoseGraphForSession(Config &config) {
     ReadPoseGraph(config.PoseFile(0), pose_graph);
 
     GlobalOptimizationConvergenceCriteria criteria;
-    GlobalOptimizationOption option(config.max_depth_diff, 0.25, config.loop_close_odom, 0);
+
+    GlobalOptimizationOption option(config.max_depth_diff, 0.05, config.loop_close_odom, 0);
     GlobalOptimizationLevenbergMarquardt optimization_method;
     GlobalOptimization(pose_graph, optimization_method, criteria, option);
 
@@ -142,6 +144,74 @@ void OptimizePoseGraphForSession(Config &config) {
 
     WritePoseGraph(config.PoseFile(0), *pose_graph_prunned);
 }
+
+
+
+void MakeFragmentsFromSession(Config &config) {
+
+    PoseGraph pose_graph;
+    ReadPoseGraph(config.PoseFile(0), pose_graph);
+
+    PinholeCameraIntrinsic intrinsic_;
+    ReadIJsonConvertible(config.IntrinsicFile(), intrinsic_);
+
+    float voxel_length = config.tsdf_cubic_size / 512.0;
+    PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
+
+    Image depth, color;
+    for(int fragment_id=0; fragment_id<config.GetFragmentCount(); fragment_id++){
+
+        TransformCuda trans = TransformCuda::Identity();
+        ScalableTSDFVolumeCuda<8> tsdf_volume( 20000, 400000, 
+                voxel_length, (float) config.tsdf_truncation, trans);
+
+        RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
+
+        int frame_start = 0;
+        if(fragment_id>0){
+            frame_start -= (int) (float)config.frames_per_fragment / (float) config.overlap_factor;
+        }
+
+        for (int i = frame_start; i < config.frames_per_fragment; i++) {
+            int frame_idx = (fragment_id * config.frames_per_fragment) + i;
+
+            PrintInfo("Integrating fragment: %d frame %d \n", fragment_id, frame_idx);
+
+            ReadImage(config.DepthFile(frame_idx), depth);
+            ReadImage(config.ColorFile(frame_idx), color);
+            rgbd.Upload(depth, color);
+
+            /* Use ground truth trajectory */
+            Eigen::Matrix4d pose = pose_graph.nodes_[frame_idx].pose_;
+            trans.FromEigen(pose);
+
+            tsdf_volume.Integrate(rgbd, intrinsic, trans);
+        }
+
+        tsdf_volume.GetAllSubvolumes();
+
+        ScalableMeshVolumeCuda<8> mesher( 
+                tsdf_volume.active_subvolume_entry_array().size(), 
+                VertexWithNormalAndColor, 10000000, 20000000);
+
+        mesher.MarchingCubes(tsdf_volume);
+        auto mesh = mesher.mesh().Download();
+
+        PointCloud pcl;
+        pcl.points_ = mesh->vertices_;
+        pcl.normals_ = mesh->vertex_normals_;
+        pcl.colors_ = mesh->vertex_colors_;
+
+        /** Write original fragments **/
+        WritePointCloud(config.FragmentFile(fragment_id), pcl);
+    }
+
+    /** Write downsampled thumbnail fragments **/
+    //auto pcl_downsampled = VoxelDownSample(pcl, config.voxel_size);
+    //WritePointCloudToPLY(config.ThumbnailFragmentFile(fragment_id), *pcl_downsampled);
+}
+
+
 
 void IntegrateForFragment(int fragment_id, Config &config) {
 
