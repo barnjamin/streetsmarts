@@ -42,6 +42,14 @@ std::string generate_local_session(std::string prefix) {
 
 Config::~Config() { }
 
+void Config::SetExposure(){
+    set_stereo_autoexposure(stereo_autoexposure);
+    set_stereo_whitebalance(stereo_whitebalance);
+
+    set_rgb_autoexposure(rgb_autoexposure);
+    set_rgb_whitebalance(rgb_whitebalance);
+}
+
 void Config::LogStatus(std::string kind, int state, int total) {
     std::stringstream out;
     out << get_timestamp() << ":" << kind << ":" << state << ":" << total-1;
@@ -125,6 +133,7 @@ Config::Config(int argc, char ** argv) {
     height              = utility::GetProgramOptionAsInt(argc, argv,  "--height", 480);
     fps                 = utility::GetProgramOptionAsInt(argc, argv,  "--fps",    30);
     framestart          = utility::GetProgramOptionAsInt(argc, argv,  "--fstart", 30);
+    frames              = utility::GetProgramOptionAsInt(argc, argv,  "--frames", 480);
 
     //Capture params
     capture_gps     = utility::ProgramOptionExists(argc, argv, "--gps");
@@ -160,23 +169,25 @@ Config::Config(int argc, char ** argv) {
     //Odometry Params
     use_imu             = utility::ProgramOptionExists(argc, argv,        "--use_imu");
 
-    fragments           = utility::GetProgramOptionAsInt(argc, argv,      "--fragments",          8);
-    frames_per_fragment = utility::GetProgramOptionAsInt(argc, argv,      "--frames_per_fragment",30);
+    frames_per_fragment = utility::GetProgramOptionAsInt(argc, argv,      "--frames_per_fragment", 120);
+    overlap_factor      = utility::GetProgramOptionAsInt(argc, argv,      "--overlap_factor",      4);
+    rgbd_lookback       = utility::GetProgramOptionAsInt(argc, argv,      "--rgbd_lookback",       2);
 
-    max_depth_diff      = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth_diff",     0.07*depth_mult);
+    max_depth_diff      = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth_diff",     0.075 * depth_mult);
     loop_close_odom     = utility::GetProgramOptionAsDouble(argc, argv,   "--loop_closure_odom",  0.2);
     
     //Refine Params
     registration_window_size = utility::GetProgramOptionAsInt(argc, argv,   "--registration_window",        5);
 
-    loop_close_reg          = utility::GetProgramOptionAsDouble(argc, argv,"--loop_closure_registration",  0.8);
-    voxel_size              = utility::GetProgramOptionAsDouble(argc, argv,"--voxel_size",                 0.005/depth_mult);
+    loop_close_reg  = utility::GetProgramOptionAsDouble(argc, argv,"--loop_closure_registration",  0.8);
+    voxel_size      = utility::GetProgramOptionAsDouble(argc, argv,"--voxel_size",                 0.005/depth_mult);
+    final_max_depth = utility::GetProgramOptionAsDouble(argc, argv,"--final_max_depth",            3.0/depth_mult);
 
     //DoN params
     don_downsample = utility::GetProgramOptionAsDouble(argc, argv, "--don_downsample", 0.02/depth_mult);
 
-    don_small = utility::GetProgramOptionAsDouble(argc, argv,      "--don_small",      0.04/depth_mult);
-    don_large = utility::GetProgramOptionAsDouble(argc, argv,      "--don_large",      0.4/depth_mult);
+    don_small = utility::GetProgramOptionAsDouble(argc, argv,      "--don_small",      0.03/depth_mult);
+    don_large = utility::GetProgramOptionAsDouble(argc, argv,      "--don_large",      0.5/depth_mult);
 
     threshold_min = utility::GetProgramOptionAsDouble(argc, argv,  "--don_thresh_min", 0.01/depth_mult);//, 0.032);
     threshold_max = utility::GetProgramOptionAsDouble(argc, argv,  "--don_thresh_max", 0.9/depth_mult);//, 0.1);
@@ -264,6 +275,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     height              = value.get("height", 480).asInt();
     fps                 = value.get("fps",    30).asInt();
     framestart          = value.get("fstart", 30).asInt();
+    frames              = value.get("frames", 480).asInt();
 
     //Capture params
     capture_gps     = value.get( "gps", false).asBool();
@@ -288,44 +300,61 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     temp_d      = value.get("temp-d",     50).asDouble();
 
     //Integration Params
-    tsdf_cubic_size = value.get("tsdf-cubic",      7.0/depth_mult).asDouble();
-    tsdf_truncation = value.get("tsdf-truncation", 0.05/depth_mult).asDouble();
+    tsdf_cubic_size = value.get("tsdf-cubic",      7.0).asDouble() / depth_mult;
+    tsdf_truncation = value.get("tsdf-truncation", 0.05).asDouble() / depth_mult;
 
     //RGBD Image params
-    min_depth   = value.get("min-depth",      0.01/depth_mult).asDouble();
-    max_depth   = value.get("max-depth",      3.0/depth_mult).asDouble();
-    depth_factor= value.get("depth-factor",   1000*depth_mult).asDouble();
+    min_depth   = value.get("min-depth",      0.1).asDouble() /depth_mult;
+    max_depth   = value.get("max-depth",      10.0).asDouble() / depth_mult;
+    depth_factor= value.get("depth-factor",   1000).asDouble() * depth_mult;
 
     //Odometry Params
     use_imu             = value.get("use-imu", false).asBool();
-    fragments           = value.get("fragments",          8).asInt();
-    frames_per_fragment = value.get("frames-per-fragment",30).asInt();
-    max_depth_diff      = value.get("max-depth-diff",     0.007*depth_mult).asDouble();
+
+    frames_per_fragment = value.get("frames-per-fragment",120).asInt();
+
+    overlap_factor      = value.get("overlap-factor",     4).asInt();
+    rgbd_lookback       = value.get("rgbd-lookback",      2).asInt();
+    max_depth_diff      = value.get("max-depth-diff",     0.075).asDouble() * depth_mult;
     loop_close_odom     = value.get("loop-closure-odom",  0.2).asDouble();
     
     //Refine Params
     registration_window_size= value.get("registration-window",        5).asInt();
 
     loop_close_reg          = value.get("loop-closure-registration",  0.8).asDouble();
-    voxel_size              = value.get("voxel-size",                 0.005/depth_mult).asDouble();
+    voxel_size              = value.get("voxel-size",                 0.005).asDouble() / depth_mult;
+    final_max_depth         = value.get("final-max-depth",            3.0).asDouble() / depth_mult;
 
     //DoN params
-    don_downsample = value.get("don-downsample", 0.02/depth_mult).asDouble();
+    don_downsample = value.get("don-downsample", 0.02).asDouble() / depth_mult;
 
-    don_small = value.get("don-small",      0.04/depth_mult).asDouble();
-    don_large = value.get("don-large",      0.4/depth_mult).asDouble();
+    don_small = value.get("don-small",      0.03).asDouble() / depth_mult;
+    don_large = value.get("don-large",      0.5).asDouble() / depth_mult;
 
-    threshold_min = value.get("don-thresh-min", 0.01/depth_mult).asDouble();//, 0.032);
-    threshold_max = value.get("don-thresh-max", 0.9/depth_mult).asDouble();//, 0.1);
+    threshold_min = value.get("don-thresh-min", 0.01).asDouble() / depth_mult;
+    threshold_max = value.get("don-thresh-max", 0.9).asDouble() / depth_mult;
 
     //Cluster Params
-    cluster_radius  = value.get( "cluster-rad",  0.02/depth_mult).asDouble();
+    cluster_radius  = value.get( "cluster-rad",  0.02).asDouble() / depth_mult;
     cluster_min     = value.get("cluster-min",  100).asInt();
     cluster_max     = value.get("cluster-max",  10000).asInt();
 
 
     return true;
 }
+
+int Config::GetFragmentIdForFrame(int frame_id) { return  frame_id / frames_per_fragment; }
+int Config::GetOverlapCount(){ return frames_per_fragment / overlap_factor; }
+int Config::GetFragmentCount() { return frames / frames_per_fragment; }
+
+std::tuple<int,int> Config::GetFramesFromFragment(int fragment_id) {
+    int fstart = fragment_id * frames_per_fragment;
+    if(fragment_id>0){
+        fstart -= GetOverlapCount();
+    }
+    return std::make_tuple(fstart, (frames_per_fragment * fragment_id) + frames_per_fragment);
+}
+
 
 
 void Config::CreateLocalSession()
@@ -432,22 +461,6 @@ std::string Config::GPSFile()
     return ss.str();
 }
 
-int Config::GetFragmentCount() 
-{
-
-    //TODO Use fragment dir to get fragment count
-    
-    std::stringstream ss;
-    ss << session_path <<  "/fragment";
-
-    std::vector<std::string> filenames;
-
-    if(!open3d::utility::filesystem::ListFilesInDirectory(ss.str(), filenames)) {
-        return 0 ;
-    }
-
-    return filenames.size();
-}
 
 rs2::frame Config::Filter(rs2::depth_frame depth)
 {

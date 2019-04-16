@@ -23,13 +23,13 @@ int main(int argc, char * argv[])
     Timer timer;
     timer.Start();
 
-    for (int i = 0; i < conf.fragments; ++i) {
-        PrintInfo("Processing fragment %d / %d\n", i, conf.fragments - 1);
+    int fragments = conf.GetFragmentCount();
+    for (int i = 0; i < fragments; ++i) {
+        PrintInfo("Processing fragment %d / %d\n", i, fragments);
 
         MakePoseGraphForFragment(i, conf);
         OptimizePoseGraphForFragment(i, conf);
         IntegrateForFragment(i, conf);
-
     }
 
     timer.Stop();

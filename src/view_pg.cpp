@@ -19,6 +19,7 @@ std::shared_ptr<LineSet> VisualizePoseGraph(PoseGraph &pose_graph) {
 
     int cnt = 0;
 
+    int a = 0;
     const int kPointsPerFrustum = 5;
     const int kEdgesPerFrustum = 8;
     for (auto &node : pose_graph.nodes_) {
@@ -75,15 +76,16 @@ std::shared_ptr<LineSet> VisualizePoseGraph(PoseGraph &pose_graph) {
 int main(int argc, char **argv) {
     SetVerbosityLevel(utility::VerbosityLevel::VerboseDebug);
 
-    Config config(argc, argv);
-
     registration::PoseGraph pose_graph_cuda;
-    io::ReadPoseGraph(config.PoseFileScene(), pose_graph_cuda);
-
+    io::ReadPoseGraph(argv[1], pose_graph_cuda);
     auto pose_graph_vis_cuda = VisualizePoseGraph(pose_graph_cuda);
-    auto mesh = io::CreateMeshFromFile(config.SceneMeshFile());
+    visualization::DrawGeometries({pose_graph_vis_cuda});
 
-    visualization::DrawGeometries({pose_graph_vis_cuda, mesh});
+    //registration::PoseGraph pose_graph_cuda;
+    //io::ReadPoseGraph(config.PoseFileScene(), pose_graph_cuda);
+
+    //auto pose_graph_vis_cuda = VisualizePoseGraph(pose_graph_cuda);
+    //auto mesh = io::CreateMeshFromFile(config.SceneMeshFile());
 
     return 0;
 }

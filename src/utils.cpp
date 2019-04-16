@@ -21,6 +21,37 @@ void PrintStatus(std::string kind, int state, int total) {
     std::cout << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total << std::endl;
 }
 
+// Assumes single edge between all nodes
+std::tuple<open3d::registration::PoseGraph, Eigen::Matrix4d>
+InitPoseGraphFromOverlap(const open3d::registration::PoseGraph &pg, int overlap) 
+{
+    using namespace open3d;
+    using namespace open3d::registration;
+
+    PoseGraph npg;
+    Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
+    npg.nodes_.emplace_back(PoseGraphNode(trans_odometry));
+
+    int idx = pg.nodes_.size() - overlap - 1;
+    for(int i=0; i<overlap; ++i)
+    {
+        PoseGraphEdge prev_edge = pg.edges_[idx + i];
+
+        Eigen::Matrix4d trans = prev_edge.transformation_;
+        Eigen::Matrix6d information = prev_edge.information_;
+
+        trans_odometry = trans * trans_odometry;
+
+        Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
+
+        npg.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
+        npg.edges_.emplace_back(PoseGraphEdge( 
+                    i, i+1, trans, information, false));
+    }
+
+    return std::make_tuple(npg, trans_odometry);
+}
+
 void VisualizeRegistration(const open3d::geometry::PointCloud &source,
                            const open3d::geometry::PointCloud &target,
                            const Eigen::Matrix4d &Transformation) {

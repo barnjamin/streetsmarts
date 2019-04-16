@@ -25,6 +25,7 @@
 #include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp> 
 #include "config.h"
+#include "utils.h"
 
 using namespace open3d;
 using namespace open3d::cuda;
@@ -54,12 +55,23 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
     RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
     RGBDImageCuda rgbd_target(config.width, config.height, config.max_depth, config.depth_factor);
 
-    // world_to_source
-    Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
+    Eigen::Matrix4d trans_odometry;
     registration::PoseGraph pose_graph;
-    pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
 
-    for (int s = 0; s < config.frames_per_fragment-1; s ++) {
+    int overlap = 0;
+    if(fragment_id==0){
+        trans_odometry = Eigen::Matrix4d::Identity();
+        pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
+    }else{
+        overlap = config.GetOverlapCount();
+
+        PoseGraph prev_pg;
+        ReadPoseGraph(config.PoseFile(fragment_id-1), prev_pg);
+
+        std::tie(pose_graph, trans_odometry) = InitPoseGraphFromOverlap(prev_pg, overlap);
+    }
+
+    for (int s = 0; s < config.frames_per_fragment - 1; s ++) {
         Image depth, color;
 
         int src_frame_idx = (fragment_id * config.frames_per_fragment) + s;
@@ -85,16 +97,16 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
 
         // source_to_target * world_to_source = world_to_target
-        trans_odometry =   trans * trans_odometry;
+        trans_odometry = trans * trans_odometry;
 
         // target_to_world
         Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
 
+
         pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
         pose_graph.edges_.emplace_back(PoseGraphEdge( 
-                    s, s+1, trans, information, false));
+                    s + overlap, s + overlap + 1, trans, information, false));
     }
-
 
     WritePoseGraph(config.PoseFile(fragment_id), pose_graph);
 }
@@ -131,10 +143,14 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
 
-    for (int i = 0; i < config.frames_per_fragment; i++) {
+    int start;
+    int stop;
+    std::tie(start, stop)  = config.GetFramesFromFragment(fragment_id);
+    int frames = stop - start;
 
+    for (int i = 0; i < frames; i++) {
         Image depth, color;
-        int frame_idx = (config.frames_per_fragment * fragment_id)+i;
+        int frame_idx = start + i;
 
         PrintDebug("Integrating fragment: %d frame %d \n", fragment_id, frame_idx);
 

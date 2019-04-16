@@ -60,6 +60,9 @@ bool set_rgb_gain(int val);
 bool set_rgb_saturation(int val);
 bool set_rgb_sharpness(int val);
 
+std::tuple<open3d::registration::PoseGraph, Eigen::Matrix4d> 
+InitPoseGraphFromOverlap(const open3d::registration::PoseGraph &pg, int overlap);
+
 void WriteLossesToLog(std::ofstream &fout, int frame_idx, std::vector<std::vector<float>> &losses);
 
 float invSqrt(float x);
