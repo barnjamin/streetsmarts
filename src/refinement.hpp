@@ -25,7 +25,7 @@ struct Match {
     Eigen::Matrix6d information;
 };
 
-void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std::atomic<bool>& running, std::mutex& mtx) {
+void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std::atomic<bool>& running) {
     std::vector<Match> matches;
     std::vector<std::shared_ptr<PointCloud>> fragments;
     int s_idx = 0;
@@ -76,20 +76,15 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
             match.t = t_idx;
 
             if(t_idx == s_idx+1){ /** Colored ICP **/
-                mtx.lock();
-
                 RegistrationCuda registration(TransformationEstimationType::ColoredICP);
                 registration.Initialize(*source, *target, (float) config.voxel_size * 1.4f, init_source_to_target);
                 registration.ComputeICP();
                 match.trans_source_to_target = registration.transform_source_to_target_;
                 match.information = registration.ComputeInformationMatrix();
 
-                mtx.unlock();
 
                 match.success = true;
             } else {
-                //mtx.lock();
-
                 //FastGlobalRegistrationCuda fgr;
                 //fgr.Initialize(*source, *target);
 
@@ -99,7 +94,6 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
                 //match.information = RegistrationCuda::ComputeInformationMatrix(
                 //    *source, *target, config.voxel_size * 1.4f, result.transformation_);
 
-                //mtx.unlock();
 
                 //match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
                 //        std::min(source->points_.size(), target->points_.size()) >= 0.3;
@@ -109,7 +103,7 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
         }
 
         fragments.erase(fragments.begin());
-        config.LogStatus("REGISTRATION", s_idx, config.fragments);
+        config.LogStatus("REGISTRATION", s_idx, config.GetFragmentCount());
         s_idx++;
     }
     PrintInfo("Registration finished\n");
@@ -154,21 +148,17 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
 void RegisterFragments(Config& config){
     std::vector<Match> matches;
 
-    int start, stop;
+    int start_node = config.frames_per_fragment - config.GetOverlapCount() - 1;
     int frag_count = config.GetFragmentCount();
-    for (int s = 0; s < frag_count; s++) {
+    for (int s = 0; s < frag_count-1; s++) {
         auto source_raw = CreatePointCloudFromFile(config.FragmentFile(s));
         auto source = VoxelDownSample(*source_raw,config.voxel_size);
 
         PoseGraph pose_graph_s;
         ReadPoseGraph(config.PoseFile(s), pose_graph_s);
 
-        Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_.back().pose_.inverse(); 
+        Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_[start_node].pose_.inverse(); 
 
-        std::cout << init_source_to_target << std::endl;
-
-        //std::tie(start, stop) = GetWindow(s, frag_count, config.registration_window_size);
-        //for (int t = start; t < stop; t++) {
         for (int t = s+1; t < frag_count; t++) {
             auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
             auto target = VoxelDownSample(*target_raw, config.voxel_size);
@@ -203,7 +193,7 @@ void RegisterFragments(Config& config){
             matches.push_back(match);
         }
 
-        config.LogStatus("REGISTRATION", s, config.fragments);
+        config.LogStatus("REGISTRATION", s, frag_count);
     }
 
     PrintInfo("Registration finished\n");
@@ -295,7 +285,7 @@ void RefineFragments(Config &config) {
 
         std::tie(match.trans_source_to_target, match.information) = MultiScaleICP(*source, *target, edge.transformation_, config.voxel_size);
 
-        config.LogStatus("REFINE", match.s, config.fragments-1);
+        config.LogStatus("REFINE", match.s, config.GetFragmentCount()-1);
         matches.push_back(match);
     }
 

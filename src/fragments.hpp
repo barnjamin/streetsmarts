@@ -143,14 +143,9 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
 
-    int start;
-    int stop;
-    std::tie(start, stop)  = config.GetFramesFromFragment(fragment_id);
-    int frames = stop - start;
-
-    for (int i = 0; i < frames; i++) {
+    for (int i = 0; i < config.frames_per_fragment; i++) {
         Image depth, color;
-        int frame_idx = start + i;
+        int frame_idx = (config.frames_per_fragment * fragment_id) + i;
 
         PrintDebug("Integrating fragment: %d frame %d \n", fragment_id, frame_idx);
 
@@ -158,8 +153,13 @@ void IntegrateForFragment(int fragment_id, Config &config) {
         ReadImage(config.ColorFile(frame_idx), color);
         rgbd.Upload(depth, color);
 
+        int node_id = i;
+        if(fragment_id>0){
+            node_id += config.GetOverlapCount(); 
+        }
+
         /* Use ground truth trajectory */
-        Eigen::Matrix4d pose = pose_graph.nodes_[i].pose_;
+        Eigen::Matrix4d pose = pose_graph.nodes_[node_id].pose_;
         trans.FromEigen(pose);
 
         tsdf_volume.Integrate(rgbd, intrinsic, trans);

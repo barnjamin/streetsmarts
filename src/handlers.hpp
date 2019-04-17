@@ -85,7 +85,7 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 }
 
 void make_posegraph(Config conf, rs2::pipeline_profile profile, 
-                        rs2::frame_queue q, std::queue<int> &pg_queue, std::mutex& mtx) {
+                        rs2::frame_queue q, std::queue<int> &pg_queue) {
     using namespace open3d;
     using namespace open3d::cuda;
 
@@ -119,6 +119,12 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     Eigen::Matrix4d mat;
     std::vector<std::vector<float>> losses;
 
+    set_stereo_autoexposure(true);
+    set_stereo_whitebalance(true);
+
+    set_rgb_autoexposure(true);
+    set_rgb_whitebalance(true);
+    
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
@@ -127,17 +133,26 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 
     set_rgb_autoexposure(conf.rgb_autoexposure);
     set_rgb_whitebalance(conf.rgb_whitebalance);
-    
-    //Discard another $framestart frames
-    for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
+    
     //utility::FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
 
-    for(int fragment_idx=0; fragment_idx<conf.fragments; fragment_idx++) 
+    for(int fragment_idx=0; fragment_idx<conf.GetFragmentCount(); fragment_idx++) 
     {
-        Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
+
+        Eigen::Matrix4d trans_odometry;
         registration::PoseGraph pose_graph;
-        pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
+        int overlap = 0;
+        if(fragment_idx==0){
+            trans_odometry = Eigen::Matrix4d::Identity(); 
+            pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry));
+        }else{
+            overlap = conf.GetOverlapCount();
+            PoseGraph prev_pg;
+            ReadPoseGraph(conf.PoseFile(fragment_idx-1), prev_pg);
+
+            std::tie(pose_graph, trans_odometry) = InitPoseGraphFromOverlap(prev_pg, overlap);
+        }
 
         for(int i = 0; i < conf.frames_per_fragment; i++)
         {
@@ -175,13 +190,11 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
                 continue; 
             }
 
-            //mtx.lock();
             odometry.transform_source_to_target_ =  Eigen::Matrix4d::Identity();
             odometry.Initialize(rgbd_source, rgbd_target);
             std::tie(success, mat, losses) = odometry.ComputeMultiScale();
             if(!success) {
                 rgbd_source.CopyFrom(rgbd_target); 
-                //mtx.unlock();
                 write_depth.join();
                 write_color.join();
                 continue; 
@@ -189,7 +202,6 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 
             Eigen::Matrix4d trans = odometry.transform_source_to_target_;
             Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
-            //mtx.unlock();
 
             //Update Target to world
             trans_odometry =  trans * trans_odometry;
@@ -198,7 +210,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 
             //Update PoseGraph
             pose_graph.nodes_.emplace_back(registration::PoseGraphNode(trans_odometry_inv));
-            pose_graph.edges_.emplace_back(registration::PoseGraphEdge(i - 1, i, 
+            pose_graph.edges_.emplace_back(registration::PoseGraphEdge(i - 1 + overlap, i + overlap,   
                                             trans, information, false));
 
             //Overwrite previous
@@ -208,7 +220,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
             write_color.join();
 
             //timer.Signal();
-            conf.LogStatus("RGBDFRAME", frame_idx, conf.frames_per_fragment * conf.fragments);
+            conf.LogStatus("RGBDFRAME", frame_idx, conf.frames_per_fragment * conf.GetFragmentCount());
         }
         io::WritePoseGraph(conf.PoseFile(fragment_idx), pose_graph);
         pg_queue.push(fragment_idx);
@@ -217,7 +229,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 }
 
 void make_fragments(Config conf, std::queue<int> &pg_queue, 
-        std::queue<int>& frag_queue, std::atomic<bool>& running, std::mutex& mtx) {
+        std::queue<int>& frag_queue, std::atomic<bool>& running) {
 
     while(running){
         while (!pg_queue.empty()) {
@@ -225,15 +237,13 @@ void make_fragments(Config conf, std::queue<int> &pg_queue,
 
             OptimizePoseGraphForFragment(idx, conf);
 
-            //mtx.lock();
             IntegrateForFragment(idx, conf);
-            //mtx.unlock();
 
             frag_queue.push(idx);
 
             pg_queue.pop();
 
-            conf.LogStatus("FRAGMENT", idx, conf.fragments);
+            conf.LogStatus("FRAGMENT", idx, conf.GetFragmentCount());
         }
 
         //Sleep for a bit 

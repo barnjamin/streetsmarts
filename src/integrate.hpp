@@ -36,7 +36,8 @@ void IntegrateScene(Config& conf){
     PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
 
     RGBDImageCuda rgbd(conf.width, conf.height, conf.max_depth, conf.depth_factor);
-    for(int fragment_id=0; fragment_id<conf.GetFragmentCount(); fragment_id++){
+    int fragments = conf.GetFragmentCount();
+    for(int fragment_id=0; fragment_id<fragments; fragment_id++){
 
         PoseGraph local_pose_graph;
         ReadPoseGraph(conf.PoseFile(fragment_id), local_pose_graph);
@@ -66,7 +67,7 @@ void IntegrateScene(Config& conf){
             trans.FromEigen(pose);
 
             tsdf_volume.Integrate(rgbd, intrinsic, trans);
-            conf.LogStatus("INTEGRATE", frame_idx, (conf.frames_per_fragment * conf.fragments));
+            conf.LogStatus("INTEGRATE", frame_idx, (conf.frames_per_fragment * fragments));
         }
     }
 
