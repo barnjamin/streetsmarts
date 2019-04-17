@@ -45,7 +45,8 @@ void IntegrateScene(Config& conf){
         for (int img_id = 0; img_id < conf.frames_per_fragment; img_id++) {
             Image depth, color;
 
-            int frame_idx = (fragment_id * conf.frames_per_fragment) + img_id;
+            int frame_idx = (conf.frames_per_fragment * fragment_id) + img_id;
+
             if(!ReadImage(conf.DepthFile(frame_idx), depth) ||
                 !ReadImage(conf.ColorFile(frame_idx), color)) {
                 PrintInfo("Failed to read frame_idx: %d\n", frame_idx);
@@ -54,7 +55,12 @@ void IntegrateScene(Config& conf){
 
             rgbd.Upload(depth, color);
 
-            Eigen::Matrix4d pose = global_pose_graph.nodes_[fragment_id].pose_ * local_pose_graph.nodes_[img_id].pose_;
+            int node_id = img_id;
+            if(fragment_id>0){
+                node_id += conf.GetOverlapCount(); 
+            }
+
+            Eigen::Matrix4d pose = global_pose_graph.nodes_[fragment_id].pose_ * local_pose_graph.nodes_[node_id].pose_;
 
             //trans.FromEigen(pose.inverse());
             trans.FromEigen(pose);

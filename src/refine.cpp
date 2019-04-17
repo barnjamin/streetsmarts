@@ -34,22 +34,25 @@ std::vector<Match> RegisterFragments(Config &config) {
 
     std::vector<Match> matches;
 
+    int start_node = config.frames_per_fragment - config.GetOverlapCount() - 1;
+
     int start, stop;
     int frag_count = config.GetFragmentCount();
-    for (int s = 0; s < frag_count; s++) {
+    for (int s = 0; s < frag_count-1; s++) {
         auto source_raw = CreatePointCloudFromFile(config.FragmentFile(s));
         auto source = VoxelDownSample(*source_raw,config.voxel_size);
 
         PoseGraph pose_graph_s;
         ReadPoseGraph(config.PoseFile(s), pose_graph_s);
 
-        Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_.back().pose_.inverse(); 
+        Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_[start_node].pose_.inverse(); 
 
         for (int t = s+1; t < frag_count; t++) {
             auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
             auto target = VoxelDownSample(*target_raw, config.voxel_size);
 
             Match match;
+            match.success = false;
             match.s = s;
             match.t = t;
 
@@ -64,23 +67,27 @@ std::vector<Match> RegisterFragments(Config &config) {
                 match.information = registration.ComputeInformationMatrix();
                 match.success = true;
             } else {
-                PrintInfo("FGR\n");
-                cuda::FastGlobalRegistrationCuda fgr;
-                fgr.Initialize(*source, *target);
+                //PrintInfo("FGR\n");
+                //cuda::FastGlobalRegistrationCuda fgr;
+                //fgr.Initialize(*source, *target);
 
-                auto result = fgr.ComputeRegistration();
-                match.trans_source_to_target = result.transformation_;
+                //auto result = fgr.ComputeRegistration();
+                //match.trans_source_to_target = result.transformation_;
 
-                match.information = cuda::RegistrationCuda::ComputeInformationMatrix(
-                    *source, *target, config.voxel_size * 1.4f, result.transformation_);
+                //match.information = cuda::RegistrationCuda::ComputeInformationMatrix(
+                //    *source, *target, config.voxel_size * 1.4f, result.transformation_);
 
-                match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
-                        std::min(source->points_.size(), target->points_.size()) >= 0.3;
+                //match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
+                //        std::min(source->points_.size(), target->points_.size()) >= 0.3;
             }
 
-            matches.push_back(match);
+            if(match.success == true){
+                matches.push_back(match);
+                VisualizeRegistration(*source, *target, match.trans_source_to_target);
+            }
         }
     }
+
 
     return matches;
 }
