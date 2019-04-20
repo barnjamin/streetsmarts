@@ -67,18 +67,18 @@ std::vector<Match> RegisterFragments(Config &config) {
                 match.information = registration.ComputeInformationMatrix();
                 match.success = true;
             } else {
-                PrintInfo("FGR\n");
-                cuda::FastGlobalRegistrationCuda fgr;
-                fgr.Initialize(*source, *target);
+                //PrintInfo("FGR\n");
+                //cuda::FastGlobalRegistrationCuda fgr;
+                //fgr.Initialize(*source, *target);
 
-                auto result = fgr.ComputeRegistration();
-                match.trans_source_to_target = result.transformation_;
+                //auto result = fgr.ComputeRegistration();
+                //match.trans_source_to_target = result.transformation_;
 
-                match.information = cuda::RegistrationCuda::ComputeInformationMatrix(
-                    *source, *target, config.voxel_size * 1.4f, result.transformation_);
+                //match.information = cuda::RegistrationCuda::ComputeInformationMatrix(
+                //    *source, *target, config.voxel_size * 1.4f, result.transformation_);
 
-                match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
-                        std::min(source->points_.size(), target->points_.size()) >= 0.3;
+                //match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
+                //        std::min(source->points_.size(), target->points_.size()) >= 0.3;
             }
 
             matches.push_back(match);

@@ -45,41 +45,29 @@ int main(int argc, char * argv[]) try
 
     for(int i=0; i<conf.framestart; i++) pipeline.wait_for_frames(); 
 
-    // BaseLine
-    rs2::frameset frameset = pipeline.wait_for_frames();
-    rs2::depth_frame depth_frame = frameset.get_depth_frame();
+    while(true){
+        rs2::frameset frameset = pipeline.wait_for_frames();
+        rs2::depth_frame depth_frame = frameset.get_depth_frame();
 
-    auto intrin = get_color_intrinsic(pipeline_profile);
+        depth_frame = conf.depth_to_disparity.process(depth_frame);
 
-    auto invalid_depth_band = conf.GetInvalidDepth(depth_frame, intrin);
+        auto mat = frame_to_mat(depth_frame);
 
-    cv::Mat df = frame_to_mat(depth_frame);
+        double min;
+        double max;
 
-    auto cmap = frame_to_mat(color_map.process(depth_frame));
+        minMaxIdx(mat, &min, &max);
 
+        mat.convertTo(mat,CV_8UC1, 255 / (max-min), -min);
 
-    cv::Rect invalid(0, 0, invalid_depth_band*2, conf.height);
-    cv::rectangle(cmap, invalid, cv::Scalar(0,0,0), CV_FILLED, 8, 0);
+        applyColorMap(mat, mat, COLORMAP_JET);
 
-    cv::imshow("raw", df);
-    cv::imshow("mapped", cmap);
-
-    cv::waitKey(0);
-
-    //PrintInfo("Starting to read frames...");
-    //for(int i = 0; i < conf.fragments * conf.frames_per_fragment; ++i)
-    //{
-    //    frameset = pipe.wait_for_frames();
-
-    //    //Get processed aligned frame
-    //    frameset = align.process(frameset);
-
-    //    color_frame = frameset.first(RS2_STREAM_COLOR);
-    //    depth_frame = frameset.get_depth_frame();	       
+        // Apply the colormap:
+        cv::imshow("mapped", mat);
+        cv::waitKey(1);
 
 
-
-    //}
+    }
 
     return EXIT_SUCCESS;
 

@@ -80,13 +80,17 @@ set(DEPENDENCIES
 )
 
 
-#set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp)
-#add_executable(cluster ${CLUSTER_SOURCE})
-#target_link_libraries(cluster ${DEPENDENCIES})
+set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp src/utils.cpp)
+add_executable(cluster ${CLUSTER_SOURCE})
+target_link_libraries(cluster ${DEPENDENCIES})
 
 set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
 add_executable(analyze ${ANALYZE_SOURCE})
 target_link_libraries(analyze ${DEPENDENCIES})
+
+set(SELECT_SOURCE src/analyze/select.cpp)
+add_executable(select ${SELECT_SOURCE})
+target_link_libraries(select ${DEPENDENCIES})
 
 #set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
 #add_executable(kitti ${KITTI_SOURCE})
@@ -100,9 +104,9 @@ set(SEGMENT_SOURCE src/segment.cpp src/config.cpp src/utils.cpp)
 add_executable(segment ${SEGMENT_SOURCE})
 target_link_libraries(segment ${DEPENDENCIES})
 
-#set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
-#add_executable(capture_frames ${CAPTURE_SOURCE})
-#target_link_libraries(capture_frames ${DEPENDENCIES})
+set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
+add_executable(capture_frames ${CAPTURE_SOURCE})
+target_link_libraries(capture_frames ${DEPENDENCIES})
 
 set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose.cpp src/gps.hpp src/fragments.hpp src/refinement.hpp src/integrate.hpp)
 add_executable(client ${CLIENT_SOURCE})

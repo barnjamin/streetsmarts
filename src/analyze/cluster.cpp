@@ -11,6 +11,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include "../config.h"
+#include "../utils.h"
 
 
 int 
@@ -22,14 +23,18 @@ main (int argc, char** argv)
   pcl::PCDWriter writer;
   pcl::PCDReader reader;
 
+  std::string file(argv[1]);
+
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>), cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
-  reader.read ("downsampled.pcd", *cloud_filtered);
+  reader.read (file, *cloud_filtered);
   std::cout << "PointCloud before filtering has: " << cloud_filtered->points.size () << " data points." << std::endl; //*
 
   // Creating the KdTree object for the search method of the extraction
   pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+  std::cout << "hi"<< std::endl;
   tree->setInputCloud (cloud_filtered);
 
+  std::cout << "hi"<< std::endl;
   std::vector<pcl::PointIndices> cluster_indices;
   pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
   ec.setClusterTolerance(conf.cluster_radius);
@@ -37,13 +42,17 @@ main (int argc, char** argv)
   ec.setMaxClusterSize(conf.cluster_max);
   ec.setSearchMethod (tree);
   ec.setInputCloud (cloud_filtered);
+  std::cout << "hi"<< std::endl;
   ec.extract (cluster_indices);
+
+  std::cout << "hi"<< std::endl;
 
   int j = 0;
 
   for (auto it = cluster_indices.begin (); it != cluster_indices.end (); ++it) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
 
+    std::cout << "hi"<< std::endl;
     for (auto pit = it->indices.begin (); pit != it->indices.end (); ++pit)
       cloud_cluster->points.push_back (cloud_filtered->points[*pit]); 
 

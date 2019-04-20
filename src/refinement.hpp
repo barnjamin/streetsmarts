@@ -103,7 +103,7 @@ void refine_fragments_streaming(Config config, std::queue<int> &frag_queue, std:
         }
 
         fragments.erase(fragments.begin());
-        config.LogStatus("REGISTRATION", s_idx, config.GetFragmentCount());
+        config.LogStatus("REGISTRATION", s_idx, config.GetFragmentCount()-1);
         s_idx++;
     }
     PrintInfo("Registration finished\n");
@@ -193,7 +193,7 @@ void RegisterFragments(Config& config){
             matches.push_back(match);
         }
 
-        config.LogStatus("REGISTRATION", s, frag_count);
+        config.LogStatus("REGISTRATION", s, frag_count-1);
     }
 
     PrintInfo("Registration finished\n");
