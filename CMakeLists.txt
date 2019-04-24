@@ -112,6 +112,10 @@ set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp s
 add_executable(client ${CLIENT_SOURCE})
 target_link_libraries(client ${DEPENDENCIES})
 
+set(T265_SOURCE src/t265.cpp src/utils.cpp)
+add_executable(t265 ${T265_SOURCE})
+target_link_libraries(t265 ${DEPENDENCIES})
+
 #set(GUI_SOURCE src/gui/main.cpp ${IMGUI_SOURCES})
 #add_executable(gui ${GUI_SOURCE})
 #include_directories(gui ${IMGUI})
