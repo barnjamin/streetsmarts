@@ -2,6 +2,7 @@
 #include <vector>
 #include <math.h>
 #include "../config.h"
+#include "../utils.h"
 
 using namespace open3d;
 using namespace open3d::io;
@@ -15,7 +16,6 @@ enum GroupType {EUCLIDIAN, GAUSSIAN};
 std::shared_ptr<PointCloud> DifferenceOfNorm(PointCloud& pc, float smallr, float bigr, float low_thresh, float high_thresh, FilterType dt);
 std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt);
 std::shared_ptr<PointCloud> TrimLongitudinalAxis(PointCloud& pc, float width, int slices);
-std::shared_ptr<LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max);
 
 int main(int argc, char ** argv) 
 {
@@ -141,45 +141,6 @@ std::vector<std::shared_ptr<PointCloud>> Group(PointCloud& pc, GroupType gt)
 }
 
 
-std::shared_ptr<LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max){
-    double maxx = max[0];
-    double maxy = max[1];
-    double maxz = max[2];
-
-    double minx = min[0];
-    double miny = min[1];
-    double minz = min[2];
-
-    std::shared_ptr<LineSet> bb = std::make_shared<LineSet>();
-
-    bb->points_.push_back(Eigen::Vector3d(minx,miny,minz));
-    bb->points_.push_back(Eigen::Vector3d(maxx,miny,minz));
-    bb->points_.push_back(Eigen::Vector3d(minx,maxy,minz));
-    bb->points_.push_back(Eigen::Vector3d(maxx,maxy,minz));
-    bb->points_.push_back(Eigen::Vector3d(minx,miny,maxz));
-    bb->points_.push_back(Eigen::Vector3d(maxx,miny,maxz));
-    bb->points_.push_back(Eigen::Vector3d(minx,maxy,maxz));
-    bb->points_.push_back(Eigen::Vector3d(maxx,maxy,maxz));
-    
-    bb->lines_.push_back(Eigen::Vector2i(0,1));
-    bb->lines_.push_back(Eigen::Vector2i(0,2));
-    bb->lines_.push_back(Eigen::Vector2i(1,3));
-    bb->lines_.push_back(Eigen::Vector2i(2,3));
-    bb->lines_.push_back(Eigen::Vector2i(4,5));
-    bb->lines_.push_back(Eigen::Vector2i(4,6));
-    bb->lines_.push_back(Eigen::Vector2i(5,7));
-    bb->lines_.push_back(Eigen::Vector2i(6,7));
-    bb->lines_.push_back(Eigen::Vector2i(0,4));
-    bb->lines_.push_back(Eigen::Vector2i(1,5));
-    bb->lines_.push_back(Eigen::Vector2i(2,6));
-    bb->lines_.push_back(Eigen::Vector2i(3,7));
-
-    for(int i=0; i<bb->lines_.size(); i++) {
-        bb->colors_.push_back(Eigen::Vector3d(255,0,0));
-    }
-
-    return bb;
-}
 
 
 std::shared_ptr<PointCloud> TrimLongitudinalAxis(PointCloud& pcd, float width, int slices) 

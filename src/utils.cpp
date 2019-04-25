@@ -21,6 +21,88 @@ void PrintStatus(std::string kind, int state, int total) {
     std::cout << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total << std::endl;
 }
 
+
+std::shared_ptr<open3d::geometry::LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max){
+    using namespace open3d;
+    using namespace open3d::geometry;
+
+    double maxx = max[0];
+    double maxy = max[1];
+    double maxz = max[2];
+
+    double minx = min[0];
+    double miny = min[1];
+    double minz = min[2];
+
+    std::shared_ptr<LineSet> bb = std::make_shared<LineSet>();
+
+    bb->points_.push_back(Eigen::Vector3d(minx,miny,minz));
+    bb->points_.push_back(Eigen::Vector3d(maxx,miny,minz));
+    bb->points_.push_back(Eigen::Vector3d(minx,maxy,minz));
+    bb->points_.push_back(Eigen::Vector3d(maxx,maxy,minz));
+    bb->points_.push_back(Eigen::Vector3d(minx,miny,maxz));
+    bb->points_.push_back(Eigen::Vector3d(maxx,miny,maxz));
+    bb->points_.push_back(Eigen::Vector3d(minx,maxy,maxz));
+    bb->points_.push_back(Eigen::Vector3d(maxx,maxy,maxz));
+    
+    bb->lines_.push_back(Eigen::Vector2i(0,1));
+    bb->lines_.push_back(Eigen::Vector2i(0,2));
+    bb->lines_.push_back(Eigen::Vector2i(1,3));
+    bb->lines_.push_back(Eigen::Vector2i(2,3));
+    bb->lines_.push_back(Eigen::Vector2i(4,5));
+    bb->lines_.push_back(Eigen::Vector2i(4,6));
+    bb->lines_.push_back(Eigen::Vector2i(5,7));
+    bb->lines_.push_back(Eigen::Vector2i(6,7));
+    bb->lines_.push_back(Eigen::Vector2i(0,4));
+    bb->lines_.push_back(Eigen::Vector2i(1,5));
+    bb->lines_.push_back(Eigen::Vector2i(2,6));
+    bb->lines_.push_back(Eigen::Vector2i(3,7));
+
+    for(int i=0; i<bb->lines_.size(); i++) {
+        bb->colors_.push_back(Eigen::Vector3d(255,0,0));
+    }
+
+    for(int i=0; i<3; i++){
+        double delta = abs(max[i] - min[i]);
+        std::cout << "Axis: "<< i << " " << delta << std::endl;
+    }
+
+
+    return bb;
+}
+
+Eigen::Matrix4d Flatten(const open3d::geometry::PointCloud &pc) {
+    using namespace open3d;
+
+    auto pcd = geometry::VoxelDownSample(pc, 0.25);
+
+    geometry::EstimateNormals(*pcd, geometry::KDTreeSearchParamKNN(500));
+    geometry::OrientNormalsToAlignWithDirection(*pcd, Eigen::Vector3d(0.0, 1.0, 0.0));
+
+    visualization::DrawGeometries({pcd});
+
+
+    Eigen::Vector3d navg;
+    for(int x=0; x<pcd->normals_.size(); ++x){
+        if(!pcd->normals_[x].hasNaN()){
+            navg += pcd->normals_[x];
+        }
+    }
+    std::cout << "navg" << navg << std::endl;
+
+
+    navg /= pcd->normals_.size();
+    std::cout << "navg" << navg << std::endl;
+
+    Eigen::Vector3d expected(0.0, 1.0, 0.0);
+
+    Eigen::Matrix3d R(Eigen::Quaterniond().setFromTwoVectors(navg, expected));
+    
+    Eigen::Transform<double, 3, Eigen::Affine> t = Eigen::Translation3d(0,0,0) * R; 
+
+    return t.matrix();
+}
+
 // Assumes single edge between all nodes
 std::tuple<open3d::registration::PoseGraph, Eigen::Matrix4d>
 InitPoseGraphFromOverlap(const open3d::registration::PoseGraph &pg, int overlap) 

@@ -6,6 +6,7 @@
 #include <Open3D/Open3D.h>
 #include <Cuda/Open3DCuda.h>
 #include "config.h"
+#include "utils.h"
 
 using namespace open3d;
 using namespace open3d::io;
@@ -73,13 +74,19 @@ std::shared_ptr<LineSet> VisualizePoseGraph(PoseGraph &pose_graph) {
     return pose_graph_vis;
 }
 
+
+
+
 int main(int argc, char **argv) {
     SetVerbosityLevel(utility::VerbosityLevel::VerboseDebug);
 
     registration::PoseGraph pose_graph_cuda;
     io::ReadPoseGraph(argv[1], pose_graph_cuda);
-    auto pose_graph_vis_cuda = VisualizePoseGraph(pose_graph_cuda);
-    visualization::DrawGeometries({pose_graph_vis_cuda});
+    auto pg_viz = VisualizePoseGraph(pose_graph_cuda);
+
+    auto bbox = LineSetFromBBox(pg_viz->GetMinBound(), pg_viz->GetMaxBound());
+
+    visualization::DrawGeometries({pg_viz, bbox});
 
     //registration::PoseGraph pose_graph_cuda;
     //io::ReadPoseGraph(config.PoseFileScene(), pose_graph_cuda);

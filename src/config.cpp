@@ -311,7 +311,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     //Odometry Params
     use_imu             = value.get("use-imu", false).asBool();
 
-    frames_per_fragment = value.get("frames-per-fragment",120).asInt();
+    frames_per_fragment = value.get("frames-per-fragment", 120).asInt();
 
     overlap_factor      = value.get("overlap-factor",     4).asInt();
     rgbd_lookback       = value.get("rgbd-lookback",      2).asInt();
