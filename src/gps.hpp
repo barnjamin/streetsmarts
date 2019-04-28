@@ -57,9 +57,10 @@ public:
             earth.Reverse(pos.ecefX/100.0, pos.ecefY/100.0, pos.ecefZ/100.0, lat, lon, h);
 
             gps_file << get_timestamp() << "," << lat << "," << lon << "," <<  h
-                << "," << pos.pAcc << "," << pos.sAcc << "," << pos.pDop
-                << "," << pos.ecefVX << "," << pos.ecefVY << "," << pos.ecefVZ 
-                << std::endl;
+                << "," << pos.pDop << std::endl;
+                
+                //<< "," << pos.pAcc << "," << pos.sAcc << "," 
+                //<< "," << pos.ecefVX << "," << pos.ecefVY << "," << pos.ecefVZ 
         });
     }
 

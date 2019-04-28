@@ -40,7 +40,6 @@ void setCoords(const std::string& path, osrm::MatchParameters& params) {
     vector<string> row;
     string line, word, temp;
 
-    int base =  1556453679;
     while (fin >> line) {
 
         row.clear();
@@ -61,14 +60,11 @@ void setCoords(const std::string& path, osrm::MatchParameters& params) {
         double Y     = ((double)stoi(row[2]))/100.0;
         double Z     = ((double)stoi(row[3]))/100.0;
 
-
-
         double lat, lon, h;
         earth.Reverse(X, Y, Z, lat, lon, h);
 
-        //std::cout << ts <<","<< lat <<","<< lon <<","<< h <<","<< dop << std::endl;
         params.coordinates.push_back({util::FloatLongitude{(float)lon}, util::FloatLatitude{(float)lat}});
-        params.timestamps.push_back((unsigned)ts+base);
+        params.timestamps.push_back((unsigned)ts);
     }
 }
 
