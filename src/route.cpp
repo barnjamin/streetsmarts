@@ -62,9 +62,11 @@ void setCoords(const std::string& path, osrm::MatchParameters& params) {
         double Z     = ((double)stoi(row[3]))/100.0;
 
 
+
         double lat, lon, h;
         earth.Reverse(X, Y, Z, lat, lon, h);
 
+        //std::cout << ts <<","<< lat <<","<< lon <<","<< h <<","<< dop << std::endl;
         params.coordinates.push_back({util::FloatLongitude{(float)lon}, util::FloatLatitude{(float)lat}});
         params.timestamps.push_back((unsigned)ts+base);
     }
@@ -73,7 +75,6 @@ void setCoords(const std::string& path, osrm::MatchParameters& params) {
 
 int main(int argc, char *argv[])
 {
-
 
     Config conf(argc, argv);
     EngineConfig config;

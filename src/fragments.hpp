@@ -48,17 +48,18 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsic);
 
-    //OdometryOption first({40, 20, 10},
-    //                      config.max_depth_diff,
-    //                      config.min_depth,
-    //                      config.max_depth);
-    //odometry.SetParameters(first, 0.99f);
+    OdometryOption first({40, 20, 10},
+                          config.max_depth_diff,
+                          config.min_depth,
+                          config.max_depth);
 
     OdometryOption rest({20, 10, 5},
                           config.max_depth_diff,
                           config.min_depth,
                           config.max_depth);
-    odometry.SetParameters(rest, 0.5f);
+
+    odometry.SetParameters(first, 0.99f);
+    //odometry.SetParameters(rest, 0.5f);
 
 
     RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);

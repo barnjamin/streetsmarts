@@ -355,16 +355,14 @@ std::tuple<int,int> Config::GetFramesFromFragment(int fragment_id) {
     return std::make_tuple(fstart, (frames_per_fragment * fragment_id) + frames_per_fragment);
 }
 
-
-
 void Config::CreateLocalSession()
 {
     session_path = generate_local_session(session_prefix);
 }
 
+
 std::string Config::IMUFile()
 {
-    
     std::stringstream ss;
     ss << session_path <<  "/imu.csv";
     return ss.str();

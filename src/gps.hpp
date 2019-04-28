@@ -8,12 +8,15 @@
 #include <fstream>
 #include <ublox/ublox.h>
 #include <mutex>
+#include "utils.h"
 
 // https://github.com/GAVLab/ublox
 
 inline void DefaultInfoMsgCallback(const std::string &msg) {
     //std::cout << "Ublox Info: " << msg << std::endl;
 }
+
+using namespace GeographicLib;
 
 class GPS {
     ublox::Ublox sensor;
@@ -46,8 +49,14 @@ public:
             status = s;
         });
 
+        Geocentric earth(Constants::WGS84_a(), Constants::WGS84_f());
+
         sensor.set_nav_solution_callback([&](ublox::NavSol& pos, double &ts){
-            gps_file << ts << "," << pos.ecefX << "," << pos.ecefY << "," << pos.ecefZ
+            double lat, lon, h;
+
+            earth.Reverse(pos.ecefX/100.0, pos.ecefY/100.0, pos.ecefZ/100.0, lat, lon, h);
+
+            gps_file << get_timestamp() << "," << lat << "," << lon << "," <<  h
                 << "," << pos.pAcc << "," << pos.sAcc << "," << pos.pDop
                 << "," << pos.ecefVX << "," << pos.ecefVY << "," << pos.ecefVZ 
                 << std::endl;

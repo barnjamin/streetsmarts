@@ -1,5 +1,5 @@
 {
-    "session":"/home/ben/apr13/test-1555162200",
+    "session":"/home/ben/apr13/test-1555162291",
     
     "max-depth":5.0,
 
@@ -14,7 +14,7 @@
 
     "voxel-size":0.03,
 
-    "tsdf-cubic":7.0,
-    "tsdf-truncation":0.03
+    "tsdf-cubic":10.0,
+    "tsdf-truncation":0.04
 
 }
