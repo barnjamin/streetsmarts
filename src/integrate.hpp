@@ -21,8 +21,7 @@ void IntegrateScene(Config& conf){
 
     float voxel_length = conf.tsdf_cubic_size / 512.0;
 
-    ScalableTSDFVolumeCuda<8> tsdf_volume(100000, 200000,
-            voxel_length, (float) conf.tsdf_truncation, trans);
+    ScalableTSDFVolumeCuda tsdf_volume(8, voxel_length, (float) conf.tsdf_truncation);
 
     PoseGraph global_pose_graph;
     ReadPoseGraph(conf.PoseFileScene(), global_pose_graph);
@@ -72,13 +71,16 @@ void IntegrateScene(Config& conf){
     }
 
     tsdf_volume.GetAllSubvolumes();
-    ScalableMeshVolumeCuda<8> mesher(
-        tsdf_volume.active_subvolume_entry_array().size(),
-        VertexWithNormalAndColor, 10000000, 20000000);
+    ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8,
+        tsdf_volume.active_subvolume_entry_array_.size());
 
     mesher.MarchingCubes(tsdf_volume);
 
     auto mesh = mesher.mesh().Download();
+
+    auto tt = Flatten(*mesh);
+    std::cout << tt << std::endl;
+    mesh->Transform(tt);
 
     WriteTriangleMeshToPLY(conf.SceneMeshFile(), *mesh);
 }

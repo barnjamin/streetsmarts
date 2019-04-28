@@ -48,17 +48,18 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsic);
 
-    OdometryOption first({40, 20, 10, 5},
-                          config.max_depth_diff,
-                          config.min_depth,
-                          config.max_depth);
+    //OdometryOption first({40, 20, 10},
+    //                      config.max_depth_diff,
+    //                      config.min_depth,
+    //                      config.max_depth);
+    //odometry.SetParameters(first, 0.99f);
 
     OdometryOption rest({20, 10, 5},
                           config.max_depth_diff,
                           config.min_depth,
                           config.max_depth);
+    odometry.SetParameters(rest, 0.5f);
 
-    odometry.SetParameters(first, 0.99f);
 
     RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
     RGBDImageCuda rgbd_target(config.width, config.height, config.max_depth, config.depth_factor);
@@ -149,8 +150,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
     TransformCuda trans = TransformCuda::Identity();
-    ScalableTSDFVolumeCuda<8> tsdf_volume( 20000, 400000, 
-            voxel_length, (float) config.tsdf_truncation, trans);
+    ScalableTSDFVolumeCuda tsdf_volume(8, voxel_length, (float) config.tsdf_truncation);
 
     RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
 
@@ -178,9 +178,8 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     tsdf_volume.GetAllSubvolumes();
 
-    ScalableMeshVolumeCuda<8> mesher( 
-            tsdf_volume.active_subvolume_entry_array().size(), 
-            VertexWithNormalAndColor, 10000000, 20000000);
+    ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8,
+            tsdf_volume.active_subvolume_entry_array_.size());
 
     mesher.MarchingCubes(tsdf_volume);
     auto mesh = mesher.mesh().Download();
@@ -189,10 +188,6 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     pcl.points_ = mesh->vertices_;
     pcl.normals_ = mesh->vertex_normals_;
     pcl.colors_ = mesh->vertex_colors_;
-    auto tt = Flatten(pcl);
-    std::cout << "trans: " << tt << std::endl;
-    
-    //pcl.Transform(tt);
 
     /** Write original fragments **/
     WritePointCloud(config.FragmentFile(fragment_id), pcl);

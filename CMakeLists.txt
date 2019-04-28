@@ -2,13 +2,17 @@ cmake_minimum_required(VERSION 3.0)
 
 project(streetsmarts)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 message("mod path: ${CMAKE_MODULE_PATH}")
 
+
+set(bitness 64)
 
 find_package(CUDA 9.1 REQUIRED)
 find_package(OpenCV REQUIRED)
@@ -21,9 +25,12 @@ find_package(Open3D)
 find_package(realsense2)
 find_package (GeographicLib REQUIRED)
 
+
+find_package(LibOSRM REQUIRED)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${Open3D_EXE_LINKER_FLAGS} ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS} ${LibOSRM_CXXFLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${Open3D_EXE_LINKER_FLAGS}")
 
 add_compile_options(-Wno-deprecated-declarations)
 add_compile_options(-Wno-unused-result)
@@ -55,12 +62,15 @@ include_directories(
   /home/ben/streetsmarts/src/
   ${CUDA_INCLUD_DIRS}
   ${IMGUI}
+  ${LibOSRM_INCLUDE_DIRS}
 ) 
 
 link_directories(${Open3D_LIBRARY_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 link_directories(${OpenCV_LIBS})
 link_directories(${IMGUI})
+link_directories(${LibOSRM_LIBRARY_DIRS})
+
 
 set(DEPENDENCIES 
 	${GLUT_LIBRARY}
@@ -77,6 +87,8 @@ set(DEPENDENCIES
     /home/ben/ublox/lib/libublox.a
     /home/ben/serial/lib/libserial.a
     /usr/lib/x86_64-linux-gnu/libcurand.so
+    ${LibOSRM_LIBRARIES}
+    ${LibOSRM_DEPENDENT_LIBRARIES}
 )
 
 
@@ -125,10 +137,10 @@ set(DEPENDENCIES
 #add_executable(poser ${POSER_SOURCE})
 #target_link_libraries(poser ${DEPENDENCIES})
 
-set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
-add_executable(make_fragments ${FRAGMENT_SOURCE})
-target_link_libraries(make_fragments ${DEPENDENCIES})
-
+#set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
+#add_executable(make_fragments ${FRAGMENT_SOURCE})
+#target_link_libraries(make_fragments ${DEPENDENCIES})
+#
 #set(REFINE_SOURCE src/refine.cpp src/utils.cpp src/config.cpp)
 #add_executable(refine ${REFINE_SOURCE})
 #target_link_libraries(refine ${DEPENDENCIES})
@@ -136,7 +148,11 @@ target_link_libraries(make_fragments ${DEPENDENCIES})
 #set(INTEGRATE_SOURCE src/integration.cpp src/utils.cpp src/config.cpp src/integrate.hpp)
 #add_executable(integrate ${INTEGRATE_SOURCE})
 #target_link_libraries(integrate ${DEPENDENCIES})
-#
+
+set(ROUTE_SOURCE src/route.cpp src/utils.cpp src/config.cpp)
+add_executable(route ${ROUTE_SOURCE})
+target_link_libraries(route ${DEPENDENCIES})
+
 #set(VPG_SOURCE src/view_pg.cpp src/utils.cpp src/config.cpp)
 #add_executable(vpg ${VPG_SOURCE})
 #target_link_libraries(vpg ${DEPENDENCIES})

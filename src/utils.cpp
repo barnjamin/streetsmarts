@@ -71,28 +71,25 @@ std::shared_ptr<open3d::geometry::LineSet> LineSetFromBBox(Eigen::Vector3d min, 
     return bb;
 }
 
-Eigen::Matrix4d Flatten(const open3d::geometry::PointCloud &pc) {
+Eigen::Matrix4d Flatten(open3d::geometry::TriangleMesh &m) {
     using namespace open3d;
 
-    auto pcd = geometry::VoxelDownSample(pc, 0.25);
+    auto pcd = m.SamplePointsUniformly(1000);
 
-    geometry::EstimateNormals(*pcd, geometry::KDTreeSearchParamKNN(500));
+    geometry::EstimateNormals(*pcd, geometry::KDTreeSearchParamRadius(1.0));
+
     geometry::OrientNormalsToAlignWithDirection(*pcd, Eigen::Vector3d(0.0, 1.0, 0.0));
-
-    visualization::DrawGeometries({pcd});
-
 
     Eigen::Vector3d navg;
     for(int x=0; x<pcd->normals_.size(); ++x){
         if(!pcd->normals_[x].hasNaN()){
             navg += pcd->normals_[x];
+        }else{
+            std::cout << "\n" << pcd->normals_[x] ;
         }
     }
-    std::cout << "navg" << navg << std::endl;
-
 
     navg /= pcd->normals_.size();
-    std::cout << "navg" << navg << std::endl;
 
     Eigen::Vector3d expected(0.0, 1.0, 0.0);
 
