@@ -34,6 +34,14 @@ using namespace open3d;
 using namespace open3d::utility;
 using namespace osrm;
 
+struct pos {
+    double x,y,z;
+}
+struct section {
+    pos start, stop;
+    double distance;
+};
+
 void setCoords(const string& path, MatchParameters& params) {
     fstream fin;
     fin.open(path, ios::in);
@@ -113,6 +121,8 @@ int main(int argc, char * argv[])
     std::cout << steps.values.size() << std::endl;
 
 
+    //double x,y,z;
+    std::vector<section> sections;
     for(int i=0; i<legs.values.size(); i++){
         auto &leg = legs.values.at(i).get<json::Object>();
 
@@ -122,40 +132,31 @@ int main(int argc, char * argv[])
         //Just pull the first one for now
         auto &step  = steps.values.at(0).get<json::Object>();
 
-        //double x,y,z;
-        //proj.forward(lat,lng,alt,x,y,z);
-
-        // RGBDOdom _every_ frame
-        
-        // Create Road Segments using sub 15m legs where street is the same, no intersections allowed
-        // Accumulate Transformations until we hit leg distance
-        
-        // Add UTM Coords to posegraph start/end with high(?low?) covariance prior to optimization
-        // Generate fragment as usual 
-        
-        // Registration as normal along Street ONLY
-        // Add UTM Coords to start/end of posegraph with high? covariance
-
-        // Integration as usual
-       
-        
-
-        //for(int j=0; j<steps.values.size(); j++){ }
-        // std::cout << "Distance: " << leg.values["distance"].get<json::Number>().value
-        //           << "\tDuration: "<< leg.values["duration"].get<json::Number>().value
-        //           << "\tSummary: " << leg.values["summary"].get<json::String>().value << std::endl;
+        proj.forward(lat,lng,alt,x,y,z);
+        section s;
+        sections.push_back(s) 
     }
 
-    for (int i = 0; i < fragments; ++i) {
-        PrintInfo("Processing fragment %d / %d\n", i, fragments);
+    // RGBDOdom _every_ frame
+    MakeFullPoseGraph(conf);
 
-        MakePoseGraphForFragment(i, conf);
+    // Create Road Segments using sub 15m legs where street is the same, no intersections allowed
+    // Accumulate Transformations until we hit leg distance
+    ChunkPoseGraph(sections, conf);
+
+
+    for(int i=0; i<sections.size(); i++){
+        // Add UTM Coords to posegraph start/end with high(?low?) covariance prior to optimization
         OptimizePoseGraphForFragment(i, conf);
+        
+        // Generate fragment as usual 
         IntegrateForFragment(i, conf);
     }
+    
+    // Registration as normal along Street ONLY
+    // Add UTM Coords to start/end of posegraph with high? covariance
 
-    timer.Stop();
-    PrintInfo("MakeFragment takes %.3f s\n", timer.GetDuration() / 1000.0f);
+    // Integration as usual
 
     return EXIT_SUCCESS;
 }
