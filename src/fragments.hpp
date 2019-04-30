@@ -124,6 +124,72 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
     WritePoseGraph(config.PoseFile(fragment_id), pose_graph);
 }
 
+
+void MakeFullPoseGraph(Config &config) {
+
+
+    PinholeCameraIntrinsic intrinsic;
+    ReadIJsonConvertible(config.IntrinsicFile(), intrinsic);
+
+    RGBDOdometryCuda<3> odometry;
+    odometry.SetIntrinsics(intrinsic);
+
+    OdometryOption rest({20, 10, 5},
+                          config.max_depth_diff,
+                          config.min_depth,
+                          config.max_depth);
+    odometry.SetParameters(rest, 0.5f);
+
+
+    RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
+    RGBDImageCuda rgbd_target(config.width, config.height, config.max_depth, config.depth_factor);
+
+    Eigen::Matrix4d trans_odometry;
+    registration::PoseGraph pose_graph;
+
+    Eigen::Matrix4d trans = Eigen::Matrix4d::Identity();
+
+    Image depth, color;
+    for (int s = 0; s < config.frames - 1; s ++) {
+        int src_frame_idx = s;
+
+        ReadImage(config.DepthFile(src_frame_idx), depth);
+        ReadImage(config.ColorFile(src_frame_idx), color);
+
+        rgbd_source.Upload(depth, color);
+
+        int tgt_frame_idx = src_frame_idx+1;
+
+        ReadImage(config.DepthFile(tgt_frame_idx), depth);
+        ReadImage(config.ColorFile(tgt_frame_idx), color);
+        rgbd_target.Upload(depth, color);
+
+        PrintInfo("RGBD Odometry between (%d %d)\n", src_frame_idx, tgt_frame_idx);
+
+        odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+        odometry.Initialize(rgbd_source, rgbd_target);
+        odometry.ComputeMultiScale();
+
+        trans = odometry.transform_source_to_target_;
+
+        Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
+
+        trans_odometry = trans * trans_odometry;
+
+        // target_to_world
+        Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
+
+        pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
+        pose_graph.edges_.emplace_back(PoseGraphEdge( 
+                    s , s  + 1, trans, information, false));
+    }
+
+    WritePoseGraph(config.PoseFile(-1), pose_graph);
+}
+
+
+
+
 void OptimizePoseGraphForFragment(int fragment_id, Config &config) {
 
     PoseGraph pose_graph;

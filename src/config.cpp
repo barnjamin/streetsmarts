@@ -424,7 +424,11 @@ std::string Config::PoseFile(int idx)
     
     std::stringstream ss;
     ss << session_path <<  "/pose/";
-    ss << std::setw(5) << std::setfill('0') << idx << ".json";
+    if(idx>=0){
+        ss << std::setw(5) << std::setfill('0') << idx << ".json";
+    }else{
+        ss << "full.json";
+    }
     return ss.str();
 }
 
