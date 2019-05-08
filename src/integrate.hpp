@@ -23,6 +23,8 @@ void IntegrateScene(Config& conf){
 
     ScalableTSDFVolumeCuda tsdf_volume(8, voxel_length, (float) conf.tsdf_truncation);
 
+    PoseGraph full_pose_graph;
+
     PoseGraph global_pose_graph;
     ReadPoseGraph(conf.PoseFileScene(), global_pose_graph);
 
@@ -62,7 +64,9 @@ void IntegrateScene(Config& conf){
 
             Eigen::Matrix4d pose = global_pose_graph.nodes_[fragment_id].pose_ * local_pose_graph.nodes_[node_id].pose_;
 
-            //trans.FromEigen(pose.inverse());
+            //Its inverted here already
+            full_pose_graph.nodes_.push_back(pose);
+
             trans.FromEigen(pose);
 
             tsdf_volume.Integrate(rgbd, intrinsic, trans);
@@ -80,7 +84,17 @@ void IntegrateScene(Config& conf){
 
     auto tt = Flatten(*mesh);
     std::cout << tt << std::endl;
+
+    for(int x=0;x<full_pose_graph.nodes_.size(); x++){
+        full_pose_graph.nodes_[x].pose_  *= tt;
+    }
+
+    WritePoseGraph(conf.PoseFileSceneRectified(), full_pose_graph);
+
     mesh->Transform(tt);
+
+    //auto bbox = LineSetFromBBox(mesh->GetMinBound(), mesh->GetMaxBound());
+    //visualization::DrawGeometries({mesh, bbox});
 
     WriteTriangleMeshToPLY(conf.SceneMeshFile(), *mesh);
 }

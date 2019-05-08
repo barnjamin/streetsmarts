@@ -123,6 +123,7 @@ public:
 
     std::string SceneMeshFile();
     std::string PoseFileScene();
+    std::string PoseFileSceneRectified();
 
     rs2::frame Filter(rs2::depth_frame depth);
 

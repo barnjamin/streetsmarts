@@ -448,6 +448,14 @@ std::string Config::PoseFileScene()
     return ss.str();
 }
 
+std::string Config::PoseFileSceneRectified()
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/scene/pose_rectified.json";
+    return ss.str();
+}
+
 std::string Config::ImageTimestampFile()
 {
     std::stringstream ss;

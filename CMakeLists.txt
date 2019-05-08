@@ -141,29 +141,29 @@ set(ROAD_SOURCE src/make_road.cpp src/utils.cpp src/config.cpp src/fragments.hpp
 add_executable(make_road ${ROAD_SOURCE})
 target_link_libraries(make_road ${DEPENDENCIES})
 
-#set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
-#add_executable(make_fragments ${FRAGMENT_SOURCE})
-#target_link_libraries(make_fragments ${DEPENDENCIES})
-#
-#set(REFINE_SOURCE src/refine.cpp src/utils.cpp src/config.cpp)
-#add_executable(refine ${REFINE_SOURCE})
-#target_link_libraries(refine ${DEPENDENCIES})
-#
-#set(INTEGRATE_SOURCE src/integration.cpp src/utils.cpp src/config.cpp src/integrate.hpp)
-#add_executable(integrate ${INTEGRATE_SOURCE})
-#target_link_libraries(integrate ${DEPENDENCIES})
-#
+set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
+add_executable(make_fragments ${FRAGMENT_SOURCE})
+target_link_libraries(make_fragments ${DEPENDENCIES})
+
+set(REFINE_SOURCE src/refine.cpp src/utils.cpp src/config.cpp)
+add_executable(refine ${REFINE_SOURCE})
+target_link_libraries(refine ${DEPENDENCIES})
+
+set(INTEGRATE_SOURCE src/integration.cpp src/utils.cpp src/config.cpp src/integrate.hpp)
+add_executable(integrate ${INTEGRATE_SOURCE})
+target_link_libraries(integrate ${DEPENDENCIES})
+
 #set(ROUTE_SOURCE src/route.cpp src/utils.cpp src/config.cpp)
 #add_executable(route ${ROUTE_SOURCE})
 #target_link_libraries(route ${DEPENDENCIES})
 
-#set(VPG_SOURCE src/view_pg.cpp src/utils.cpp src/config.cpp)
-#add_executable(vpg ${VPG_SOURCE})
-#target_link_libraries(vpg ${DEPENDENCIES})
-#
-#set(VRGBD_SOURCE src/view_rgbd.cpp src/utils.cpp src/config.cpp)
-#add_executable(vrgbd ${VRGBD_SOURCE})
-#target_link_libraries(vrgbd ${DEPENDENCIES})
+set(VPG_SOURCE src/view_pg.cpp src/utils.cpp src/config.cpp)
+add_executable(vpg ${VPG_SOURCE})
+target_link_libraries(vpg ${DEPENDENCIES})
+
+set(VRGBD_SOURCE src/view_rgbd.cpp src/utils.cpp src/config.cpp)
+add_executable(vrgbd ${VRGBD_SOURCE})
+target_link_libraries(vrgbd ${DEPENDENCIES})
 
 #set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp)
 #add_executable(gps ${GPS_SOURCE})

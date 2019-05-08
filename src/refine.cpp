@@ -36,53 +36,59 @@ std::vector<Match> RegisterFragments(Config &config) {
 
     int start_node = config.frames_per_fragment - config.GetOverlapCount() - 1;
 
-    int start, stop;
+    PrintInfo("StartNode: %d\n", start_node);
+
     int frag_count = config.GetFragmentCount();
+    int t;
     for (int s = 0; s < frag_count-1; s++) {
         auto source_raw = CreatePointCloudFromFile(config.FragmentFile(s));
         auto source = VoxelDownSample(*source_raw,config.voxel_size);
 
+        t = s+1;
+        auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
+        auto target = VoxelDownSample(*target_raw, config.voxel_size);
+
         PoseGraph pose_graph_s;
         ReadPoseGraph(config.PoseFile(s), pose_graph_s);
-
         Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_[start_node].pose_.inverse(); 
 
-        for (int t = s+1; t < frag_count; t++) {
-            auto target_raw = CreatePointCloudFromFile(config.FragmentFile(t));
-            auto target = VoxelDownSample(*target_raw, config.voxel_size);
+        Match match;
+        match.success = true;
+        match.s = s;
+        match.t = t;
 
-            Match match;
-            match.success = false;
-            match.s = s;
-            match.t = t;
+        PrintInfo("ColoredICP %d %d\n", s, t);
+        cuda::RegistrationCuda registration(TransformationEstimationType::ColoredICP);
+        registration.Initialize(*source, *target, (float) config.max_depth_diff, init_source_to_target);
+        auto result = registration.ComputeICP(200);
+        PrintInfo("Result: %.3f %.3f\n", result.inlier_rmse_, result.fitness_);
 
-            if(t == s+1){ /** Colored ICP **/
-                PrintInfo("ColoredICP\n");
-                cuda::RegistrationCuda registration(TransformationEstimationType::ColoredICP);
-                registration.Initialize(*source, *target, (float) config.voxel_size * 1.4f, init_source_to_target);
-                registration.ComputeICP();
-
-                match.trans_source_to_target = registration.transform_source_to_target_;
-
-                match.information = registration.ComputeInformationMatrix();
-                match.success = true;
-            } else {
-                //PrintInfo("FGR\n");
-                //cuda::FastGlobalRegistrationCuda fgr;
-                //fgr.Initialize(*source, *target);
-
-                //auto result = fgr.ComputeRegistration();
-                //match.trans_source_to_target = result.transformation_;
-
-                //match.information = cuda::RegistrationCuda::ComputeInformationMatrix(
-                //    *source, *target, config.voxel_size * 1.4f, result.transformation_);
-
-                //match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) / 
-                //        std::min(source->points_.size(), target->points_.size()) >= 0.3;
-            }
-
+        if (result.fitness_ > 0){
+            match.trans_source_to_target = registration.transform_source_to_target_;
+            match.information = registration.ComputeInformationMatrix();
             matches.push_back(match);
+            match.success = true;
+        }else{
+            VisualizeRegistration(*source_raw, *target_raw, init_source_to_target);
+            PrintInfo("FGR\n");
+            cuda::FastGlobalRegistrationCuda fgr;
+            fgr.Initialize(*source, *target);
+            PrintInfo("Initialized\n");
+            result = fgr.ComputeRegistration();
+            PrintInfo("Computed\n");
+
+            match.trans_source_to_target = result.transformation_;
+
+            match.information = cuda::RegistrationCuda::ComputeInformationMatrix(
+                *source, *target, (float) config.max_depth_diff, result.transformation_);
+            PrintInfo("Computed info\n");
+
+            match.success = match.trans_source_to_target.trace() != 4.0 && match.information(5, 5) /
+                    std::min(source->points_.size(), target->points_.size()) >= 0.3;
+
         }
+
+        matches.push_back(match);
     }
 
 
@@ -255,11 +261,11 @@ int main(int argc, char ** argv)
     PrintInfo("Optimizing Pose graph for fragments\n");
     OptimizePoseGraphForRegisteredScene(conf);
 
-    //Refine
-    PrintInfo("Refining Pose Graph\n");
-    auto refined_matches = RefineFragments(conf);
-    MakePoseGraphForRefinedScene(refined_matches, conf);
-    OptimizePoseGraphForRefinedScene(conf);
+    ////Refine
+    //PrintInfo("Refining Pose Graph\n");
+    //auto refined_matches = RefineFragments(conf);
+    //MakePoseGraphForRefinedScene(refined_matches, conf);
+    //OptimizePoseGraphForRefinedScene(conf);
 
     return 0;
 }

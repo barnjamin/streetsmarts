@@ -66,6 +66,7 @@ InitPoseGraphFromOverlap(const open3d::registration::PoseGraph &pg, int overlap)
 void WriteLossesToLog(std::ofstream &fout, int frame_idx, std::vector<std::vector<float>> &losses);
 
 Eigen::Matrix4d Flatten(open3d::geometry::TriangleMesh & pc);
+Eigen::Matrix4d Flatten(open3d::geometry::PointCloud & pcd);
 std::shared_ptr<open3d::geometry::LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max);
 
 float invSqrt(float x);

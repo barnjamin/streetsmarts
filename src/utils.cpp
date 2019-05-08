@@ -21,7 +21,6 @@ void PrintStatus(std::string kind, int state, int total) {
     std::cout << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total << std::endl;
 }
 
-
 std::shared_ptr<open3d::geometry::LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max){
     using namespace open3d;
     using namespace open3d::geometry;
@@ -69,6 +68,34 @@ std::shared_ptr<open3d::geometry::LineSet> LineSetFromBBox(Eigen::Vector3d min, 
 
 
     return bb;
+}
+
+Eigen::Matrix4d Flatten(open3d::geometry::PointCloud &pc) {
+    using namespace open3d;
+
+    auto pcd = geometry::VoxelDownSample(pc, 0.1);
+    geometry::EstimateNormals(*pcd, geometry::KDTreeSearchParamRadius(1.0));
+
+    geometry::OrientNormalsToAlignWithDirection(*pcd, Eigen::Vector3d(0.0, 1.0, 0.0));
+
+    Eigen::Vector3d navg;
+    for(int x=0; x<pcd->normals_.size(); ++x){
+        if(!pcd->normals_[x].hasNaN()){
+            navg += pcd->normals_[x];
+        }else{
+            std::cout << "\n" << pcd->normals_[x] ;
+        }
+    }
+
+    navg /= pcd->normals_.size();
+
+    Eigen::Vector3d expected(0.0, 1.0, 0.0);
+
+    Eigen::Matrix3d R(Eigen::Quaterniond().setFromTwoVectors(navg, expected));
+    
+    Eigen::Transform<double, 3, Eigen::Affine> t = Eigen::Translation3d(0,0,0) * R; 
+
+    return t.matrix();
 }
 
 Eigen::Matrix4d Flatten(open3d::geometry::TriangleMesh &m) {

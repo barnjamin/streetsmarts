@@ -20,8 +20,6 @@
 #include <Open3D/Registration/GlobalOptimization.h>
 #include <Open3D/Registration/GlobalOptimizationMethod.h>
 
-
-
 #include <opencv2/opencv.hpp>
 #include <librealsense2/rs.hpp> 
 #include "config.h"
@@ -58,17 +56,17 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
                           config.min_depth,
                           config.max_depth);
 
-    odometry.SetParameters(first, 0.99f);
-    //odometry.SetParameters(rest, 0.5f);
+    //odometry.SetParameters(first, 0.99f);
+    odometry.SetParameters(rest, 0.5f);
 
 
     RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
     RGBDImageCuda rgbd_target(config.width, config.height, config.max_depth, config.depth_factor);
 
-    Eigen::Matrix4d trans_odometry;
+    Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
     registration::PoseGraph pose_graph;
 
-    Eigen::Matrix4d trans = Eigen::Matrix4d::Identity();
+    Eigen::Matrix4d trans;
     int overlap = 0;
     if(fragment_id==0){
         trans_odometry = Eigen::Matrix4d::Identity();
@@ -144,51 +142,52 @@ void MakeFullPoseGraph(Config &config) {
     RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
     RGBDImageCuda rgbd_target(config.width, config.height, config.max_depth, config.depth_factor);
 
-    Eigen::Matrix4d trans_odometry;
+    Eigen::Matrix4d trans_odometry = Eigen::Matrix4d::Identity();
     registration::PoseGraph pose_graph;
+    pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry.inverse()));
 
     Eigen::Matrix4d trans = Eigen::Matrix4d::Identity();
 
     Image depth, color;
-    for (int s = 0; s < config.frames - 1; s ++) {
-        int src_frame_idx = s;
 
-        ReadImage(config.DepthFile(src_frame_idx), depth);
-        ReadImage(config.ColorFile(src_frame_idx), color);
 
-        rgbd_source.Upload(depth, color);
+    for (int s = 0; s < config.frames - 1; s++) {
+        for(int t=s+1; t<min(s+3, config.frames); t++) {
+            //int t = s+1;
 
-        int tgt_frame_idx = src_frame_idx+1;
+            ReadImage(config.DepthFile(s), depth);
+            ReadImage(config.ColorFile(s), color);
+            rgbd_source.Upload(depth, color);
 
-        ReadImage(config.DepthFile(tgt_frame_idx), depth);
-        ReadImage(config.ColorFile(tgt_frame_idx), color);
-        rgbd_target.Upload(depth, color);
+            ReadImage(config.DepthFile(t), depth);
+            ReadImage(config.ColorFile(t), color);
+            rgbd_target.Upload(depth, color);
 
-        PrintInfo("RGBD Odometry between (%d %d)\n", src_frame_idx, tgt_frame_idx);
+            PrintInfo("RGBD Odometry between (%d %d)\n", s, t);
 
-        odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
-        odometry.Initialize(rgbd_source, rgbd_target);
-        odometry.ComputeMultiScale();
+            odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
+            odometry.Initialize(rgbd_source, rgbd_target);
+            odometry.ComputeMultiScale();
 
-        trans = odometry.transform_source_to_target_;
+            trans = odometry.transform_source_to_target_;
 
-        Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
+            Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
 
-        trans_odometry = trans * trans_odometry;
+            trans_odometry = trans * trans_odometry;
 
-        // target_to_world
-        Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
+            if(t==s+1){
+                Eigen::Matrix4d trans_odometry_inv = trans_odometry.inverse();
+                pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
+            }
 
-        pose_graph.nodes_.emplace_back(PoseGraphNode(trans_odometry_inv));
-        pose_graph.edges_.emplace_back(PoseGraphEdge( 
-                    s , s  + 1, trans, information, false));
+            pose_graph.edges_.emplace_back(PoseGraphEdge( 
+                        s , t, trans, information, false));
+        
+        }
     }
 
     WritePoseGraph(config.PoseFile(-1), pose_graph);
 }
-
-
-
 
 void OptimizePoseGraphForFragment(int fragment_id, Config &config) {
 
@@ -255,6 +254,9 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     pcl.points_ = mesh->vertices_;
     pcl.normals_ = mesh->vertex_normals_;
     pcl.colors_ = mesh->vertex_colors_;
+
+
+    //pcl.Transform(Flatten(pcl));
 
     /** Write original fragments **/
     WritePointCloud(config.FragmentFile(fragment_id), pcl);
