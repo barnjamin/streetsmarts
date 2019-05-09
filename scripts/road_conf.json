@@ -12,8 +12,8 @@
     "overlap-factor": 3,
     "frames-per-fragment":120,
 
-    "voxel-size":0.1,
+    "voxel-size":0.02,
 
-    "tsdf-cubic":5.0,
-    "tsdf-truncation":0.02
+    "tsdf-cubic":7.0,
+    "tsdf-truncation":0.05
 }

@@ -53,23 +53,24 @@ std::vector<Match> RegisterFragments(Config &config) {
         Eigen::Matrix4d init_source_to_target = pose_graph_s.nodes_[start_node].pose_.inverse(); 
 
         Match match;
-        match.success = true;
+        match.success = false;
         match.s = s;
         match.t = t;
 
         PrintInfo("ColoredICP %d %d\n", s, t);
         cuda::RegistrationCuda registration(TransformationEstimationType::ColoredICP);
         registration.Initialize(*source, *target, (float) config.max_depth_diff, init_source_to_target);
-        auto result = registration.ComputeICP(200);
+        auto result = registration.ComputeICP(30);
         PrintInfo("Result: %.3f %.3f\n", result.inlier_rmse_, result.fitness_);
+
+        VisualizeRegistration(*source_raw, *target_raw, init_source_to_target);
+        VisualizeRegistration(*source_raw, *target_raw, registration.transform_source_to_target_);
 
         if (result.fitness_ > 0){
             match.trans_source_to_target = registration.transform_source_to_target_;
             match.information = registration.ComputeInformationMatrix();
-            matches.push_back(match);
             match.success = true;
         }else{
-            VisualizeRegistration(*source_raw, *target_raw, init_source_to_target);
             PrintInfo("FGR\n");
             cuda::FastGlobalRegistrationCuda fgr;
             fgr.Initialize(*source, *target);
@@ -262,10 +263,10 @@ int main(int argc, char ** argv)
     OptimizePoseGraphForRegisteredScene(conf);
 
     ////Refine
-    //PrintInfo("Refining Pose Graph\n");
-    //auto refined_matches = RefineFragments(conf);
-    //MakePoseGraphForRefinedScene(refined_matches, conf);
-    //OptimizePoseGraphForRefinedScene(conf);
+    PrintInfo("Refining Pose Graph\n");
+    auto refined_matches = RefineFragments(conf);
+    MakePoseGraphForRefinedScene(refined_matches, conf);
+    OptimizePoseGraphForRefinedScene(conf);
 
     return 0;
 }
