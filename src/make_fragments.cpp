@@ -27,9 +27,10 @@ int main(int argc, char * argv[])
     for (int i = 0; i < fragments; ++i) {
         PrintInfo("Processing fragment %d / %d\n", i, fragments);
 
-        MakePoseGraphForFragment(i, conf);
-        OptimizePoseGraphForFragment(i, conf);
-        IntegrateForFragment(i, conf);
+        //MakePoseGraphForFragment(i, conf);
+        //OptimizePoseGraphForFragment(i, conf);
+        MakePointCloudForFragment(i, conf);
+        //IntegrateForFragment(i, conf);
     }
 
     timer.Stop();

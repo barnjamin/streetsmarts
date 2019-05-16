@@ -46,19 +46,11 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsic);
 
-    OdometryOption first({40, 20, 10},
+    OdometryOption opts({20, 10, 5},
                           config.max_depth_diff,
                           config.min_depth,
                           config.max_depth);
-
-    OdometryOption rest({20, 10, 5},
-                          config.max_depth_diff,
-                          config.min_depth,
-                          config.max_depth);
-
-    //odometry.SetParameters(first, 0.99f);
-    odometry.SetParameters(rest, 0.5f);
-
+    odometry.SetParameters(opts, 0.5f);
 
     RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
     RGBDImageCuda rgbd_target(config.width, config.height, config.max_depth, config.depth_factor);
@@ -87,9 +79,7 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         ReadImage(config.DepthFile(src_frame_idx), depth);
         ReadImage(config.ColorFile(src_frame_idx), color);
 
-
         //auto ri = CreateRGBDImageFromColorAndDepth(color, depth);
-    
 
         rgbd_source.Upload(depth, color);
 
@@ -153,8 +143,6 @@ void MakeFullPoseGraph(Config &config) {
 
     for (int s = 0; s < config.frames - 1; s++) {
         for(int t=s+1; t<min(s+3, config.frames); t++) {
-            //int t = s+1;
-
             ReadImage(config.DepthFile(s), depth);
             ReadImage(config.ColorFile(s), color);
             rgbd_source.Upload(depth, color);
@@ -204,6 +192,75 @@ void OptimizePoseGraphForFragment(int fragment_id, Config &config) {
     WritePoseGraph(config.PoseFile(fragment_id), *pose_graph_prunned);
 }
 
+void MakePointCloudForFragment(int fragment_id, Config &config) {
+
+    PoseGraph pose_graph;
+    ReadPoseGraph(config.PoseFile(fragment_id), pose_graph);
+
+    PinholeCameraIntrinsic intrinsic_;
+    ReadIJsonConvertible(config.IntrinsicFile(), intrinsic_);
+
+    PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
+
+    RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
+
+    PointCloud pcd;
+    for (int i = 0; i < config.frames_per_fragment; i++) {
+        Image depth, color, mask;
+
+        int frame_idx = (config.frames_per_fragment * fragment_id) + i;
+
+        PrintDebug("Integrating fragment: %d frame %d \n", fragment_id, frame_idx);
+
+        ReadImage(config.DepthFile(frame_idx), depth);
+        ReadImage(config.ColorFile(frame_idx), color);
+
+        ReadImage(config.MaskFile(frame_idx), mask);
+
+        for (int y = 0; y < mask.height_; y++) {
+            for (int x = 0; x < mask.width_; x++) {
+                uint8_t *p = PointerAt<uint8_t>(mask, x, y);
+
+                if(*p!=255){
+                    uint16_t *d = PointerAt<uint16_t>(depth, x,y); 
+                    *d = (uint16_t) 0;
+
+                    //float *cr = PointerAt<float>(color,x,y,0); 
+                    //float *cg = PointerAt<float>(color,x,y,1); 
+                    //float *cb = PointerAt<float>(color,x,y,2); 
+
+                    //*cr = 0.0;
+                    //*cg = 0.0;
+                    //*cb = 0.0;
+                }
+            }
+        }
+
+
+        auto rgbd = geometry::CreateRGBDImageFromColorAndDepth(color, depth, 
+                config.depth_factor, config.max_depth, false);
+
+        auto pcd_i = geometry::CreatePointCloudFromRGBDImage(*rgbd, intrinsic_);
+
+        //visualization::DrawGeometries({pcd_i});
+
+        int node_id = i;
+        if(fragment_id>0){
+            node_id += config.GetOverlapCount(); 
+        }
+
+        Eigen::Matrix4d pose = pose_graph.nodes_[node_id].pose_.inverse();
+        pcd += *pcd_i;
+    }
+
+    //pcl.Transform(Flatten(pcl));
+
+    //WritePointCloud(config.FragmentFile(fragment_id), pcd);
+
+    auto pcl_downsampled = VoxelDownSample(pcd, config.voxel_size);
+    WritePointCloud(config.FragmentFile(fragment_id), *pcl_downsampled);
+}
+
 void IntegrateForFragment(int fragment_id, Config &config) {
 
     PoseGraph pose_graph;
@@ -244,8 +301,12 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     tsdf_volume.GetAllSubvolumes();
 
-    ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8,
-            tsdf_volume.active_subvolume_entry_array_.size());
+    std::cout << tsdf_volume.active_subvolume_entry_array_.size() << std::endl;
+
+    int subvols = tsdf_volume.active_subvolume_entry_array_.size(); 
+    int max_vert = 15 * subvols;
+    int max_tri = 2 * max_vert;
+    ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8, subvols, max_vert, max_tri);
 
     mesher.MarchingCubes(tsdf_volume);
     auto mesh = mesher.mesh().Download();
@@ -254,7 +315,6 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     pcl.points_ = mesh->vertices_;
     pcl.normals_ = mesh->vertex_normals_;
     pcl.colors_ = mesh->vertex_colors_;
-
 
     //pcl.Transform(Flatten(pcl));
 

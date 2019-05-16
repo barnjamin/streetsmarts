@@ -1,9 +1,8 @@
 {
     "session":"/home/ben/apr13/test-1555162200",
     
-    "max-depth":5.0,
-
-    "final-max-depth":2.5,
+    "max-depth":10.0,
+    "max-depth-diff":0.5,
 
     "height":480,
     "width":848,
@@ -12,8 +11,9 @@
     "overlap-factor": 3,
     "frames-per-fragment":120,
 
-    "voxel-size":0.02,
+    "voxel-size":0.03,
 
-    "tsdf-cubic":7.0,
-    "tsdf-truncation":0.05
+    "tsdf-cubic":3.0,
+    "tsdf-truncation":0.3,
+    "final-max-depth":2.5
 }

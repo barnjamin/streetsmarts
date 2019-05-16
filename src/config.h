@@ -116,6 +116,7 @@ public:
 
     std::string PoseFile(int idx);
     std::string DepthFile(int i_idx);
+    std::string MaskFile(int i_idx);
     std::string InfraFile(int i_idx);
     std::string ColorFile(int i_idx);
     std::string FragmentFile(int idx);

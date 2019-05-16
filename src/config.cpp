@@ -335,7 +335,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     threshold_max = value.get("don-thresh-max", 0.9).asDouble() / depth_mult;
 
     //Cluster Params
-    cluster_radius  = value.get( "cluster-rad",  0.02).asDouble() / depth_mult;
+    cluster_radius  = value.get("cluster-rad",  0.02).asDouble() / depth_mult;
     cluster_min     = value.get("cluster-min",  100).asInt();
     cluster_max     = value.get("cluster-max",  10000).asInt();
 
@@ -407,6 +407,15 @@ std::string Config::DepthFile(int idx)
     std::stringstream ss;
     ss << session_path <<  "/depth/";
     ss << std::setw(6) << std::setfill('0') << idx << ".png";
+    return ss.str();
+}
+
+std::string Config::MaskFile(int idx)
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/masks/";
+    ss << std::setw(6) << std::setfill('0') << idx << "_pred_labelIds.png";
     return ss.str();
 }
 

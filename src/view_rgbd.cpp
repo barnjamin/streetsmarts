@@ -17,19 +17,17 @@ int main(int argc, char **argv) {
     }
 
 
-    double fx = intrinsic_.intrinsic_matrix_(0, 0);
-    double fy = intrinsic_.intrinsic_matrix_(1, 1);
-    double cx = intrinsic_.intrinsic_matrix_(0, 2);
-    double cy = intrinsic_.intrinsic_matrix_(1, 2)-100;
+    //double fx = intrinsic_.intrinsic_matrix_(0, 0);
+    //double fy = intrinsic_.intrinsic_matrix_(1, 1);
+    //double cx = intrinsic_.intrinsic_matrix_(0, 2);
+    //double cy = intrinsic_.intrinsic_matrix_(1, 2)-100;
 
-    std::cout << fx << " : " << fy  << std::endl;
-    std::cout << cx << " : " << cy << std::endl;
-    intrinsic_.SetIntrinsics(intrinsic_.width_, intrinsic_.height_, fx, fy, cx, cy);
+    //std::cout << fx << " : " << fy  << std::endl;
+    //std::cout << cx << " : " << cy << std::endl;
+    //intrinsic_.SetIntrinsics(intrinsic_.width_, intrinsic_.height_, fx, fy, cx, cy);
 
 
-
-    int frames = conf.fragments * conf.frames_per_fragment;
-    for(int i = conf.img_idx; i<frames*2; i+=2){
+    for(int i = conf.img_idx; i<conf.frames; i++){
 
         geometry::Image depth, color;
 

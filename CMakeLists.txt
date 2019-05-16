@@ -14,18 +14,16 @@ message("mod path: ${CMAKE_MODULE_PATH}")
 
 set(bitness 64)
 
-find_package(CUDA 9.1 REQUIRED)
+find_package(CUDA 10.0 REQUIRED)
 find_package(OpenCV REQUIRED)
 
 find_package(OpenGL)
 find_package(GLUT)
 find_package(PCL)
-find_package (Eigen3)
+find_package(Eigen3)
 find_package(Open3D)
 find_package(realsense2)
-find_package (GeographicLib REQUIRED)
-
-
+find_package(GeographicLib REQUIRED)
 find_package(LibOSRM REQUIRED)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
@@ -60,7 +58,7 @@ include_directories(
   /home/ben/ublox/include/
   /home/ben/serial/include/
   /home/ben/streetsmarts/src/
-  ${CUDA_INCLUD_DIRS}
+  ${CUDA_INCLUDE_DIRS}
   ${IMGUI}
   ${LibOSRM_INCLUDE_DIRS}
 ) 
