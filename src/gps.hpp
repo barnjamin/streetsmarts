@@ -1,6 +1,8 @@
 #pragma once
 
 
+#include <GeographicLib/Geocentric.hpp>
+#include <GeographicLib/LocalCartesian.hpp>
 #include <string>
 #include <iostream>
 #include <sstream>

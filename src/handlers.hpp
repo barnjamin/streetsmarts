@@ -119,20 +119,21 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     Eigen::Matrix4d mat;
     std::vector<std::vector<float>> losses;
 
-    set_stereo_autoexposure(true);
-    set_stereo_whitebalance(true);
+    //set_stereo_autoexposure(true);
+    //set_stereo_whitebalance(true);
 
-    set_rgb_autoexposure(true);
-    set_rgb_whitebalance(true);
+    //set_rgb_autoexposure(true);
+    //set_rgb_whitebalance(true);
     
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
-    set_stereo_autoexposure(conf.stereo_autoexposure);
-    set_stereo_whitebalance(conf.stereo_whitebalance);
 
-    set_rgb_autoexposure(conf.rgb_autoexposure);
-    set_rgb_whitebalance(conf.rgb_whitebalance);
+    //set_stereo_autoexposure(conf.stereo_autoexposure);
+    //set_stereo_whitebalance(conf.stereo_whitebalance);
+
+    //set_rgb_autoexposure(conf.rgb_autoexposure);
+    //set_rgb_whitebalance(conf.rgb_whitebalance);
 
     
     //utility::FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);

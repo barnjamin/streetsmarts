@@ -27,6 +27,8 @@ public:
     bool capture_imu;
     bool make_fragments;
 
+    double sigma;
+
     int overlap_factor;
     int rgbd_lookback;
 

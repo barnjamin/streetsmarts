@@ -165,6 +165,7 @@ Config::Config(int argc, char ** argv) {
     min_depth   = utility::GetProgramOptionAsDouble(argc, argv,   "--min_depth",      0.01/depth_mult);
     max_depth   = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth",      3.0/depth_mult);
     depth_factor= utility::GetProgramOptionAsDouble(argc, argv,   "--depth_factor",   1000*depth_mult);
+    sigma       = utility::GetProgramOptionAsDouble(argc, argv,   "--sigma", 0.5);
 
     //Odometry Params
     use_imu             = utility::ProgramOptionExists(argc, argv,        "--use_imu");
@@ -246,21 +247,20 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
         set_rgb_whitebalance(true);
 
 
-        rgb_gamma = value.get("rgb-gamma", 450).asInt();
-        rgb_saturation = value.get("rgb-saturation", 10).asInt();
-        rgb_gain = value.get("rgb-gain", 128).asInt();
-        rgb_sharpness = value.get("rgb-sharpness", 100).asInt();
+        //rgb_gamma = value.get("rgb-gamma", 450).asInt();
+        //rgb_saturation = value.get("rgb-saturation", 10).asInt();
+        //rgb_gain = value.get("rgb-gain", 128).asInt();
+        //rgb_sharpness = value.get("rgb-sharpness", 100).asInt();
 
-        if(!set_rgb_gamma(rgb_gamma)) std::cout << "Failed to set gamma" << std::endl;
-        if(!set_rgb_saturation(rgb_saturation)) std::cout << "Failed to set sat" << std::endl;
-        if(!set_rgb_gain(rgb_gain)) std::cout << "Failed to set gain" << std::endl;
-        if(!set_rgb_sharpness(rgb_sharpness)) std::cout << "Failed to set gain" << std::endl;
+        //if(!set_rgb_gamma(rgb_gamma)) std::cout << "Failed to set gamma" << std::endl;
+        //if(!set_rgb_saturation(rgb_saturation)) std::cout << "Failed to set sat" << std::endl;
+        //if(!set_rgb_gain(rgb_gain)) std::cout << "Failed to set gain" << std::endl;
+        //if(!set_rgb_sharpness(rgb_sharpness)) std::cout << "Failed to set gain" << std::endl;
 
         set_roi(100, 540 ,100,200);
 
         set_depth_units(0.001/depth_mult);
         set_max_laser_power();
-
 
         if(value.get("high-accuracy", false).asBool()){
             set_high_accuracy();
@@ -307,7 +307,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     min_depth   = value.get("min-depth",      0.1).asDouble() /depth_mult;
     max_depth   = value.get("max-depth",      10.0).asDouble() / depth_mult;
     depth_factor= value.get("depth-factor",   1000).asDouble() * depth_mult;
-
+    sigma       = value.get("sigma", 0.5).asDouble();
     //Odometry Params
     use_imu             = value.get("use-imu", false).asBool();
 

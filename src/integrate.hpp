@@ -75,23 +75,26 @@ void IntegrateScene(Config& conf){
     }
 
     tsdf_volume.GetAllSubvolumes();
-    ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8,
-        tsdf_volume.active_subvolume_entry_array_.size());
+
+    int subvols = tsdf_volume.active_subvolume_entry_array_.size(); 
+    int max_vert = 15 * subvols;
+    int max_tri = 3 * max_vert;
+    ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8, subvols, max_vert, max_tri);
 
     mesher.MarchingCubes(tsdf_volume);
 
     auto mesh = mesher.mesh().Download();
 
-    auto tt = Flatten(*mesh);
-    std::cout << tt << std::endl;
+    //auto tt = Flatten(*mesh);
+    //std::cout << tt << std::endl;
 
-    for(int x=0;x<full_pose_graph.nodes_.size(); x++){
-        full_pose_graph.nodes_[x].pose_  *= tt;
-    }
+    //for(int x=0;x<full_pose_graph.nodes_.size(); x++){
+    //    full_pose_graph.nodes_[x].pose_  *= tt;
+    //}
 
     WritePoseGraph(conf.PoseFileSceneRectified(), full_pose_graph);
 
-    mesh->Transform(tt);
+    //mesh->Transform(tt);
 
     //auto bbox = LineSetFromBBox(mesh->GetMinBound(), mesh->GetMaxBound());
     //visualization::DrawGeometries({mesh, bbox});

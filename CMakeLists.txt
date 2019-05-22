@@ -117,10 +117,14 @@ set(DEPENDENCIES
 #set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
 #add_executable(capture_frames ${CAPTURE_SOURCE})
 #target_link_libraries(capture_frames ${DEPENDENCIES})
-#
-#set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose.cpp src/gps.hpp src/fragments.hpp src/refinement.hpp src/integrate.hpp)
-#add_executable(client ${CLIENT_SOURCE})
-#target_link_libraries(client ${DEPENDENCIES})
+
+set(NORMAL_SOURCE src/normals.cpp src/utils.cpp src/config.cpp)
+add_executable(normals ${NORMAL_SOURCE})
+target_link_libraries(normals ${DEPENDENCIES})
+
+set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose.cpp src/gps.hpp src/fragments.hpp src/refinement.hpp src/integrate.hpp)
+add_executable(client ${CLIENT_SOURCE})
+target_link_libraries(client ${DEPENDENCIES})
 #
 #set(T265_SOURCE src/t265.cpp src/utils.cpp)
 #add_executable(t265 ${T265_SOURCE})

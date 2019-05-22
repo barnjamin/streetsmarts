@@ -2,28 +2,33 @@
     "session-name":"test",
     "set-cam-opts":true,
 
+    "frames":36000,
+
     "logfile":"true",
     "stdout":true,
+
+    "imu":true,
+    "gps":true,
 
     "high-accuracy":true,
 
     "stereo-autoexposure":true,
     "stereo-whitebalance":true,
 
-    "rgb-autoexposure":false,
-    "rgb-whitebalance":false,
+    "rgb-autoexposure":true,
+    "rgb-whitebalance":true,
 
     "rgb-gain":500,
     "rgb-gamma":100,
     "rgb-saturation":5,
 
-    "max-distance":2.5,
+    "max-distance":15.0,
 
     "height":480,
     "width":848,
 
-    "tsdf_cubic":5.0,
-    "tsdf_truncation":0.003,
+    "tsdf-cubic":5.0,
+    "tsdf-truncation":0.003,
 
     "voxel-size":0.05
 }

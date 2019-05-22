@@ -29,7 +29,7 @@ int main(int argc, char * argv[]) try
 
     conf.CreateLocalSession();
 
-    Pose pose(conf.fps);
+    //Pose pose(conf.fps);
 
     GPS gps(conf.GPSFile());
     std::thread gps_thread;
@@ -47,7 +47,6 @@ int main(int argc, char * argv[]) try
     rs2::frame_queue img_q;
 
     std::atomic<bool> running(true);
-
 
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
@@ -70,11 +69,10 @@ int main(int argc, char * argv[]) try
     }
 
     std::queue<int>  pg_queue;
-    std::queue<int>  frag_queue;
+    //std::queue<int>  frag_queue;
 
     std::thread img_thread(make_posegraph, conf, profile, img_q, std::ref(pg_queue));
-    std::thread frag_thread(make_fragments, conf, std::ref(pg_queue), std::ref(frag_queue), std::ref(running));
-    //std::thread refine_thread(refine_fragments_streaming, conf, std::ref(frag_queue), std::ref(running));
+    //std::thread frag_thread(make_fragments, conf, std::ref(pg_queue), std::ref(frag_queue), std::ref(running));
 
     img_thread.join();
 
@@ -87,14 +85,14 @@ int main(int argc, char * argv[]) try
 
     running = false;
 
-    frag_thread.join();
+    //frag_thread.join();
     //refine_thread.join();
 
     if(conf.capture_imu) imu_thread.join();
 
-    RegisterFragments(conf);
-    RefineFragments(conf);
-    IntegrateScene(conf);
+    //RegisterFragments(conf);
+    //RefineFragments(conf);
+    //IntegrateScene(conf);
 
     return EXIT_SUCCESS;
 

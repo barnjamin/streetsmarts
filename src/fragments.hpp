@@ -50,7 +50,7 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
                           config.max_depth_diff,
                           config.min_depth,
                           config.max_depth);
-    odometry.SetParameters(opts, 0.5f);
+    odometry.SetParameters(opts, (float)config.sigma);
 
     RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
     RGBDImageCuda rgbd_target(config.width, config.height, config.max_depth, config.depth_factor);
@@ -72,6 +72,15 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         std::tie(pose_graph, trans_odometry) = InitPoseGraphFromOverlap(prev_pg, overlap);
     }
 
+    std::shared_ptr<RGBDImage> src, tgt;
+    std::shared_ptr<PointCloud> src_pcd, tgt_pcd;
+
+    auto m = CreateMeshCoordinateFrame(1.0, Eigen::Vector3d(0.0,0.0,0.0));
+    visualization::Visualizer viz;
+    viz.CreateVisualizerWindow();
+    viz.AddGeometry(m);
+
+
     Image depth, color;
     for (int s = 0; s < config.frames_per_fragment - 1; s ++) {
         int src_frame_idx = (fragment_id * config.frames_per_fragment) + s;
@@ -79,7 +88,9 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         ReadImage(config.DepthFile(src_frame_idx), depth);
         ReadImage(config.ColorFile(src_frame_idx), color);
 
-        //auto ri = CreateRGBDImageFromColorAndDepth(color, depth);
+        //auto src = CreateRGBDImageFromColorAndDepth(color, depth, 
+        //                config.depth_factor, config.max_depth, false);
+        //auto src_pcd = CreatePointCloudFromRGBDImage(*src, intrinsic);
 
         rgbd_source.Upload(depth, color);
 
@@ -89,6 +100,11 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         ReadImage(config.ColorFile(tgt_frame_idx), color);
         rgbd_target.Upload(depth, color);
 
+        //auto tgt = CreateRGBDImageFromColorAndDepth(color, depth, 
+        //                config.depth_factor, config.max_depth, false);
+
+        //auto tgt_pcd = CreatePointCloudFromRGBDImage(*tgt, intrinsic);
+
         PrintInfo("RGBD Odometry between (%d %d)\n", src_frame_idx, tgt_frame_idx);
 
         odometry.transform_source_to_target_ = Eigen::Matrix4d::Identity();
@@ -96,6 +112,10 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
         odometry.ComputeMultiScale();
 
         trans = odometry.transform_source_to_target_;
+
+        m->Transform(trans);
+        viz.UpdateGeometry();
+        viz.PollEvents();
 
         Eigen::Matrix6d information = odometry.ComputeInformationMatrix();
 
@@ -126,7 +146,7 @@ void MakeFullPoseGraph(Config &config) {
                           config.max_depth_diff,
                           config.min_depth,
                           config.max_depth);
-    odometry.SetParameters(rest, 0.5f);
+    odometry.SetParameters(rest, (float)config.sigma);
 
 
     RGBDImageCuda rgbd_source(config.width, config.height, config.max_depth, config.depth_factor);
@@ -215,26 +235,17 @@ void MakePointCloudForFragment(int fragment_id, Config &config) {
         ReadImage(config.DepthFile(frame_idx), depth);
         ReadImage(config.ColorFile(frame_idx), color);
 
-        ReadImage(config.MaskFile(frame_idx), mask);
+        //ReadImage(config.MaskFile(frame_idx), mask);
+        //for (int y = 0; y < mask.height_; y++) {
+        //    for (int x = 0; x < mask.width_; x++) {
+        //        uint8_t *p = PointerAt<uint8_t>(mask, x, y);
 
-        for (int y = 0; y < mask.height_; y++) {
-            for (int x = 0; x < mask.width_; x++) {
-                uint8_t *p = PointerAt<uint8_t>(mask, x, y);
-
-                if(*p!=255){
-                    uint16_t *d = PointerAt<uint16_t>(depth, x,y); 
-                    *d = (uint16_t) 0;
-
-                    //float *cr = PointerAt<float>(color,x,y,0); 
-                    //float *cg = PointerAt<float>(color,x,y,1); 
-                    //float *cb = PointerAt<float>(color,x,y,2); 
-
-                    //*cr = 0.0;
-                    //*cg = 0.0;
-                    //*cb = 0.0;
-                }
-            }
-        }
+        //        if(*p!=255){
+        //            uint16_t *d = PointerAt<uint16_t>(depth, x,y); 
+        //            *d = (uint16_t) 0;
+        //        }
+        //    }
+        //}
 
 
         auto rgbd = geometry::CreateRGBDImageFromColorAndDepth(color, depth, 
@@ -281,7 +292,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
         Image depth, color;
         int frame_idx = (config.frames_per_fragment * fragment_id) + i;
 
-        PrintDebug("Integrating fragment: %d frame %d \n", fragment_id, frame_idx);
+        PrintInfo("Integrating fragment: %d frame %d \n", fragment_id, frame_idx);
 
         ReadImage(config.DepthFile(frame_idx), depth);
         ReadImage(config.ColorFile(frame_idx), color);
@@ -298,6 +309,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
         tsdf_volume.Integrate(rgbd, intrinsic, trans);
     }
+    std::cout << "hi" << std::endl;
 
     tsdf_volume.GetAllSubvolumes();
 
