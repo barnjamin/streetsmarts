@@ -159,6 +159,10 @@ target_link_libraries(integrate ${DEPENDENCIES})
 #add_executable(route ${ROUTE_SOURCE})
 #target_link_libraries(route ${DEPENDENCIES})
 
+set(MESH_SOURCE src/mesh.cpp src/utils.cpp src/config.cpp)
+add_executable(mesh ${MESH_SOURCE})
+target_link_libraries(mesh ${DEPENDENCIES})
+
 set(VPG_SOURCE src/view_pg.cpp src/utils.cpp src/config.cpp)
 add_executable(vpg ${VPG_SOURCE})
 target_link_libraries(vpg ${DEPENDENCIES})

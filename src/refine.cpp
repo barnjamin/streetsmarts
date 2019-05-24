@@ -34,7 +34,7 @@ std::vector<Match> RegisterFragments(Config &config) {
 
     std::vector<Match> matches;
 
-    int start_node = config.frames_per_fragment - config.GetOverlapCount() - 1;
+    int start_node = config.frames_per_fragment - config.GetOverlapCount() -1;
 
     PrintInfo("StartNode: %d\n", start_node);
 
@@ -63,7 +63,7 @@ std::vector<Match> RegisterFragments(Config &config) {
         auto result = registration.ComputeICP(30);
         PrintInfo("Result: %.3f %.3f\n", result.inlier_rmse_, result.fitness_);
 
-        VisualizeRegistration(*source_raw, *target_raw, init_source_to_target);
+        //VisualizeRegistration(*source_raw, *target_raw, init_source_to_target);
         VisualizeRegistration(*source_raw, *target_raw, registration.transform_source_to_target_);
 
         if (result.fitness_ > 0){

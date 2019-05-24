@@ -96,5 +96,7 @@ int main(int argc, char * argv[]) {
     }
 
     //IntegrateScene(conf);
-    MakePointCloudForScene(conf);
+    IntegrateSceneFromFullPG(conf);
+    //IntegrateSceneCPU(conf);
+    //MakePointCloudForScene(conf);
 }

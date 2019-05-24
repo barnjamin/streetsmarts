@@ -70,6 +70,7 @@ Eigen::Matrix4d Flatten(open3d::geometry::PointCloud & pcd);
 std::shared_ptr<open3d::geometry::LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max);
 
 void MaskRoad(Config conf, open3d::geometry::Image &depth, int frame_idx);
+void MaskHorizon(open3d::geometry::Image &depth);
 cv::Mat GetMatrixFromIntrinsic(open3d::camera::PinholeCameraIntrinsic intrinsic);
 
 float invSqrt(float x);

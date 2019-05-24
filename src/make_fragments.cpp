@@ -23,15 +23,18 @@ int main(int argc, char * argv[])
     Timer timer;
     timer.Start();
 
-    int fragments = conf.GetFragmentCount();
-    for (int i = 0; i < fragments; ++i) {
-        PrintInfo("Processing fragment %d / %d\n", i, fragments);
+    MakeFullPoseGraph(conf);
+    OptimizePoseGraphForFragment(-1, conf);
 
-        //MakePoseGraphForFragment(i, conf);
-        //OptimizePoseGraphForFragment(i, conf);
-        MakePointCloudForFragment(i, conf);
-        //IntegrateForFragment(i, conf);
-    }
+    //int fragments = conf.GetFragmentCount();
+    //for (int i = 0; i < fragments; ++i) {
+    //    PrintInfo("Processing fragment %d / %d\n", i, fragments);
+
+    //    //MakePoseGraphForFragment(i, conf);
+    //    //OptimizePoseGraphForFragment(i, conf);
+    //    //MakePointCloudForFragment(i, conf);
+    //    //IntegrateForFragment(i, conf);
+    //}
 
     timer.Stop();
     PrintInfo("MakeFragment takes %.3f s\n", timer.GetDuration() / 1000.0f);

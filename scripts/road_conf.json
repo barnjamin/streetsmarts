@@ -2,7 +2,7 @@
     "session":"/home/ben/apr13/test-1555162200",
     
     "max-depth":6.0,
-    "max-depth-diff":0.075,
+    "max-depth-diff":0.05,
 
     "sigma":0.5,
 
@@ -13,9 +13,9 @@
     "overlap-factor": 4,
     "frames-per-fragment":120,
 
-    "voxel-size":0.03,
+    "voxel-size":0.02,
 
-    "tsdf-cubic":15.0,
-    "tsdf-truncation":3.0,
+    "tsdf-cubic":8.0,
+    "tsdf-truncation":0.1,
     "final-max-depth":5.0
 }

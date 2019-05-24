@@ -40,16 +40,28 @@ void MaskRoad(Config conf, open3d::geometry::Image &depth, int frame_idx) {
         for (int x = 0; x < mask.width_; x++) {
             uint8_t *p = PointerAt<uint8_t>(mask, x, y);
 
-            //TODO:: this also cuts the top half of the image off
-            if(*p != 255 || y>(mask.height_/2)){
-                uint16_t *d = PointerAt<uint16_t>(depth, x,y); 
-                *d = (uint16_t) 0;
+            if(*p != 255){
+                uint8_t *d = PointerAt<uint8_t>(depth, x,y); 
+                *d = (uint8_t) 0;
             }
         }
     }
 
     return;
 }
+
+void MaskHorizon(open3d::geometry::Image &depth){
+    using namespace open3d;
+    using namespace open3d::geometry;
+    using namespace open3d::io;
+    for (int y = depth.height_/2; y < depth.height_; y++) {
+        for (int x = 0; x < depth.width_; x++) {
+            uint8_t *d = PointerAt<uint8_t>(depth, x,y); 
+            *d = (uint8_t) 0;
+        }
+    }
+}
+
 
 std::shared_ptr<open3d::geometry::LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max){
     using namespace open3d;

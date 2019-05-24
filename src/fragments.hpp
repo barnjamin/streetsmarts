@@ -162,7 +162,7 @@ void MakeFullPoseGraph(Config &config) {
 
 
     for (int s = 0; s < config.frames - 1; s++) {
-        for(int t=s+1; t<min(s+3, config.frames); t++) {
+        for(int t=s+1; t<min(s+5, config.frames); t+=2) {
             ReadImage(config.DepthFile(s), depth);
             ReadImage(config.ColorFile(s), color);
             rgbd_source.Upload(depth, color);
@@ -318,10 +318,12 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     int subvols = tsdf_volume.active_subvolume_entry_array_.size(); 
     int max_vert = 20 * subvols;
     int max_tri = 5 * max_vert;
-    ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8, subvols, max_vert, max_tri);
+    ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8, 
+        subvols, 20000000, 40000000);
 
     mesher.MarchingCubes(tsdf_volume);
     auto mesh = mesher.mesh().Download();
+    WriteTriangleMesh(config.ThumbnailFragmentFile(fragment_id), mesh);
 
     PointCloud pcl;
     pcl.points_ = mesh->vertices_;
@@ -335,5 +337,4 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     /** Write downsampled thumbnail fragments **/
     //auto pcl_downsampled = VoxelDownSample(pcl, config.voxel_size);
-    //WritePointCloudToPLY(config.ThumbnailFragmentFile(fragment_id), *pcl_downsampled);
 }
