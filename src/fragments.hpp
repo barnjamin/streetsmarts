@@ -15,7 +15,7 @@
 #include <mutex>
 
 #include <Open3D/Open3D.h>
-#include <Cuda/Open3DCuda.h>
+#include <Open3D/Cuda/Open3DCuda.h>
 
 #include <Open3D/Registration/GlobalOptimization.h>
 #include <Open3D/Registration/GlobalOptimizationMethod.h>
@@ -253,14 +253,13 @@ void MakePointCloudForFragment(int fragment_id, Config &config) {
 
         auto pcd_i = geometry::CreatePointCloudFromRGBDImage(*rgbd, intrinsic_);
 
-        //visualization::DrawGeometries({pcd_i});
-
         int node_id = i;
         if(fragment_id>0){
             node_id += config.GetOverlapCount(); 
         }
 
-        Eigen::Matrix4d pose = pose_graph.nodes_[node_id].pose_.inverse();
+        Eigen::Matrix4d pose = pose_graph.nodes_[node_id].pose_;
+        pcd_i->Transform(pose);
         pcd += *pcd_i;
     }
 
@@ -277,13 +276,15 @@ void IntegrateForFragment(int fragment_id, Config &config) {
     PoseGraph pose_graph;
     ReadPoseGraph(config.PoseFile(fragment_id), pose_graph);
 
-    float voxel_length = config.tsdf_cubic_size / 512.0;
 
     PinholeCameraIntrinsic intrinsic_;
     ReadIJsonConvertible(config.IntrinsicFile(), intrinsic_);
 
     PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
+
     TransformCuda trans = TransformCuda::Identity();
+
+    float voxel_length = config.tsdf_cubic_size / 512.0;
     ScalableTSDFVolumeCuda tsdf_volume(8, voxel_length, (float) config.tsdf_truncation);
 
     RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
@@ -309,15 +310,14 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
         tsdf_volume.Integrate(rgbd, intrinsic, trans);
     }
-    std::cout << "hi" << std::endl;
 
     tsdf_volume.GetAllSubvolumes();
 
     std::cout << tsdf_volume.active_subvolume_entry_array_.size() << std::endl;
 
     int subvols = tsdf_volume.active_subvolume_entry_array_.size(); 
-    int max_vert = 15 * subvols;
-    int max_tri = 2 * max_vert;
+    int max_vert = 20 * subvols;
+    int max_tri = 5 * max_vert;
     ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8, subvols, max_vert, max_tri);
 
     mesher.MarchingCubes(tsdf_volume);

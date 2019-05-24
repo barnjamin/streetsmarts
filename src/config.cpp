@@ -441,6 +441,13 @@ std::string Config::PoseFile(int idx)
     return ss.str();
 }
 
+std::string Config::ScenePointCloudFile()
+{
+    std::stringstream ss;
+    ss << session_path <<  "/scene/scene.pcd";
+    return ss.str();
+}
+
 std::string Config::SceneMeshFile()
 {
     

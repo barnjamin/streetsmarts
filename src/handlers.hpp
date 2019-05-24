@@ -6,7 +6,7 @@
 #include <Open3D/Registration/GlobalOptimization.h>
 #include <Open3D/Utility/Timer.h>
 
-#include <Cuda/Open3DCuda.h>
+#include <Open3D/Cuda/Open3DCuda.h>
 #include "config.h"
 #include "utils.h"
 #include "fragments.hpp"

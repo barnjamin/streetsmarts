@@ -2,7 +2,7 @@
 #include <string>
 
 #include <Open3D/Open3D.h>
-#include <Cuda/Open3DCuda.h>
+#include <Open3D/Cuda/Open3DCuda.h>
 
 #include "config.h"
 

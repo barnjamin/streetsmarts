@@ -11,6 +11,7 @@
 #include "utils.h"
 #include <Eigen/Geometry>
 #include <Open3D/Visualization/Visualizer/Visualizer.h>
+#include "config.h"
 
 
 unsigned long get_timestamp() {
@@ -19,6 +20,35 @@ unsigned long get_timestamp() {
 
 void PrintStatus(std::string kind, int state, int total) {
     std::cout << get_timestamp() << ":" << kind << ":" << state + 1 << ":" << total << std::endl;
+}
+
+cv::Mat GetMatrixFromIntrinsic(open3d::camera::PinholeCameraIntrinsic intrinsic) {
+    auto f = intrinsic.GetFocalLength();
+    auto p = intrinsic.GetPrincipalPoint();
+    cv::Mat K = (cv::Mat1d(3, 3) << f.first, 0, p.first, 0, f.second, p.second, 0, 0, 1);
+    return K;
+}
+
+void MaskRoad(Config conf, open3d::geometry::Image &depth, int frame_idx) {
+    using namespace open3d;
+    using namespace open3d::geometry;
+    using namespace open3d::io;
+
+    Image mask;
+    ReadImage(conf.MaskFile(frame_idx), mask);
+    for (int y = 0; y < mask.height_; y++) {
+        for (int x = 0; x < mask.width_; x++) {
+            uint8_t *p = PointerAt<uint8_t>(mask, x, y);
+
+            //TODO:: this also cuts the top half of the image off
+            if(*p != 255 || y>(mask.height_/2)){
+                uint16_t *d = PointerAt<uint16_t>(depth, x,y); 
+                *d = (uint16_t) 0;
+            }
+        }
+    }
+
+    return;
 }
 
 std::shared_ptr<open3d::geometry::LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max){
@@ -101,7 +131,7 @@ Eigen::Matrix4d Flatten(open3d::geometry::PointCloud &pc) {
 Eigen::Matrix4d Flatten(open3d::geometry::TriangleMesh &m) {
     using namespace open3d;
 
-    auto pcd = m.SamplePointsUniformly(1000);
+    auto pcd = open3d::geometry::SamplePointsUniformly(m, 1000);
 
     geometry::EstimateNormals(*pcd, geometry::KDTreeSearchParamRadius(1.0));
 

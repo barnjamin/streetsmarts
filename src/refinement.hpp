@@ -1,7 +1,7 @@
 #include <vector>
 #include <string>
 #include <Open3D/Open3D.h>
-#include <Cuda/Open3DCuda.h>
+#include <Open3D/Cuda/Open3DCuda.h>
 
 #include <Open3D/Registration/GlobalOptimization.h>
 #include <Open3D/Registration/GlobalOptimizationMethod.h>

@@ -124,6 +124,7 @@ public:
     std::string FragmentFile(int idx);
     std::string ThumbnailFragmentFile(int idx);
 
+    std::string ScenePointCloudFile();
     std::string SceneMeshFile();
     std::string PoseFileScene();
     std::string PoseFileSceneRectified();

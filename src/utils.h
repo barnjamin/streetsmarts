@@ -8,10 +8,10 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>   // Include OpenCV API
 #include <opencv2/imgproc/imgproc.hpp>
-
+#include <opencv2/core/core.hpp>
 #include <Open3D/Open3D.h>
-
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
+#include "config.h"
 
 
 struct Intrinsic {
@@ -68,5 +68,8 @@ void WriteLossesToLog(std::ofstream &fout, int frame_idx, std::vector<std::vecto
 Eigen::Matrix4d Flatten(open3d::geometry::TriangleMesh & pc);
 Eigen::Matrix4d Flatten(open3d::geometry::PointCloud & pcd);
 std::shared_ptr<open3d::geometry::LineSet> LineSetFromBBox(Eigen::Vector3d min, Eigen::Vector3d max);
+
+void MaskRoad(Config conf, open3d::geometry::Image &depth, int frame_idx);
+cv::Mat GetMatrixFromIntrinsic(open3d::camera::PinholeCameraIntrinsic intrinsic);
 
 float invSqrt(float x);

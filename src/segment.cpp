@@ -21,6 +21,7 @@
 
 using namespace cv;
 using namespace cv::ximgproc;
+using namespace cv::rgbd;
 using namespace std;
 
 static const char* window_name = "SLIC Superpixels";
@@ -103,7 +104,7 @@ int main(int argc, char** argv)
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
 
-    pipeline.start(cfg);
+    auto profile = pipeline.start(cfg);
 
     for(int i=0; i<conf.framestart; i++) pipeline.wait_for_frames(); 
 
@@ -125,6 +126,12 @@ int main(int argc, char** argv)
     Mat result, mask;
     int display_mode = 0;
 
+    auto intrinsic_ = get_open3d_intrinsic(profile);
+    auto f = intrinsic_.GetFocalLength();
+    auto p = intrinsic_.GetPrincipalPoint();
+    Mat K = (Mat1d(3, 3) << f.first, 0, p.first, 0, f.second, p.second, 0, 0, 1);
+    RgbdNormals norms(intrinsic_.height_, intrinsic_.width_, CV_32F, K, 5, 0);
+
 
     for (;;)
     {
@@ -135,39 +142,38 @@ int main(int argc, char** argv)
         auto fs = align.process(frameset.as<rs2::frameset>());
 
         Mat frame = frame_to_mat(fs.first(RS2_STREAM_COLOR));
-        Mat df = frame_to_mat(fs.get_depth_frame());
+        Mat depth = frame_to_mat(fs.get_depth_frame());
 
-        Mat fdf;
-        df.convertTo(fdf, CV_32FC1);
+        cvtColor(depth, depth, COLOR_GRAY2BGR);
+        depth.convertTo(depth, CV_32F);
 
-        Mat norms = ComputeNormals(fdf);
+        Mat normals;
+        norms(depth, normals);
 
-        result = frame;
-        Mat converted;
-        cvtColor(frame, converted, COLOR_BGR2HSV);
+        //Mat converted;
+        //cvtColor(frame, converted, COLOR_BGR2HSV);
+
+        //Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(converted, algorithm+SLIC, region_size, float(ruler));
+        //slic->iterate(num_iterations);
+        //if (min_element_size>0)
+        //    slic->enforceLabelConnectivity(min_element_size);
 
 
-        Ptr<SuperpixelSLIC> slic = createSuperpixelSLIC(converted,algorithm+SLIC, region_size, float(ruler));
-        slic->iterate(num_iterations);
-        if (min_element_size>0)
-            slic->enforceLabelConnectivity(min_element_size);
+        //// get the contours for displaying
+        //slic->getLabelContourMask(mask, true);
+        //frame.setTo(Scalar(0, 0, 255), mask);
 
+        //Mat labels;
+        //slic->getLabels(labels);
+        //imshow(window_name, mask);
 
-        // get the contours for displaying
-        slic->getLabelContourMask(mask, true);
-        result.setTo(Scalar(0, 0, 255), mask);
-
-        Mat labels;
-        slic->getLabels(labels);
-        //imshow(window_name, result);
-
-        auto r = AvgNormals(norms, labels, slic->getNumberOfSuperpixels());
-        imshow(window_name, r);
+        //auto r = AvgNormals(normals, labels, slic->getNumberOfSuperpixels());
+        imshow(window_name, normals);
 
         t = ((double) getTickCount() - t) / getTickFrequency();
         cout << "SLIC" << (algorithm?'O':' ')
-             << " segmentation took " << (int) (t * 1000)
-             << " ms with " << slic->getNumberOfSuperpixels() << " superpixels" << endl;
+             << " segmentation took " << (int) (t * 1000) << std::endl;
+             //<< " ms with " << slic->getNumberOfSuperpixels() << " superpixels" << endl;
 
 
         int c = waitKey(1) & 0xff;
