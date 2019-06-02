@@ -4,7 +4,7 @@
 #include <atomic>
 #include <Open3D/Open3D.h>
 #include "gps.hpp"
-#include "pose.h"
+#include "pose/pose.h"
 #include "config.h"
 #include "handlers.hpp"
 #include "refinement.hpp"
@@ -12,7 +12,7 @@
 
 int main(int argc, char * argv[]) try
 {
-    open3d::utility::SetVerbosityLevel(open3d::utility::VerbosityLevel::VerboseWarning);
+    open3d::utility::SetVerbosityLevel(open3d::utility::VerbosityLevel::VerboseDebug);
 
     Config conf;
     
@@ -51,7 +51,7 @@ int main(int argc, char * argv[]) try
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
-    cfg.enable_stream(RS2_STREAM_INFRARED, conf.width, conf.height, RS2_FORMAT_Y8, conf.fps);
+    //cfg.enable_stream(RS2_STREAM_INFRARED, conf.width, conf.height, RS2_FORMAT_Y8, conf.fps);
 
     if(conf.capture_imu){
         cfg.enable_stream(RS2_STREAM_ACCEL);
@@ -59,8 +59,10 @@ int main(int argc, char * argv[]) try
     }
 
     rs2::pipeline_profile profile = pipe.start(cfg, [&](rs2::frame frame){
-        if (frame.is<rs2::frameset>()) img_q.enqueue(frame);
-        else imu_q.enqueue(frame); 
+        if (frame.is<rs2::frameset>()){
+
+            img_q.enqueue(frame);
+        } else imu_q.enqueue(frame); 
     });
 
     std::thread imu_thread;
@@ -68,14 +70,12 @@ int main(int argc, char * argv[]) try
         imu_thread = std::thread(record_imu, conf, std::ref(running), imu_q);
     }
 
-    std::queue<int>  pg_queue;
-    //std::queue<int>  frag_queue;
+    std::thread img_thread(record_img, conf, profile, img_q);
 
-    std::thread img_thread(make_posegraph, conf, profile, img_q, std::ref(pg_queue));
-    //std::thread frag_thread(make_fragments, conf, std::ref(pg_queue), std::ref(frag_queue), std::ref(running));
-
+    //Wait until we end threads
     img_thread.join();
 
+    //Finish gps
     if(conf.capture_gps) {
         gps.Stop();
         gps_thread.join();
@@ -84,15 +84,7 @@ int main(int argc, char * argv[]) try
     pipe.stop();
 
     running = false;
-
-    //frag_thread.join();
-    //refine_thread.join();
-
     if(conf.capture_imu) imu_thread.join();
-
-    //RegisterFragments(conf);
-    //RefineFragments(conf);
-    //IntegrateScene(conf);
 
     return EXIT_SUCCESS;
 

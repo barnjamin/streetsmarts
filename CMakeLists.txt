@@ -89,59 +89,9 @@ set(DEPENDENCIES
     ${LibOSRM_DEPENDENT_LIBRARIES}
 )
 
-
-set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp src/utils.cpp)
-add_executable(cluster ${CLUSTER_SOURCE})
-target_link_libraries(cluster ${DEPENDENCIES})
-
-set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
-add_executable(analyze ${ANALYZE_SOURCE})
-target_link_libraries(analyze ${DEPENDENCIES})
-
-#set(SELECT_SOURCE src/analyze/select.cpp)
-#add_executable(select ${SELECT_SOURCE})
-#target_link_libraries(select ${DEPENDENCIES})
-
-#set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
-#add_executable(kitti ${KITTI_SOURCE})
-#target_link_libraries(kitti ${DEPENDENCIES})
-
-#set(SUPERPIX_SOURCE src/superpix.cpp)
-#add_executable(superpix ${SUPERPIX_SOURCE})
-#target_link_libraries(superpix ${DEPENDENCIES})
-
-set(SEGMENT_SOURCE src/segment.cpp src/config.cpp src/utils.cpp)
-add_executable(segment ${SEGMENT_SOURCE})
-target_link_libraries(segment ${DEPENDENCIES})
-
-#set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
-#add_executable(capture_frames ${CAPTURE_SOURCE})
-#target_link_libraries(capture_frames ${DEPENDENCIES})
-
-set(NORMAL_SOURCE src/normals.cpp src/utils.cpp src/config.cpp)
-add_executable(normals ${NORMAL_SOURCE})
-target_link_libraries(normals ${DEPENDENCIES})
-
-set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose.cpp src/gps.hpp src/fragments.hpp src/refinement.hpp src/integrate.hpp)
+set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose/pose.cpp src/gps.hpp src/fragments.hpp src/refinement.hpp src/integrate.hpp)
 add_executable(client ${CLIENT_SOURCE})
 target_link_libraries(client ${DEPENDENCIES})
-#
-#set(T265_SOURCE src/t265.cpp src/utils.cpp)
-#add_executable(t265 ${T265_SOURCE})
-#target_link_libraries(t265 ${DEPENDENCIES})
-
-#set(GUI_SOURCE src/gui/main.cpp ${IMGUI_SOURCES})
-#add_executable(gui ${GUI_SOURCE})
-#include_directories(gui ${IMGUI})
-#target_link_libraries(gui ${DEPENDENCIES})
-
-#set(POSER_SOURCE src/poser/main.cpp src/poser/odom_estimation.cpp src/poser/nlacg_odom.cpp)
-#add_executable(poser ${POSER_SOURCE})
-#target_link_libraries(poser ${DEPENDENCIES})
-
-set(ROAD_SOURCE src/make_road.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
-add_executable(make_road ${ROAD_SOURCE})
-target_link_libraries(make_road ${DEPENDENCIES})
 
 set(FRAGMENT_SOURCE src/make_fragments.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
 add_executable(make_fragments ${FRAGMENT_SOURCE})
@@ -155,21 +105,70 @@ set(INTEGRATE_SOURCE src/integration.cpp src/utils.cpp src/config.cpp src/integr
 add_executable(integrate ${INTEGRATE_SOURCE})
 target_link_libraries(integrate ${DEPENDENCIES})
 
+set(ANALYZE_SOURCE src/analyze/don.cpp src/utils.cpp src/config.cpp)
+add_executable(analyze ${ANALYZE_SOURCE})
+target_link_libraries(analyze ${DEPENDENCIES})
+
+set(CLUSTER_SOURCE src/analyze/cluster.cpp src/config.cpp src/utils.cpp)
+add_executable(cluster ${CLUSTER_SOURCE})
+target_link_libraries(cluster ${DEPENDENCIES})
+
+#set(SELECT_SOURCE src/analyze/select.cpp)
+#add_executable(select ${SELECT_SOURCE})
+#target_link_libraries(select ${DEPENDENCIES})
+
+#set(KITTI_SOURCE src/kitti.cpp src/utils.cpp src/config.cpp)
+#add_executable(kitti ${KITTI_SOURCE})
+#target_link_libraries(kitti ${DEPENDENCIES})
+
+#set(SUPERPIX_SOURCE src/superpix.cpp)
+#add_executable(superpix ${SUPERPIX_SOURCE})
+#target_link_libraries(superpix ${DEPENDENCIES})
+
+#set(SEGMENT_SOURCE src/experiments/segment.cpp src/config.cpp src/utils.cpp)
+#add_executable(segment ${SEGMENT_SOURCE})
+#target_link_libraries(segment ${DEPENDENCIES})
+
+#set(CAPTURE_SOURCE src/capture_frames.cpp src/utils.cpp src/config.cpp)
+#add_executable(capture_frames ${CAPTURE_SOURCE})
+#target_link_libraries(capture_frames ${DEPENDENCIES})
+
+#set(NORMAL_SOURCE src/experiments/normals.cpp src/utils.cpp src/config.cpp)
+#add_executable(normals ${NORMAL_SOURCE})
+#target_link_libraries(normals ${DEPENDENCIES})
+
+#set(T265_SOURCE src/t265.cpp src/utils.cpp)
+#add_executable(t265 ${T265_SOURCE})
+#target_link_libraries(t265 ${DEPENDENCIES})
+
+#set(GUI_SOURCE src/gui/main.cpp ${IMGUI_SOURCES})
+#add_executable(gui ${GUI_SOURCE})
+#include_directories(gui ${IMGUI})
+#target_link_libraries(gui ${DEPENDENCIES})
+
+#set(ROAD_SOURCE src/experiments/make_road.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
+#add_executable(make_road ${ROAD_SOURCE})
+#target_link_libraries(make_road ${DEPENDENCIES})
+
 #set(ROUTE_SOURCE src/route.cpp src/utils.cpp src/config.cpp)
 #add_executable(route ${ROUTE_SOURCE})
 #target_link_libraries(route ${DEPENDENCIES})
 
-set(MESH_SOURCE src/mesh.cpp src/utils.cpp src/config.cpp)
-add_executable(mesh ${MESH_SOURCE})
-target_link_libraries(mesh ${DEPENDENCIES})
-
-set(VPG_SOURCE src/view_pg.cpp src/utils.cpp src/config.cpp)
-add_executable(vpg ${VPG_SOURCE})
-target_link_libraries(vpg ${DEPENDENCIES})
-
-set(VRGBD_SOURCE src/view_rgbd.cpp src/utils.cpp src/config.cpp)
-add_executable(vrgbd ${VRGBD_SOURCE})
-target_link_libraries(vrgbd ${DEPENDENCIES})
+#set(MESH_SOURCE src/experiments/mesh.cpp src/utils.cpp src/config.cpp)
+#add_executable(mesh ${MESH_SOURCE})
+#target_link_libraries(mesh ${DEPENDENCIES})
+#
+#set(VPG_SOURCE src/experiments/view_pg.cpp src/utils.cpp src/config.cpp)
+#add_executable(vpg ${VPG_SOURCE})
+#target_link_libraries(vpg ${DEPENDENCIES})
+#
+#set(VRGBD_SOURCE src/experiments/view_rgbd.cpp src/utils.cpp src/config.cpp)
+#add_executable(vrgbd ${VRGBD_SOURCE})
+#target_link_libraries(vrgbd ${DEPENDENCIES})
+#
+#set(DRGBD_SOURCE src/experiments/RGBDOdometryCuda.cpp src/utils.cpp src/config.cpp)
+#add_executable(drgbd ${DRGBD_SOURCE})
+#target_link_libraries(drgbd ${DEPENDENCIES})
 
 #set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp)
 #add_executable(gps ${GPS_SOURCE})

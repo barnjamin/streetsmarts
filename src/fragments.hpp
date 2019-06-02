@@ -46,7 +46,7 @@ void MakePoseGraphForFragment(int fragment_id, Config &config) {
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsic);
 
-    OdometryOption opts({20, 10, 5},
+    OdometryOption opts({30, 10, 5},
                           config.max_depth_diff,
                           config.min_depth,
                           config.max_depth);
@@ -323,7 +323,7 @@ void IntegrateForFragment(int fragment_id, Config &config) {
 
     mesher.MarchingCubes(tsdf_volume);
     auto mesh = mesher.mesh().Download();
-    WriteTriangleMesh(config.ThumbnailFragmentFile(fragment_id), mesh);
+    //WriteTriangleMesh(config.ThumbnailFragmentFile(fragment_id), mesh);
 
     PointCloud pcl;
     pcl.points_ = mesh->vertices_;

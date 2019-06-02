@@ -165,7 +165,7 @@ Config::Config(int argc, char ** argv) {
     min_depth   = utility::GetProgramOptionAsDouble(argc, argv,   "--min_depth",      0.01/depth_mult);
     max_depth   = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth",      3.0/depth_mult);
     depth_factor= utility::GetProgramOptionAsDouble(argc, argv,   "--depth_factor",   1000*depth_mult);
-    sigma       = utility::GetProgramOptionAsDouble(argc, argv,   "--sigma", 0.5);
+    sigma       = utility::GetProgramOptionAsDouble(argc, argv,   "--sigma", 0.9);
 
     //Odometry Params
     use_imu             = utility::ProgramOptionExists(argc, argv,        "--use_imu");
@@ -174,7 +174,7 @@ Config::Config(int argc, char ** argv) {
     overlap_factor      = utility::GetProgramOptionAsInt(argc, argv,      "--overlap_factor",      4);
     rgbd_lookback       = utility::GetProgramOptionAsInt(argc, argv,      "--rgbd_lookback",       2);
 
-    max_depth_diff      = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth_diff",     0.075 * depth_mult);
+    max_depth_diff      = utility::GetProgramOptionAsDouble(argc, argv,   "--max_depth_diff",     0.03 * depth_mult);
     loop_close_odom     = utility::GetProgramOptionAsDouble(argc, argv,   "--loop_closure_odom",  0.2);
     
     //Refine Params
@@ -307,7 +307,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     min_depth   = value.get("min-depth",      0.1).asDouble() /depth_mult;
     max_depth   = value.get("max-depth",      10.0).asDouble() / depth_mult;
     depth_factor= value.get("depth-factor",   1000).asDouble() * depth_mult;
-    sigma       = value.get("sigma", 0.5).asDouble();
+    sigma       = value.get("sigma", 0.9).asDouble();
     //Odometry Params
     use_imu             = value.get("use-imu", false).asBool();
 
@@ -315,7 +315,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
 
     overlap_factor      = value.get("overlap-factor",     4).asInt();
     rgbd_lookback       = value.get("rgbd-lookback",      2).asInt();
-    max_depth_diff      = value.get("max-depth-diff",     0.075).asDouble() * depth_mult;
+    max_depth_diff      = value.get("max-depth-diff",     0.03).asDouble() * depth_mult;
     loop_close_odom     = value.get("loop-closure-odom",  0.2).asDouble();
     
     //Refine Params
@@ -360,6 +360,13 @@ void Config::CreateLocalSession()
     session_path = generate_local_session(session_prefix);
 }
 
+
+std::string Config::RoadSegmentFile()
+{
+    std::stringstream ss;
+    ss << session_path <<  "/segments.csv";
+    return ss.str();
+}
 
 std::string Config::IMUFile()
 {

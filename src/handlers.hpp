@@ -50,17 +50,18 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
-    set_stereo_autoexposure(conf.stereo_autoexposure);
-    set_stereo_whitebalance(conf.stereo_whitebalance);
+    //set_stereo_autoexposure(conf.stereo_autoexposure);
+    //set_stereo_whitebalance(conf.stereo_whitebalance);
 
-    set_rgb_autoexposure(conf.rgb_autoexposure);
-    set_rgb_whitebalance(conf.rgb_whitebalance);
+    //set_rgb_autoexposure(conf.rgb_autoexposure);
+    //set_rgb_whitebalance(conf.rgb_whitebalance);
 
     rs2::frame frame;
     rs2::frameset fs;
     rs2::frame color_frame, depth_frame, infra_frame;
-    for(int img_idx = 0; img_idx < conf.fragments * conf.frames_per_fragment; img_idx++) {
+    for(int img_idx = 0; img_idx < conf.frames; img_idx++) {
         frame = q.wait_for_frame();
+
         fs = align.process(frame.as<rs2::frameset>());
 
         color_frame = fs.first(RS2_STREAM_COLOR);
@@ -73,14 +74,16 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
         memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
+        std::thread write_color(open3d::io::WriteImage, conf.ColorFile(img_idx), *color_image, 50);
         std::thread write_depth(open3d::io::WriteImage, conf.DepthFile(img_idx), *depth_image, 100);
-        std::thread write_color(open3d::io::WriteImage, conf.ColorFile(img_idx), *color_image, 100);
 
         timestamp_file << img_idx << "," << depth_frame.get_timestamp() << "," 
             << color_frame.get_timestamp()  << "," << get_timestamp() << std::endl;
 
-        write_depth.join();
         write_color.join();
+        write_depth.join();
+
+        conf.LogStatus("RGBDFRAME", img_idx, conf.frames);
     }
 }
 
@@ -88,6 +91,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
                         rs2::frame_queue q, std::queue<int> &pg_queue) {
     using namespace open3d;
     using namespace open3d::cuda;
+    using namespace cv;
 
     rs2::frameset frameset;
     rs2::frame color_frame, depth_frame;
@@ -110,7 +114,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     RGBDOdometryCuda<3> odometry;
     odometry.SetIntrinsics(intrinsic);
     odometry.SetParameters(odometry::OdometryOption({20, 10, 5}, 
-                conf.max_depth_diff, conf.min_depth, conf.max_depth), 0.5f);
+                conf.max_depth_diff, conf.min_depth, conf.max_depth), conf.sigma);
 
     RGBDImageCuda rgbd_target(conf.width, conf.height, conf.max_depth, conf.depth_factor);
     RGBDImageCuda rgbd_source(conf.width, conf.height, conf.max_depth, conf.depth_factor);
@@ -128,13 +132,11 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
     //Discard first $framestart frames
     for(int i=0; i<conf.framestart; i++) q.wait_for_frame(); 
 
-
     //set_stereo_autoexposure(conf.stereo_autoexposure);
     //set_stereo_whitebalance(conf.stereo_whitebalance);
 
     //set_rgb_autoexposure(conf.rgb_autoexposure);
     //set_rgb_whitebalance(conf.rgb_whitebalance);
-
     
     //utility::FPSTimer timer("Process RGBD stream", conf.fragments*conf.frames_per_fragment);
 

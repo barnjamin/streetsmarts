@@ -24,13 +24,13 @@ int main(int argc, char * argv[])
     timer.Start();
 
     MakeFullPoseGraph(conf);
-    OptimizePoseGraphForFragment(-1, conf);
+    //OptimizePoseGraphForFragment(-1, conf);
 
     //int fragments = conf.GetFragmentCount();
     //for (int i = 0; i < fragments; ++i) {
     //    PrintInfo("Processing fragment %d / %d\n", i, fragments);
 
-    //    //MakePoseGraphForFragment(i, conf);
+    //    MakePoseGraphForFragment(i, conf);
     //    //OptimizePoseGraphForFragment(i, conf);
     //    //MakePointCloudForFragment(i, conf);
     //    //IntegrateForFragment(i, conf);

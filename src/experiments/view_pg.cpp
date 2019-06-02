@@ -48,7 +48,7 @@ std::shared_ptr<LineSet> VisualizePoseGraph(PoseGraph &pose_graph) {
         pose_graph_vis->lines_.emplace_back(Eigen::Vector2i(cnt + 4, cnt + 1));
 
         for (int k = 0; k < kEdgesPerFrustum; ++k) {
-            pose_graph_vis->colors_.emplace_back(Eigen::Vector3d(1, 0, 0));
+            pose_graph_vis->colors_.emplace_back(Eigen::Vector3d(1.0/k+1, 0, 0));
         }
 
         cnt += kPointsPerFrustum;

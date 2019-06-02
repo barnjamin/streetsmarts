@@ -108,6 +108,7 @@ public:
     void CreateLocalSession();
 
     std::string GPSFile();
+    std::string RoadSegmentFile();
     std::string IMUFile();
     std::string IntrinsicFile();
     std::string ImageTimestampFile();

@@ -212,6 +212,14 @@ int main(int argc, char * argv[])
         sections.push_back(s);
     }
 
+
+    std::ofstream segment_file;
+    segment_file.open(conf.RoadSegmentFile());
+    for(auto &section: sections){
+        segment_file << section.start.x << "," << section.start.y << "," << section.start.z 
+            << "," << section.stop.x << "," << section.stop.y << "," << section.stop.z  << std::endl;
+    }
+
     auto lineset = MakeLineSetFromSections(sections);
 
     auto pcd = io::CreatePointCloudFromFile(conf.SceneMeshFile());
@@ -221,13 +229,13 @@ int main(int argc, char * argv[])
     Eigen::Transform<double,3,Eigen::Affine> flip = Eigen::Translation3d(0,0,0) * fa;
     pcd->Transform(flip.matrix());
 
-    //Rotate to align with road section
+    ////Rotate to align with road section
     Eigen::AngleAxis<double> sa(M_PI/2, Eigen::Vector3d(0,1,0));
     Eigen::Transform<double,3,Eigen::Affine> spin = Eigen::Translation3d(0,0,0) * sa;
     pcd->Transform(spin.matrix());
 
     //Flatten it
-    //pcd->Transform(Flatten(*pcd));
+    pcd->Transform(Flatten(*pcd));
 
     visualization::DrawGeometries({lineset, pcd});
 

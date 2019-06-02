@@ -3,12 +3,13 @@
     "set-cam-opts":true,
 
     "frames":36000,
+    "fps":60,
 
     "logfile":"true",
     "stdout":true,
 
     "imu":true,
-    "gps":true,
+    "gps":false,
 
     "high-accuracy":true,
 
