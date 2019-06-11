@@ -453,7 +453,9 @@ bool set_rgb_autoexposure(bool on){
 
 bool set_roi(int xmin, int xmax, int ymin, int ymax){
     auto dev = get_first_device();
-    auto cam = get_stereo_sensor(dev);
+
+    auto depth_cam = get_stereo_sensor(dev);
+    auto rgb_cam = get_rgb_sensor(dev);
 
     rs2::region_of_interest roi;
     roi.max_x = xmax;
@@ -461,12 +463,19 @@ bool set_roi(int xmin, int xmax, int ymin, int ymax){
     roi.min_y = ymin;
     roi.max_y = ymax;
 
-    if(cam.is<rs2::roi_sensor>()){
-        cam.as<rs2::roi_sensor>().set_region_of_interest(roi);
-        return true;
+    if(depth_cam.is<rs2::roi_sensor>()){
+        depth_cam.as<rs2::roi_sensor>().set_region_of_interest(roi);
+    }else{
+        return false; 
     }
 
-    return false;
+    if(rgb_cam.is<rs2::roi_sensor>()){
+        rgb_cam.as<rs2::roi_sensor>().set_region_of_interest(roi);
+    }else{
+        return false; 
+    }
+
+    return true;
 }
 
 bool set_depth_units(float val){
@@ -480,12 +489,20 @@ bool set_depth_units(float val){
     return false;
 }
 
-bool set_high_accuracy(){
+bool set_depth_mode(std::string depth_mode){
     auto dev = get_first_device();
     auto cam = get_stereo_sensor(dev);
 
     if(cam.supports(RS2_OPTION_VISUAL_PRESET)){
-        cam.set_option(RS2_OPTION_VISUAL_PRESET, RS2_RS400_VISUAL_PRESET_HIGH_ACCURACY);
+        if (depth_mode.compare("high-accuracy") == 0){
+            cam.set_option(RS2_OPTION_VISUAL_PRESET, RS2_RS400_VISUAL_PRESET_HIGH_ACCURACY);
+        }else if (depth_mode.compare("medium-density") == 0){
+            cam.set_option(RS2_OPTION_VISUAL_PRESET, RS2_RS400_VISUAL_PRESET_MEDIUM_DENSITY);
+        }else if (depth_mode.compare("high-density") == 0){
+            cam.set_option(RS2_OPTION_VISUAL_PRESET, RS2_RS400_VISUAL_PRESET_HIGH_DENSITY);
+        }else if (depth_mode.compare("default") == 0){
+            cam.set_option(RS2_OPTION_VISUAL_PRESET, RS2_RS400_VISUAL_PRESET_DEFAULT);
+        }
         return true;
     }
 

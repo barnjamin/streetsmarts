@@ -121,9 +121,8 @@ Config::Config(int argc, char ** argv) {
 
         set_roi(100,540,100,200);
         
-        if(utility::ProgramOptionExists(argc, argv, "--high_accuracy")){
-            set_high_accuracy();
-        }
+        std::string depth_mode = utility::GetProgramOptionAsString(argc, argv, "--depth_mode");
+        set_depth_mode(depth_mode);
     }
 
     img_idx = utility::GetProgramOptionAsInt(argc, argv,  "--iidx",  10);
@@ -199,6 +198,12 @@ Config::Config(int argc, char ** argv) {
     cluster_max     = utility::GetProgramOptionAsInt(argc, argv,     "--cluster_max",  10000);
 
 
+    ntrip_host  = utility::GetProgramOptionAsString(argc, argv "--ntrip_host", "");
+    ntrip_port  = utility::GetProgramOptionAsInt(argc, argv "--ntrip_port", 0);
+    ntrip_mount = utility::GetProgramOptionAsString(argc, argv "--ntrip_mount", "");
+    ntrip_user  = utility::GetProgramOptionAsString(argc, argv "--ntrip_user", "");
+    ntrip_pw    = utility::GetProgramOptionAsString(argc, argv "--ntrip_pw", "");
+
     //Set threshold
     threshold.set_option(RS2_OPTION_MIN_DISTANCE,min_depth);
     threshold.set_option(RS2_OPTION_MAX_DISTANCE,max_depth);
@@ -262,9 +267,8 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
         set_depth_units(0.001/depth_mult);
         set_max_laser_power();
 
-        if(value.get("high-accuracy", false).asBool()){
-            set_high_accuracy();
-        }
+        std::string depth_mode = value.get("depth-mode", "high-accuracy").asString();
+        set_depth_mode(depth_mode);
     }
 
 
@@ -339,6 +343,11 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     cluster_min     = value.get("cluster-min",  100).asInt();
     cluster_max     = value.get("cluster-max",  10000).asInt();
 
+    ntrip_host  = value.get("ntrip-host", "").asString();
+    ntrip_port  = value.get("ntrip-port", 0).asInt();
+    ntrip_mount = value.get("ntrip-mount", "").asString();
+    ntrip_user  = value.get("ntrip-user", "").asString();
+    ntrip_pw    = value.get("ntrip-pw", "").asString();
 
     return true;
 }

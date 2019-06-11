@@ -92,6 +92,12 @@ public:
     int rgb_gain;
     int rgb_sharpness;
 
+    std::string ntrip_host;
+    int ntrip_port;
+    std::string ntrip_mount;
+    std::string ntrip_user;
+    std::string ntrip_pw;
+
     rs2_stream aligner;
     rs2::threshold_filter threshold;
 

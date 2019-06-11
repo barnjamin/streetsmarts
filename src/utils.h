@@ -52,7 +52,7 @@ bool set_max_laser_power();
 void PrintStatus(std::string kind, int state, int total);
 
 bool set_roi(int xmax, int xmin, int ymax, int ymin);
-bool set_high_accuracy();
+bool set_depth_mode(std::string depth_mode);
 bool set_depth_units(float val);
 
 bool set_rgb_gamma(int val);

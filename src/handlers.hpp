@@ -56,11 +56,10 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     //set_rgb_autoexposure(conf.rgb_autoexposure);
     //set_rgb_whitebalance(conf.rgb_whitebalance);
 
-    rs2::frame frame;
     rs2::frameset fs;
     rs2::frame color_frame, depth_frame, infra_frame;
     for(int img_idx = 0; img_idx < conf.frames; img_idx++) {
-        frame = q.wait_for_frame();
+        rs2::frame frame = q.wait_for_frame();
 
         fs = align.process(frame.as<rs2::frameset>());
 

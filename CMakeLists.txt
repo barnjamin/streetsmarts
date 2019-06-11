@@ -25,6 +25,7 @@ find_package(Open3D)
 find_package(realsense2)
 find_package(GeographicLib REQUIRED)
 find_package(LibOSRM REQUIRED)
+find_package(CURL)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS} ${LibOSRM_CXXFLAGS}")
@@ -61,6 +62,7 @@ include_directories(
   ${CUDA_INCLUDE_DIRS}
   ${IMGUI}
   ${LibOSRM_INCLUDE_DIRS}
+  ${CURL_INDLUE_DIRS}
 ) 
 
 link_directories(${Open3D_LIBRARY_DIRS})
@@ -86,6 +88,7 @@ set(DEPENDENCIES
     /home/ben/serial/lib/libserial.a
     /usr/lib/x86_64-linux-gnu/libcurand.so
     ${LibOSRM_LIBRARIES}
+    ${CURL_LIBRARIES}
     ${LibOSRM_DEPENDENT_LIBRARIES}
 )
 
@@ -173,3 +176,7 @@ target_link_libraries(cluster ${DEPENDENCIES})
 #set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp)
 #add_executable(gps ${GPS_SOURCE})
 #target_link_libraries(gps ${DEPENDENCIES})
+
+set(CURL_SOURCE src/curl.cpp)
+add_executable(crl ${CURL_SOURCE})
+target_link_libraries(crl ${DEPENDENCIES})

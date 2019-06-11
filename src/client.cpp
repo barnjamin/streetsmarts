@@ -27,17 +27,18 @@ int main(int argc, char * argv[]) try
         conf = Config(argc, argv);
     }
 
+
     conf.CreateLocalSession();
 
-    //Pose pose(conf.fps);
-
-    GPS gps(conf.GPSFile());
+    boost::asio::io_service& io
+    Session session(io, conf);
     std::thread gps_thread;
     if(conf.capture_gps){
-        if(!gps.Connect()){
+        if (!session.start()) {
             std::cout << "Failed to connect" << std::endl;
             return 1;
         }
+
         gps.Start();
     }
 
@@ -51,7 +52,7 @@ int main(int argc, char * argv[]) try
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
     cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
-    //cfg.enable_stream(RS2_STREAM_INFRARED, conf.width, conf.height, RS2_FORMAT_Y8, conf.fps);
+    cfg.enable_stream(RS2_STREAM_INFRARED, conf.width, conf.height, RS2_FORMAT_Y8, conf.fps);
 
     if(conf.capture_imu){
         cfg.enable_stream(RS2_STREAM_ACCEL);
@@ -59,10 +60,8 @@ int main(int argc, char * argv[]) try
     }
 
     rs2::pipeline_profile profile = pipe.start(cfg, [&](rs2::frame frame){
-        if (frame.is<rs2::frameset>()){
-
-            img_q.enqueue(frame);
-        } else imu_q.enqueue(frame); 
+        if (frame.is<rs2::frameset>()) img_q.enqueue(frame);
+        else imu_q.enqueue(frame); 
     });
 
     std::thread imu_thread;

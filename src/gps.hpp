@@ -10,12 +10,23 @@
 #include <fstream>
 #include <ublox/ublox.h>
 #include <mutex>
+#include <iostream>
+#include <string>
+#include <curl/curl.h>
+
 #include "utils.h"
 
 // https://github.com/GAVLab/ublox
 
 inline void DefaultInfoMsgCallback(const std::string &msg) {
-    //std::cout << "Ublox Info: " << msg << std::endl;
+    std::cout << "Ublox Info: " << msg << std::endl;
+}
+
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    std::cout << "hi" << std::endl;
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
 }
 
 using namespace GeographicLib;
@@ -59,7 +70,7 @@ public:
             earth.Reverse(pos.ecefX/100.0, pos.ecefY/100.0, pos.ecefZ/100.0, lat, lon, h);
 
             gps_file << get_timestamp() << "," << lat << "," << lon << "," <<  h
-                << "," << pos.pDop << std::endl;
+                << "," << pos.pDop << "," << pos.gpsFix << std::endl;
                 
                 //<< "," << pos.pAcc << "," << pos.sAcc << "," 
                 //<< "," << pos.ecefVX << "," << pos.ecefVY << "," << pos.ecefVZ 
@@ -80,6 +91,9 @@ public:
     bool Connect(){ 
         if(!sensor.Connect(port,baud)) return false; 
 
+
+        StartNTRIP();
+
         // nav status at 1 Hz
         sensor.ConfigureMessageRate(MSG_CLASS_NAV, MSG_ID_NAV_STATUS, 1); 
 
@@ -95,6 +109,7 @@ public:
 
         return true;
     };
+
 
     void Stop() { 
         if(!running) return;

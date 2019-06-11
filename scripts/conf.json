@@ -11,7 +11,7 @@
     "imu":true,
     "gps":false,
 
-    "high-accuracy":true,
+    "depth-mode":"high-accuracy",
 
     "stereo-autoexposure":true,
     "stereo-whitebalance":true,
