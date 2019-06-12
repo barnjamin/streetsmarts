@@ -1,5 +1,12 @@
 #include <stdio.h>
+#include <thread>
+#include <iostream>
+#include "ntrip.h"
+#include <curl/curl.h>
 
+NtripClient::NtripClient(){
+    NtripClient("", 0, "", "", "");
+}
 NtripClient::NtripClient(std::string host, int port, 
             std::string mount, std::string user, 
             std::string pw)
@@ -13,8 +20,9 @@ NtripClient::NtripClient(std::string host, int port,
 
 NtripClient::~NtripClient() = default;
 
-bool NtripClient::start() 
+bool NtripClient::start(boost::asio::serial_port &serial) 
 {
+    serial_ = &serial;
     rtcm = std::thread(&NtripClient::sendRtcm, this);
 }
 
@@ -32,17 +40,16 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 void NtripClient::sendRtcm() {
   CURL *curl;
   CURLcode res;
-  std::string readBuffer;
 
   curl = curl_easy_init();
   if(!curl) {
       return;
   }
 
-  curl_easy_setopt(curl, CURLOPT_URL, connString());
+  curl_easy_setopt(curl, CURLOPT_URL, connString().c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-  curl_easy_setopt(curl, CURLOPT_USERPWD, authString());
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, serial_);
+  curl_easy_setopt(curl, CURLOPT_USERPWD, authString().c_str());
   curl_easy_setopt(curl, CURLOPT_USERAGENT, "StreetSmarts/1.0");
 
   res = curl_easy_perform(curl);
@@ -54,15 +61,18 @@ void NtripClient::sendRtcm() {
   curl_easy_cleanup(curl);
 }
 
-std::string connString(){
+std::string NtripClient::connString(){
   std::ostringstream cstring;
   cstring << "http://" << host_ << ":" << port_
           << "/" << mount_;
+
+  std::cout << cstring.str() << std::endl;
   return cstring.str();
 }
 
-std::string authString(){
+std::string NtripClient::authString(){
     std::ostringstream astring;
     astring  << user_ << ":" << pw_;
+   std::cout << astring.str() << std::endl;
     return astring.str();
 }

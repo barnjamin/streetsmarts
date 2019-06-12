@@ -22,12 +22,6 @@ inline void DefaultInfoMsgCallback(const std::string &msg) {
     std::cout << "Ublox Info: " << msg << std::endl;
 }
 
-static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-    std::cout << "hi" << std::endl;
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
 
 using namespace GeographicLib;
 
@@ -90,9 +84,6 @@ public:
 
     bool Connect(){ 
         if(!sensor.Connect(port,baud)) return false; 
-
-
-        StartNTRIP();
 
         // nav status at 1 Hz
         sensor.ConfigureMessageRate(MSG_CLASS_NAV, MSG_ID_NAV_STATUS, 1); 

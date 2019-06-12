@@ -26,6 +26,13 @@ find_package(realsense2)
 find_package(GeographicLib REQUIRED)
 find_package(LibOSRM REQUIRED)
 find_package(CURL)
+find_package(Boost)
+
+set (extra_boost_components)
+find_package(Boost REQUIRED
+    COMPONENTS program_options system ${extra_boost_components})
+
+find_package(Threads REQUIRED)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Open3D_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS} ${LibOSRM_CXXFLAGS}")
@@ -59,10 +66,13 @@ include_directories(
   /home/ben/ublox/include/
   /home/ben/serial/include/
   /home/ben/streetsmarts/src/
+  /home/ben/streetsmarts/src/gps
   ${CUDA_INCLUDE_DIRS}
   ${IMGUI}
   ${LibOSRM_INCLUDE_DIRS}
   ${CURL_INDLUE_DIRS}
+  /home/ben/cc.ublox.commsdsl/build/output/include
+  /home/ben/cc.ublox.commsdsl/build/comms_champion/build/install/include/
 ) 
 
 link_directories(${Open3D_LIBRARY_DIRS})
@@ -92,7 +102,20 @@ set(DEPENDENCIES
     ${LibOSRM_DEPENDENT_LIBRARIES}
 )
 
-set(CLIENT_SOURCE src/client.cpp src/utils.cpp src/config.cpp src/handlers.hpp src/pose/pose.cpp src/gps.hpp src/fragments.hpp src/refinement.hpp src/integrate.hpp)
+
+
+set(CLIENT_SOURCE 
+    src/client.cpp 
+    src/utils.cpp 
+    src/config.cpp 
+    src/handlers.hpp 
+    src/pose/pose.cpp 
+    src/fragments.hpp 
+    src/refinement.hpp 
+    src/integrate.hpp 
+    src/gps/ntrip.cpp
+    src/gps/session.cpp
+    )
 add_executable(client ${CLIENT_SOURCE})
 target_link_libraries(client ${DEPENDENCIES})
 
@@ -173,10 +196,7 @@ target_link_libraries(cluster ${DEPENDENCIES})
 #add_executable(drgbd ${DRGBD_SOURCE})
 #target_link_libraries(drgbd ${DEPENDENCIES})
 
-#set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp)
-#add_executable(gps ${GPS_SOURCE})
-#target_link_libraries(gps ${DEPENDENCIES})
+set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp src/gps/session.cpp src/gps/ntrip.cpp)
+add_executable(gps ${GPS_SOURCE})
+target_link_libraries(gps ${DEPENDENCIES})
 
-set(CURL_SOURCE src/curl.cpp)
-add_executable(crl ${CURL_SOURCE})
-target_link_libraries(crl ${DEPENDENCIES})

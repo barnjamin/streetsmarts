@@ -11,6 +11,8 @@
 #include "ublox/Message.h"
 #include "ublox/message/NavPvt.h"
 #include "ublox/frame/UbloxFrame.h"
+#include "../config.h"
+#include "ntrip.h"
 
 class Session 
 {
@@ -31,7 +33,7 @@ class Session
     using InNavPvt = ublox::message::NavPvt<InMessage>;
 
 public:
-    Session(boost::asio::io_service& io, const std::string& dev);
+    Session(boost::asio::io_service& io, Config conf);
     ~Session();
 
     bool start();
@@ -64,4 +66,5 @@ private:
     std::vector<std::uint8_t> m_inData;
     Frame m_frame;
 
+    NtripClient ntrip;
 };

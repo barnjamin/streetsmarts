@@ -9,7 +9,7 @@
     "stdout":true,
 
     "imu":true,
-    "gps":false,
+    "gps":true,
 
     "depth-mode":"high-accuracy",
 

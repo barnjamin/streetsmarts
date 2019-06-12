@@ -198,11 +198,11 @@ Config::Config(int argc, char ** argv) {
     cluster_max     = utility::GetProgramOptionAsInt(argc, argv,     "--cluster_max",  10000);
 
 
-    ntrip_host  = utility::GetProgramOptionAsString(argc, argv "--ntrip_host", "");
-    ntrip_port  = utility::GetProgramOptionAsInt(argc, argv "--ntrip_port", 0);
-    ntrip_mount = utility::GetProgramOptionAsString(argc, argv "--ntrip_mount", "");
-    ntrip_user  = utility::GetProgramOptionAsString(argc, argv "--ntrip_user", "");
-    ntrip_pw    = utility::GetProgramOptionAsString(argc, argv "--ntrip_pw", "");
+    ntrip_host  = utility::GetProgramOptionAsString(argc, argv, "--ntrip_host", "");
+    ntrip_port  = utility::GetProgramOptionAsInt(argc, argv, "--ntrip_port", 0);
+    ntrip_mount = utility::GetProgramOptionAsString(argc, argv, "--ntrip_mount", "");
+    ntrip_user  = utility::GetProgramOptionAsString(argc, argv, "--ntrip_user", "");
+    ntrip_pw    = utility::GetProgramOptionAsString(argc, argv, "--ntrip_pw", "");
 
     //Set threshold
     threshold.set_option(RS2_OPTION_MIN_DISTANCE,min_depth);

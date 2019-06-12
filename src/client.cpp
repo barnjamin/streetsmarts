@@ -2,6 +2,8 @@
 #include <thread>
 #include <queue>
 #include <atomic>
+#include <boost/asio.hpp>
+#include <boost/array.hpp>
 #include <Open3D/Open3D.h>
 #include "gps.hpp"
 #include "pose/pose.h"
@@ -9,6 +11,7 @@
 #include "handlers.hpp"
 #include "refinement.hpp"
 #include "integrate.hpp"
+#include "gps/session.h"
 
 int main(int argc, char * argv[]) try
 {
@@ -30,7 +33,7 @@ int main(int argc, char * argv[]) try
 
     conf.CreateLocalSession();
 
-    boost::asio::io_service& io
+    boost::asio::io_service io;
     Session session(io, conf);
     std::thread gps_thread;
     if(conf.capture_gps){
@@ -39,8 +42,12 @@ int main(int argc, char * argv[]) try
             return 1;
         }
 
-        gps.Start();
+        gps_thread = std::thread([&](){
+                io.run();
+        });
     }
+
+
 
     rs2::pipeline pipe;
 
@@ -76,8 +83,8 @@ int main(int argc, char * argv[]) try
 
     //Finish gps
     if(conf.capture_gps) {
-        gps.Stop();
-        gps_thread.join();
+        //session.stop();
+        //gps_thread.join();
     }
 
     pipe.stop();

@@ -1,4 +1,4 @@
-#include "Session.h"
+#include "session.h"
 
 #include <thread>
 #include <curl/curl.h>
@@ -9,15 +9,15 @@
 #include "ublox/message/NavPvtPoll.h"
 #include "ublox/message/NavPvt.h"
 #include "comms/units.h"
+#include "ntrip.h"
 
 Session::Session(boost::asio::io_service& io, Config conf)
   : m_serial(io),
     m_pollTimer(io),
+    ntrip(conf.ntrip_host, conf.ntrip_port,
+            conf.ntrip_mount, conf.ntrip_user, conf.ntrip_pw),
+    m_device("/dev/ttyACM1")//TODO
 {
-
-    m_device = conf.gps_device;
-    ntrip = NtripClient(conf.ntrip_host, conf.ntrip_port,
-            conf.ntrip_mount, conf.ntrip_user, conf.ntrip_pw);
 }
 
 Session::~Session() = default;
@@ -38,6 +38,8 @@ bool Session::start()
     m_serial.set_option(SerialPort::flow_control(SerialPort::flow_control::none));
 
     configureUbxOutput();
+
+    ntrip.start(m_serial);
 
     sendSolPoll();
     performRead();
