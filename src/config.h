@@ -18,6 +18,7 @@ public:
     int fps;
     int framestart;
     int frames;
+    int laser_power;
     
     int depth_mult;
 

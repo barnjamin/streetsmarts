@@ -43,8 +43,15 @@ void GPS::handle_gll(std::string msg) {
 
 void GPS::handle_gga(std::string msg){
     //pass to client connection
-    if(!send_ntrip(msg.c_str()))
-        std::cerr << "Failed to send ntrip correction" << std::endl; 
+    //std::cout << msg;
+
+    if (get_timestamp() - last_nmea > 30000){
+        std::cout << "Sending nmea\n" ;
+        if(!send_ntrip(msg.c_str())){
+            std::cerr << "Failed to send ntrip correction" << std::endl; 
+        }
+        last_nmea = get_timestamp();
+    }
 
     std::vector<std::string> results;
     boost::split(results, msg, [](char c){return c == ',';});
@@ -54,7 +61,6 @@ void GPS::handle_gga(std::string msg){
             << get_decimal(results[4]) * -1.0 << "," << results[9] << "," 
             << results[8] << "," << results[6] << std::endl;
 
-    //std::cout << msg;
     return;
 }
 
@@ -84,6 +90,7 @@ bool GPS::init_ntrip() {
   int server_port = 8080;
   char mountpoint[] = "near_msm";
 
+  last_nmea = 0;
 
   struct sockaddr_in server_addr;
   memset(&server_addr, 0, sizeof(struct sockaddr_in));
@@ -173,6 +180,7 @@ void GPS::Start(){
             std::string msg;
 
             ser.readline(msg);
+            //std::cout << msg << std::endl;
 
             if(msg.size()<6) continue; 
 
@@ -195,7 +203,7 @@ void GPS::Start(){
                 handle_rmc(msg);
             else if(prefix.compare( "GNVTG")==0)
                 handle_vtg(msg);
-            else std::cout << "unhanled: " << prefix << std::endl;
+            //else std::cout << "unhanled: " << prefix << std::endl;
         }
     });
 

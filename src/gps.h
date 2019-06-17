@@ -24,6 +24,7 @@ private:
     void handle_rmc(std::string msg);
     void handle_vtg(std::string msg);
 
+
     bool init_ntrip();
     bool send_ntrip(const char gpgga[]);
     void recv_ntrip();
@@ -31,6 +32,8 @@ private:
     serial::Serial ser;
     int m_sock;  
     bool running;
+
+    unsigned long last_nmea;
 
     std::ofstream gps_file;
 

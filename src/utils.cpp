@@ -502,12 +502,12 @@ bool set_depth_mode(std::string depth_mode){
     return false;
 }
 
-bool set_max_laser_power(){
+bool set_laser_power(int power){
     auto dev = get_first_device();
     auto cam = get_stereo_sensor(dev);
 
     if(cam.supports(RS2_OPTION_LASER_POWER)){
-        cam.set_option(RS2_OPTION_LASER_POWER, 360);
+        cam.set_option(RS2_OPTION_LASER_POWER, power);
         return true;
     }
 

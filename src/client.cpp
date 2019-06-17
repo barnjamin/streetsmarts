@@ -5,11 +5,10 @@
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <Open3D/Open3D.h>
-#include "pose/pose.h"
 #include "config.h"
 #include "handlers.hpp"
-#include "refinement.hpp"
-#include "integrate.hpp"
+
+#include "pose/pose.h"
 #include "gps.h"
 
 int main(int argc, char * argv[]) try
@@ -46,7 +45,7 @@ int main(int argc, char * argv[]) try
 
     rs2::config cfg;
     cfg.enable_stream(RS2_STREAM_DEPTH, conf.width, conf.height, RS2_FORMAT_Z16, conf.fps);
-    cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_BGR8, conf.fps);
+    cfg.enable_stream(RS2_STREAM_COLOR, conf.width, conf.height, RS2_FORMAT_RGB8, conf.fps);
     cfg.enable_stream(RS2_STREAM_INFRARED, conf.width, conf.height, RS2_FORMAT_Y8, conf.fps);
 
     if(conf.capture_imu){

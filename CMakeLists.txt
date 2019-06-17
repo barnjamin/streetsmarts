@@ -111,8 +111,6 @@ set(CLIENT_SOURCE
     src/handlers.hpp 
     src/pose/pose.cpp 
     src/fragments.hpp 
-    src/refinement.hpp 
-    src/integrate.hpp 
     src/gps.cpp
     )
 add_executable(client ${CLIENT_SOURCE})
@@ -195,7 +193,7 @@ target_link_libraries(cluster ${DEPENDENCIES})
 #add_executable(drgbd ${DRGBD_SOURCE})
 #target_link_libraries(drgbd ${DEPENDENCIES})
 
-#set(GPS_SOURCE src/gps_test.cpp src/utils.cpp src/config.cpp src/gps.cpp)
-#add_executable(gps ${GPS_SOURCE})
-#target_link_libraries(gps ${DEPENDENCIES})
+set(GPS_SOURCE src/gps_test.cpp src/utils.cpp src/config.cpp src/gps.cpp)
+add_executable(gps ${GPS_SOURCE})
+target_link_libraries(gps ${DEPENDENCIES})
 

@@ -117,7 +117,10 @@ Config::Config(int argc, char ** argv) {
         set_rgb_whitebalance(true);
 
         set_depth_units(0.001/depth_mult);
-        set_max_laser_power();
+
+        laser_power = utility::GetProgramOptionAsInt(argc, argv, "--laser_power", 360);
+        set_laser_power(laser_power);
+
 
         set_roi(100,540,100,200);
         
@@ -251,6 +254,8 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
         set_rgb_autoexposure(true);
         set_rgb_whitebalance(true);
 
+        laser_power = value.get("--laser-power", 360).asInt();
+        set_laser_power(laser_power);
 
         //rgb_gamma = value.get("rgb-gamma", 450).asInt();
         //rgb_saturation = value.get("rgb-saturation", 10).asInt();
@@ -265,7 +270,6 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
         set_roi(100, 540 ,100,200);
 
         set_depth_units(0.001/depth_mult);
-        set_max_laser_power();
 
         std::string depth_mode = value.get("depth-mode", "high-accuracy").asString();
         set_depth_mode(depth_mode);

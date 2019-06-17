@@ -47,7 +47,7 @@ bool set_rgb_autoexposure(bool on);
 bool set_stereo_whitebalance(bool on);
 bool set_stereo_autoexposure(bool on);
 
-bool set_max_laser_power();
+bool set_laser_power(int power);
 
 void PrintStatus(std::string kind, int state, int total);
 
