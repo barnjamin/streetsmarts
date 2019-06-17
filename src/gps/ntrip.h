@@ -20,7 +20,6 @@ private:
     std::string connString();
     std::string authString();
 
-
     boost::asio::serial_port* serial_;
 
     std::string host_;
