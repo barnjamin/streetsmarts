@@ -113,8 +113,7 @@ set(CLIENT_SOURCE
     src/fragments.hpp 
     src/refinement.hpp 
     src/integrate.hpp 
-    src/gps/ntrip.cpp
-    src/gps/session.cpp
+    src/gps.cpp
     )
 add_executable(client ${CLIENT_SOURCE})
 target_link_libraries(client ${DEPENDENCIES})
@@ -196,7 +195,7 @@ target_link_libraries(cluster ${DEPENDENCIES})
 #add_executable(drgbd ${DRGBD_SOURCE})
 #target_link_libraries(drgbd ${DEPENDENCIES})
 
-set(GPS_SOURCE src/gps.cpp src/utils.cpp src/config.cpp src/gps/session.cpp src/gps/ntrip.cpp)
-add_executable(gps ${GPS_SOURCE})
-target_link_libraries(gps ${DEPENDENCIES})
+#set(GPS_SOURCE src/gps_test.cpp src/utils.cpp src/config.cpp src/gps.cpp)
+#add_executable(gps ${GPS_SOURCE})
+#target_link_libraries(gps ${DEPENDENCIES})
 

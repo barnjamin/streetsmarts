@@ -5,13 +5,12 @@
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <Open3D/Open3D.h>
-#include "gps.hpp"
 #include "pose/pose.h"
 #include "config.h"
 #include "handlers.hpp"
 #include "refinement.hpp"
 #include "integrate.hpp"
-#include "gps/session.h"
+#include "gps.h"
 
 int main(int argc, char * argv[]) try
 {
@@ -33,21 +32,10 @@ int main(int argc, char * argv[]) try
 
     conf.CreateLocalSession();
 
-    boost::asio::io_service io;
-    Session session(io, conf);
-    std::thread gps_thread;
+    GPS gps("/dev/ttyACM1", conf.GPSFile());
     if(conf.capture_gps){
-        if (!session.start()) {
-            std::cout << "Failed to connect" << std::endl;
-            return 1;
-        }
-
-        gps_thread = std::thread([&](){
-                io.run();
-        });
+        gps.Start();
     }
-
-
 
     rs2::pipeline pipe;
 
@@ -83,8 +71,7 @@ int main(int argc, char * argv[]) try
 
     //Finish gps
     if(conf.capture_gps) {
-        //session.stop();
-        //gps_thread.join();
+        gps.Stop();
     }
 
     pipe.stop();

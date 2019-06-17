@@ -455,7 +455,6 @@ bool set_roi(int xmin, int xmax, int ymin, int ymax){
     auto dev = get_first_device();
 
     auto depth_cam = get_stereo_sensor(dev);
-    auto rgb_cam = get_rgb_sensor(dev);
 
     rs2::region_of_interest roi;
     roi.max_x = xmax;
@@ -465,12 +464,6 @@ bool set_roi(int xmin, int xmax, int ymin, int ymax){
 
     if(depth_cam.is<rs2::roi_sensor>()){
         depth_cam.as<rs2::roi_sensor>().set_region_of_interest(roi);
-    }else{
-        return false; 
-    }
-
-    if(rgb_cam.is<rs2::roi_sensor>()){
-        rgb_cam.as<rs2::roi_sensor>().set_region_of_interest(roi);
     }else{
         return false; 
     }
