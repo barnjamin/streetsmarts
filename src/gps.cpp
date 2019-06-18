@@ -25,10 +25,80 @@
 
 #include <boost/algorithm/string.hpp>
 
+GPS::GPS(Config conf) :
+    ser(conf.gps_port, 115200, serial::Timeout::simpleTimeout(1000)),
+    ntrip_host(conf.ntrip_host),
+    ntrip_port(conf.ntrip_port),
+    ntrip_mount(conf.ntrip_mount),
+    ntrip_user(conf.ntrip_user),
+    ntrip_pw(conf.ntrip_pw)
+{
+    gps_file.open(conf.GPSFile());
+}
+
+void GPS::Start(){
+    init_ntrip();
+
+    serial_reader = std::thread([&](){
+        while(true){
+            std::string msg;
+
+            ser.readline(msg);
+
+            if(msg.size()<6) continue; 
+
+            std::string prefix = msg.substr(1,5);
+            if(prefix.compare("GAGSV")==0)
+                handle_gsv(msg);
+            else if(prefix.compare("GBGSV")==0)
+                handle_gsv(msg);
+            else if(prefix.compare("GLGSV")==0)
+                handle_gsv(msg);
+            else if(prefix.compare("GPGSV")==0)
+                handle_gsv(msg);
+            else if(prefix.compare("GNGGA")==0)
+                handle_gga(msg);
+            else if(prefix.compare("GNGLL")==0)
+                handle_gll(msg);
+            else if(prefix.compare("GNGSA")==0)
+                handle_gsa(msg);
+            else if(prefix.compare("GNRMC")==0)
+                handle_rmc(msg);
+            else if(prefix.compare("GNVTG")==0)
+                handle_vtg(msg);
+            else if(prefix.compare("GNGBS")==0)
+                handle_gbs(msg);
+            else if(prefix.compare("GNGST")==0)
+                handle_gst(msg);
+            else
+                std::cout << msg << std::endl;
+        }
+    });
+
+    ntrip_reader = std::thread([&](){
+        recv_ntrip();
+    });
+
+}
+
+void GPS::Stop() {
+    serial_reader.join();
+    ntrip_reader.join();
+}
 
 double get_decimal(std::string val){
     double dec = std::stod(val);
     return dec / 100;
+}
+
+void GPS::handle_gst(std::string msg) {
+    //std::cout << msg;
+    return;
+}
+
+void GPS::handle_gbs(std::string msg) {
+    //std::cout << msg;
+    return;
 }
 
 void GPS::handle_gsv(std::string msg) {
@@ -84,11 +154,14 @@ bool GPS::init_ntrip() {
   int ret;
   char recv_buf[1024] = {0};
   char request_data[1024] = {0};
-  char userinfo[] = "YmFybmphbWluOkNvYXN0ZXJvbmllMQ==";
   
+  //TODO: set from conf
+  char userinfo[] = "YmFybmphbWluOkNvYXN0ZXJvbmllMQ==";
   char server_ip[] = "161.11.223.1";
-  int server_port = 8080;
+  //char mountpoint[] = ntrip_mount.c_str();
   char mountpoint[] = "near_msm";
+
+  int server_port = 8080;
 
   last_nmea = 0;
 
@@ -107,7 +180,7 @@ bool GPS::init_ntrip() {
            "Authorization: Basic %s\r\n"
            "\r\n", mountpoint, userinfo);
 
-  std::cout << "Connecting.." ;
+  std::cout << "connecting to ntrip..." << std::endl;
   m_sock = socket(AF_INET, SOCK_STREAM, 0);
   if (m_sock == -1) {
     std::cerr <<"create socket fail\n" ;
@@ -121,7 +194,7 @@ bool GPS::init_ntrip() {
     return false;
   }
 
-  std::cout << "Connected" << std::endl;
+  std::cout << "connected to ntrip" << std::endl;
 
   int flags = fcntl(m_sock, F_GETFL);
   fcntl(m_sock, F_SETFL, flags | O_NONBLOCK);
@@ -166,53 +239,3 @@ void GPS::recv_ntrip(){
 
 
 
-GPS::GPS(std::string port, std::string log_file) :
-    ser(port, 115200, serial::Timeout::simpleTimeout(1000))
-{
-    gps_file.open(log_file);
-}
-
-void GPS::Start(){
-    init_ntrip();
-
-    serial_reader = std::thread([&](){
-        while(true){
-            std::string msg;
-
-            ser.readline(msg);
-            //std::cout << msg << std::endl;
-
-            if(msg.size()<6) continue; 
-
-            std::string prefix = msg.substr(1,5);
-            if(prefix.compare( "GAGSV")==0)
-                handle_gsv(msg);
-            else if(prefix.compare( "GBGSV")==0)
-                handle_gsv(msg);
-            else if(prefix.compare( "GLGSV")==0)
-                handle_gsv(msg);
-            else if(prefix.compare( "GPGSV")==0)
-                handle_gsv(msg);
-            else if(prefix.compare( "GNGGA")==0){
-                handle_gga(msg);
-            } else if(prefix.compare( "GNGLL")==0)
-                handle_gll(msg);
-            else if(prefix.compare( "GNGSA")==0)
-                handle_gsa(msg);
-            else if(prefix.compare( "GNRMC")==0)
-                handle_rmc(msg);
-            else if(prefix.compare( "GNVTG")==0)
-                handle_vtg(msg);
-            //else std::cout << "unhanled: " << prefix << std::endl;
-        }
-    });
-
-    ntrip_reader = std::thread([&](){
-        recv_ntrip();
-    });
-}
-
-void GPS::Stop() {
-    serial_reader.join();
-    ntrip_reader.join();
-}

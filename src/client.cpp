@@ -31,7 +31,7 @@ int main(int argc, char * argv[]) try
 
     conf.CreateLocalSession();
 
-    GPS gps("/dev/ttyACM1", conf.GPSFile());
+    GPS gps(conf);
     if(conf.capture_gps){
         gps.Start();
     }

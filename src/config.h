@@ -93,6 +93,8 @@ public:
     int rgb_gain;
     int rgb_sharpness;
 
+    std::string gps_port;
+
     std::string ntrip_host;
     int ntrip_port;
     std::string ntrip_mount;
@@ -126,6 +128,8 @@ public:
 
     std::string PoseFile(int idx);
     std::string DepthFile(int i_idx);
+    std::string LeftFile(int i_idx);
+    std::string RightFile(int i_idx);
     std::string MaskFile(int i_idx);
     std::string InfraFile(int i_idx);
     std::string ColorFile(int i_idx);

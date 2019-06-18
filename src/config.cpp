@@ -25,7 +25,8 @@ std::string generate_local_session(std::string prefix) {
         !utility::filesystem::MakeDirectoryHierarchy(session_path + "/scene") ||
         !utility::filesystem::MakeDirectoryHierarchy(session_path + "/color") ||
         !utility::filesystem::MakeDirectoryHierarchy(session_path + "/depth") ||
-        !utility::filesystem::MakeDirectoryHierarchy(session_path + "/infra") ||
+        !utility::filesystem::MakeDirectoryHierarchy(session_path + "/left")  ||
+        !utility::filesystem::MakeDirectoryHierarchy(session_path + "/right") ||
         !utility::filesystem::MakeDirectoryHierarchy(session_path + "/thumbnail_fragment") ||
         !utility::filesystem::MakeDirectoryHierarchy(session_path + "/fragment")){
         std::cout << "failed to create files" << std::endl; 
@@ -201,6 +202,7 @@ Config::Config(int argc, char ** argv) {
     cluster_max     = utility::GetProgramOptionAsInt(argc, argv,     "--cluster_max",  10000);
 
 
+    gps_port  = utility::GetProgramOptionAsString(argc, argv, "--gps_port", "/dev/ttyACM1");
     ntrip_host  = utility::GetProgramOptionAsString(argc, argv, "--ntrip_host", "");
     ntrip_port  = utility::GetProgramOptionAsInt(argc, argv, "--ntrip_port", 0);
     ntrip_mount = utility::GetProgramOptionAsString(argc, argv, "--ntrip_mount", "");
@@ -254,7 +256,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
         set_rgb_autoexposure(true);
         set_rgb_whitebalance(true);
 
-        laser_power = value.get("--laser-power", 360).asInt();
+        laser_power = value.get("laser-power", 360).asInt();
         set_laser_power(laser_power);
 
         //rgb_gamma = value.get("rgb-gamma", 450).asInt();
@@ -347,6 +349,7 @@ bool Config::ConvertFromJsonValue(const Json::Value &value)  {
     cluster_min     = value.get("cluster-min",  100).asInt();
     cluster_max     = value.get("cluster-max",  10000).asInt();
 
+    gps_port    = value.get("gps_port", "/dev/ttyACM1").asString();
     ntrip_host  = value.get("ntrip-host", "").asString();
     ntrip_port  = value.get("ntrip-port", 0).asInt();
     ntrip_mount = value.get("ntrip-mount", "").asString();
@@ -429,6 +432,25 @@ std::string Config::DepthFile(int idx)
     ss << std::setw(6) << std::setfill('0') << idx << ".png";
     return ss.str();
 }
+
+std::string Config::LeftFile(int idx)
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/left/";
+    ss << std::setw(6) << std::setfill('0') << idx << ".jpg";
+    return ss.str();
+}
+
+std::string Config::RightFile(int idx)
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/right/";
+    ss << std::setw(6) << std::setfill('0') << idx << ".jpg";
+    return ss.str();
+}
+
 
 std::string Config::MaskFile(int idx)
 {

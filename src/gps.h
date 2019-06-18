@@ -3,10 +3,11 @@
 #include <sstream>
 #include <thread>
 #include <fstream>
+#include "config.h"
 
 class GPS {
 public:
-    GPS(std::string port, std::string log_file);
+    GPS(Config conf);
     ~GPS() = default; 
 
     void Start();
@@ -17,6 +18,8 @@ private:
     std::thread serial_reader;
     std::thread ntrip_reader;
 
+    void handle_gbs(std::string msg);
+    void handle_gst(std::string msg);
     void handle_gsv(std::string msg);
     void handle_gll(std::string msg);
     void handle_gga(std::string msg);
@@ -28,6 +31,12 @@ private:
     bool init_ntrip();
     bool send_ntrip(const char gpgga[]);
     void recv_ntrip();
+
+    std::string ntrip_host;
+    int ntrip_port;
+    std::string ntrip_mount; 
+    std::string ntrip_user;
+    std::string ntrip_pw;
 
     serial::Serial ser;
     int m_sock;  

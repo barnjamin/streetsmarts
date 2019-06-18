@@ -35,11 +35,13 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 
     auto depth_image = std::make_shared<open3d::geometry::Image>();
     auto color_image = std::make_shared<open3d::geometry::Image>();
-    auto infra_image = std::make_shared<open3d::geometry::Image>();
+    auto left_image = std::make_shared<open3d::geometry::Image>();
+    auto right_image = std::make_shared<open3d::geometry::Image>();
 
     depth_image->PrepareImage(conf.width, conf.height, 1, 2);
     color_image->PrepareImage(conf.width, conf.height, 3, 1);
-    infra_image->PrepareImage(conf.width, conf.height, 1, 1);
+    left_image->PrepareImage(conf.width, conf.height, 1, 1);
+    right_image->PrepareImage(conf.width, conf.height, 1, 1);
 
     std::ofstream timestamp_file;
     timestamp_file.open(conf.ImageTimestampFile());
@@ -57,7 +59,7 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
     //set_rgb_whitebalance(conf.rgb_whitebalance);
 
     rs2::frameset fs;
-    rs2::frame color_frame, depth_frame, infra_frame;
+    rs2::frame color_frame, depth_frame, left_frame, right_frame;
     for(int img_idx = 0; img_idx < conf.frames; img_idx++) {
         rs2::frame frame = q.wait_for_frame();
 
@@ -65,6 +67,8 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 
         color_frame = fs.first(RS2_STREAM_COLOR);
         depth_frame = fs.get_depth_frame();	       
+        left_frame  = fs.get_infrared_frame(0);
+        right_frame = fs.get_infrared_frame(1);
 
         if (!depth_frame || !color_frame) { return; }
 
@@ -73,8 +77,13 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
         memcpy(depth_image->data_.data(), depth_frame.get_data(), conf.width * conf.height * 2);
         memcpy(color_image->data_.data(), color_frame.get_data(), conf.width * conf.height * 3);
 
+        memcpy(left_image->data_.data(), left_frame.get_data(), conf.width * conf.height * 1);
+        memcpy(right_image->data_.data(), right_frame.get_data(), conf.width * conf.height * 1);
+
         std::thread write_color(open3d::io::WriteImage, conf.ColorFile(img_idx), *color_image, 50);
         std::thread write_depth(open3d::io::WriteImage, conf.DepthFile(img_idx), *depth_image, 100);
+        std::thread write_left(open3d::io::WriteImage, conf.LeftFile(img_idx), *left_image, 100);
+        std::thread write_right(open3d::io::WriteImage, conf.RightFile(img_idx), *right_image, 100);
 
         timestamp_file << img_idx << "," << depth_frame.get_timestamp() << "," 
             << color_frame.get_timestamp()  << "," << get_timestamp() << std::endl;
