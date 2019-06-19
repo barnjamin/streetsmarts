@@ -1,5 +1,5 @@
 {
-    "session-name":"test",
+    "session-name":"jun18",
     "set-cam-opts":true,
 
     "frames":36000,
@@ -10,6 +10,8 @@
 
     "imu":true,
     "gps":true,
+
+    "laser-power":0,
 
     "depth-mode":"high-accuracy",
 

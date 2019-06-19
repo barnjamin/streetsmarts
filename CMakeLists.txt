@@ -169,9 +169,9 @@ target_link_libraries(cluster ${DEPENDENCIES})
 #include_directories(gui ${IMGUI})
 #target_link_libraries(gui ${DEPENDENCIES})
 
-#set(ROAD_SOURCE src/experiments/make_road.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
-#add_executable(make_road ${ROAD_SOURCE})
-#target_link_libraries(make_road ${DEPENDENCIES})
+set(ROAD_SOURCE src/experiments/make_road.cpp src/utils.cpp src/config.cpp src/fragments.hpp)
+add_executable(make_road ${ROAD_SOURCE})
+target_link_libraries(make_road ${DEPENDENCIES})
 
 #set(ROUTE_SOURCE src/route.cpp src/utils.cpp src/config.cpp)
 #add_executable(route ${ROUTE_SOURCE})

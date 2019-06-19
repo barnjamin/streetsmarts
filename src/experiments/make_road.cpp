@@ -109,10 +109,10 @@ void setCoords(const string& path, MatchParameters& params) {
         }
 
         unsigned long ts     = stoul(row[0]);
-        double lat = (double)stof(row[1]);
-        double lon = (double)stof(row[2]);
-        double h   = (double)stof(row[3]);
-        int dop    = stoi(row[4]);
+        float lat = stof(row[1]);
+        float lon = stof(row[2]);
+        //double h   = (double)stof(row[3]);
+        //int dop    = stoi(row[4]);
 
         params.coordinates.push_back({util::FloatLongitude{(float)lon}, util::FloatLatitude{(float)lat}});
         params.timestamps.push_back(ts);
@@ -167,12 +167,12 @@ int main(int argc, char * argv[])
     config.use_shared_memory = false;
     config.algorithm = EngineConfig::Algorithm::MLD;
 
-
     const OSRM osrm{config};
 
     // The following shows how to use the Route service; configure this service
     MatchParameters params;
     params.steps = true;
+    params.tidy = true;
     params.geometries = RouteParameters::GeometriesType::GeoJSON;
 
     setCoords(conf.GPSFile(), params);
@@ -182,7 +182,7 @@ int main(int argc, char * argv[])
     const auto status = osrm.Match(params, result);
 
     if (status != Status::Ok){
-        PrintError("Failed to match gps");
+        PrintError("Failed to match gps\n");
         return 1;
     }
     
@@ -212,32 +212,32 @@ int main(int argc, char * argv[])
         sections.push_back(s);
     }
 
-
     std::ofstream segment_file;
     segment_file.open(conf.RoadSegmentFile());
     for(auto &section: sections){
         segment_file << section.start.x << "," << section.start.y << "," << section.start.z 
             << "," << section.stop.x << "," << section.stop.y << "," << section.stop.z  << std::endl;
     }
+    segment_file.close();
 
-    auto lineset = MakeLineSetFromSections(sections);
+    //auto lineset = MakeLineSetFromSections(sections);
 
-    auto pcd = io::CreatePointCloudFromFile(conf.SceneMeshFile());
+    //auto pcd = io::CreatePointCloudFromFile(conf.SceneMeshFile());
 
-    //Flip it over
-    Eigen::AngleAxis<double> fa(-M_PI, Eigen::Vector3d(0,0,1));
-    Eigen::Transform<double,3,Eigen::Affine> flip = Eigen::Translation3d(0,0,0) * fa;
-    pcd->Transform(flip.matrix());
+    ////Flip it over
+    //Eigen::AngleAxis<double> fa(-M_PI, Eigen::Vector3d(0,0,1));
+    //Eigen::Transform<double,3,Eigen::Affine> flip = Eigen::Translation3d(0,0,0) * fa;
+    //pcd->Transform(flip.matrix());
 
-    ////Rotate to align with road section
-    Eigen::AngleAxis<double> sa(M_PI/2, Eigen::Vector3d(0,1,0));
-    Eigen::Transform<double,3,Eigen::Affine> spin = Eigen::Translation3d(0,0,0) * sa;
-    pcd->Transform(spin.matrix());
+    //////Rotate to align with road section
+    //Eigen::AngleAxis<double> sa(M_PI/2, Eigen::Vector3d(0,1,0));
+    //Eigen::Transform<double,3,Eigen::Affine> spin = Eigen::Translation3d(0,0,0) * sa;
+    //pcd->Transform(spin.matrix());
 
-    //Flatten it
-    pcd->Transform(Flatten(*pcd));
+    ////Flatten it
+    //pcd->Transform(Flatten(*pcd));
 
-    visualization::DrawGeometries({lineset, pcd});
+    //visualization::DrawGeometries({lineset, pcd});
 
     return 0;
 

@@ -14,6 +14,7 @@
 void record_imu(Config conf, std::atomic<bool>& running, rs2::frame_queue q) {
     std::ofstream imu_file;
     imu_file.open(conf.IMUFile());
+    imu_file << std::setprecision(15);
     while(running){
         rs2::frame frame = q.wait_for_frame();
         auto stype = frame.get_profile().stream_type();
@@ -45,6 +46,7 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 
     std::ofstream timestamp_file;
     timestamp_file.open(conf.ImageTimestampFile());
+    timestamp_file << std::setprecision(15);
 
     open3d::camera::PinholeCameraIntrinsic intrinsic = get_open3d_intrinsic(profile);
     open3d::io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);
@@ -67,8 +69,8 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 
         color_frame = fs.first(RS2_STREAM_COLOR);
         depth_frame = fs.get_depth_frame();	       
-        left_frame  = fs.get_infrared_frame(0);
-        right_frame = fs.get_infrared_frame(1);
+        left_frame  = fs.get_infrared_frame(1);
+        right_frame = fs.get_infrared_frame(2);
 
         if (!depth_frame || !color_frame) { return; }
 
@@ -90,6 +92,8 @@ void record_img(Config conf, rs2::pipeline_profile profile, rs2::frame_queue q) 
 
         write_color.join();
         write_depth.join();
+        write_left.join();
+        write_right.join();
 
         conf.LogStatus("RGBDFRAME", img_idx, conf.frames);
     }
@@ -107,6 +111,7 @@ void make_posegraph(Config conf, rs2::pipeline_profile profile,
 
     std::ofstream timestamp_file;
     timestamp_file.open(conf.ImageTimestampFile());
+    timestamp_file << std::setprecision(15);
 
     camera::PinholeCameraIntrinsic intrinsic = get_open3d_intrinsic(profile);
     io::WriteIJsonConvertible(conf.IntrinsicFile(), intrinsic);

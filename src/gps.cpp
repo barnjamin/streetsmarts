@@ -46,6 +46,7 @@ void GPS::Start(){
             ser.readline(msg);
 
             if(msg.size()<6) continue; 
+            gps_file << get_timestamp() << "," << msg;
 
             std::string prefix = msg.substr(1,5);
             if(prefix.compare("GAGSV")==0)
@@ -123,13 +124,13 @@ void GPS::handle_gga(std::string msg){
         last_nmea = get_timestamp();
     }
 
-    std::vector<std::string> results;
-    boost::split(results, msg, [](char c){return c == ',';});
+    //std::vector<std::string> results;
+    //boost::split(results, msg, [](char c){return c == ',';});
 
-    gps_file << std::setprecision(10);
-    gps_file << get_timestamp() << "," << get_decimal(results[2]) << "," 
-            << get_decimal(results[4]) * -1.0 << "," << results[9] << "," 
-            << results[8] << "," << results[6] << std::endl;
+    //gps_file << std::setprecision(10);
+    //gps_file << get_timestamp() << "," << get_decimal(results[2]) << "," 
+    //        << get_decimal(results[4]) * -1.0 << "," << results[9] << "," 
+    //        << results[8] << "," << results[6] << std::endl;
 
     return;
 }

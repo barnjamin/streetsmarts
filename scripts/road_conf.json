@@ -10,7 +10,7 @@
     "width":848,
 
     "fps":60,
-    "frames": 1500,
+    "frames": 9000,
     "overlap-factor": 4,
     "frames-per-fragment":120,
 
