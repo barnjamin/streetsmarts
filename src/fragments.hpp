@@ -271,6 +271,75 @@ void MakePointCloudForFragment(int fragment_id, Config &config) {
     WritePointCloud(config.FragmentFile(fragment_id), *pcl_downsampled);
 }
 
+void IntegrateRoadSegment(Config &config) {
+
+    PoseGraph pose_graph;
+    std::string path = "/pose/Rigi_Avenue_optimized_with_gps.json";
+    ReadPoseGraph(config.session_path + path, pose_graph);
+
+
+    PinholeCameraIntrinsic intrinsic_;
+    ReadIJsonConvertible(config.IntrinsicFile(), intrinsic_);
+
+    PinholeCameraIntrinsicCuda intrinsic(intrinsic_);
+
+    TransformCuda trans = TransformCuda::Identity();
+
+    float voxel_length = config.tsdf_cubic_size / 512.0;
+    ScalableTSDFVolumeCuda tsdf_volume(8, voxel_length, (float) config.tsdf_truncation);
+
+    RGBDImageCuda rgbd(config.width, config.height, config.max_depth, config.depth_factor);
+
+    for (int i = 0; i < pose_graph.nodes_.size(); i++) {
+        Image depth, color;
+        int frame_idx = i;
+
+        PrintInfo("Integrating fragment: %d frame %d \n", frame_idx);
+
+        ReadImage(config.DepthFile(frame_idx), depth);
+        ReadImage(config.ColorFile(frame_idx), color);
+        rgbd.Upload(depth, color);
+
+        int node_id = i;
+        //if(fragment_id>0){
+        //    node_id += config.GetOverlapCount(); 
+        //}
+
+        /* Use ground truth trajectory */
+        Eigen::Matrix4d pose = pose_graph.nodes_[node_id].pose_;
+        trans.FromEigen(pose);
+
+        tsdf_volume.Integrate(rgbd, intrinsic, trans);
+    }
+
+    tsdf_volume.GetAllSubvolumes();
+
+    std::cout << tsdf_volume.active_subvolume_entry_array_.size() << std::endl;
+
+    int subvols = tsdf_volume.active_subvolume_entry_array_.size(); 
+    int max_vert = 20 * subvols;
+    int max_tri = 5 * max_vert;
+    ScalableMeshVolumeCuda mesher(VertexWithNormalAndColor, 8, 
+        subvols, 20000000, 40000000);
+
+    mesher.MarchingCubes(tsdf_volume);
+    auto mesh = mesher.mesh().Download();
+    //WriteTriangleMesh(config.ThumbnailFragmentFile(fragment_id), mesh);
+
+    PointCloud pcl;
+    pcl.points_ = mesh->vertices_;
+    pcl.normals_ = mesh->vertex_normals_;
+    pcl.colors_ = mesh->vertex_colors_;
+
+    //pcl.Transform(Flatten(pcl));
+
+    /** Write original fragments **/
+    WritePointCloud("/home/ben/rigi.pcd", pcl);
+
+    /** Write downsampled thumbnail fragments **/
+    //auto pcl_downsampled = VoxelDownSample(pcl, config.voxel_size);
+}
+
 void IntegrateForFragment(int fragment_id, Config &config) {
 
     PoseGraph pose_graph;
