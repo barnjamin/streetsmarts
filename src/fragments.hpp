@@ -271,7 +271,12 @@ void MakePointCloudForFragment(int fragment_id, Config &config) {
     WritePointCloud(config.FragmentFile(fragment_id), *pcl_downsampled);
 }
 
-void IntegrateRoadSegment(Config &config) {
+void IntegrateRoadSegments(Config &config) {
+
+    // Get the pose dirs
+    //  Get the files in each pose dir
+    //     integrate file 
+    //for()
 
     PoseGraph pose_graph;
     std::string path = "/pose/Rigi_Avenue_optimized_with_gps.json";

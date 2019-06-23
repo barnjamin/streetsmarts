@@ -58,7 +58,6 @@ def align_pg(pg, trans):
         pg.nodes[nidx].pose = t
 
 def chunk_pg(pg, g2n, start, stop):
-    print("hi")
     pgs = []
     g2pg = []
     new2old = []
@@ -69,9 +68,7 @@ def chunk_pg(pg, g2n, start, stop):
         edges = []
 
         gstart = gidx * 3
-        gstop = gstart + 2
-
-        print("gstartstop", gstart, gstop)
+        gstop = gstart + 3
 
         node_start = g2n[gstart][1]
         node_stop = g2n[gstop][1]
@@ -81,7 +78,6 @@ def chunk_pg(pg, g2n, start, stop):
         if node_start < start or node_stop > stop:
             continue
 
-        print("asdf")
         original = np.copy(pg.nodes[node_start].pose)
 
         for idx in range(node_stop - node_start):
@@ -150,15 +146,11 @@ def inject_gps_edges(pg, gps, node_start, trans):
             continue
 
         info = np.identity(6) 
-        info[3:,:] *= strengths[gps_to_node[gidx][0][3]]
+        info[:3,:] *= strengths[gps_to_node[gidx][0][3]]
         #info *= strengths[gps_to_node[gidx][0][3]]
 
         start = np.array([gps_to_node[gidx][0][4],gps_to_node[gidx][0][5],1])
         stop = np.array([gps_to_node[gidx+1][0][4],gps_to_node[gidx+1][0][5],1])
-        
-
-        print(stop-start)
-        print(trans.apply(stop - start))
         
         transform = np.identity(4)
         transform[:3,3] = trans.apply(stop - start)
