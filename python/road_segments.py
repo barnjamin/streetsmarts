@@ -58,18 +58,20 @@ def align_pg(pg, trans):
         pg.nodes[nidx].pose = t
 
 def chunk_pg(pg, g2n, start, stop):
-
+    print("hi")
     pgs = []
     g2pg = []
     new2old = []
     #for every 3 gps readings, make a new pg
-    for gidx in range(int(len(g2n)/3)-3):
+    for gidx in range(int((len(g2n))/3) - 1 ):
 
         nodes = []
         edges = []
 
         gstart = gidx * 3
-        gstop = gstart + 3
+        gstop = gstart + 2
+
+        print("gstartstop", gstart, gstop)
 
         node_start = g2n[gstart][1]
         node_stop = g2n[gstop][1]
@@ -79,6 +81,7 @@ def chunk_pg(pg, g2n, start, stop):
         if node_start < start or node_stop > stop:
             continue
 
+        print("asdf")
         original = np.copy(pg.nodes[node_start].pose)
 
         for idx in range(node_stop - node_start):
