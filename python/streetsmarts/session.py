@@ -8,7 +8,6 @@ url = 'http://localhost:5000/match/v1/drive/'
 params = {'steps':'true', 'tidy':'true'}
 
 class ImageNode:
-    
     def __init__(self):
         pass
     
@@ -16,9 +15,7 @@ class GPSMeasurement:
     utm = None
     ll  = None
     ts  = None
-
     def __init__(self, row):
-
         pass
     
     
@@ -27,13 +24,14 @@ class RoadSection:
         pass
     
 class Session:
-    
-    street_times = {}
-    street_points = []
+    street_times        = {}
+    street_points       = []
     street_frame_bounds = []
 
-    ts_raw = []
-    gps_raw = []
+    node_to_gps         = {}
+
+    ts_raw              = []
+    gps_raw             = []
 
     def __init__(self, path):
         self.full_pg = o3d.io.read_pose_graph(path + "/pose/full.json")
@@ -44,6 +42,21 @@ class Session:
         with open(path + "/timestamps.csv", "r") as f:
             reader = csv.reader(f)
             self.ts_raw = list(reader)
+
+
+        print(self.gps_raw[0][0], " to ", self.gps_raw[-1][0])
+
+        last_frame = 0
+        for gidx in range(len(self.gps_raw)):
+            gts = int(self.gps_raw[gidx][0])
+
+            for fidx in range(len(self.ts_raw)):
+                fts = int(self.ts_raw[fidx][3])
+                if fts < gts:
+                    continue
+
+                self.node_to_gps[fidx] = gidx
+                break
 
         for idx in range(int(len(self.gps_raw)/100)):
             request_url = build_url(self.gps_raw[idx*100:min(idx*100+100, len(self.gps_raw))])
@@ -113,10 +126,7 @@ class Session:
 
         return street_frame_bounds
 
-
-
 def build_url(coords):
-
     ep = []
     for c in coords:
         ep.append("{},{}".format(c[2],c[1]))
@@ -124,7 +134,9 @@ def build_url(coords):
 
 
 
+
+
 if __name__ == "__main__":
     s = Session("/home/ben/jun18/jun18-1560866919")
     print(s.street_times) 
-
+    print(s.street_frame_bounds)
