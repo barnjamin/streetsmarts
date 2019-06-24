@@ -23,8 +23,8 @@ int main(int argc, char * argv[])
     Timer timer;
     timer.Start();
 
-    //IntegrateRoadSegment(conf);
-    MakeFullPoseGraph(conf);
+    IntegrateRoadSegments(conf);
+    //MakeFullPoseGraph(conf);
     //OptimizePoseGraphForFragment(-1, conf);
 
     //int fragments = conf.GetFragmentCount();

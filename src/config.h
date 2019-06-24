@@ -136,6 +136,9 @@ public:
     std::string FragmentFile(int idx);
     std::string ThumbnailFragmentFile(int idx);
 
+    std::string StreetFragmentPoseFile(std::string street, int frag_idx);
+    std::string StreetFragmentPointCloudFile(std::string street, int frag_idx);
+
     std::string ScenePointCloudFile();
     std::string SceneMeshFile();
     std::string PoseFileScene();

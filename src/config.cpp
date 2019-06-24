@@ -527,6 +527,25 @@ std::string Config::GPSFile()
     std::stringstream ss;
     ss << session_path <<  "/gps.csv";
     return ss.str();
+
+}
+
+std::string Config::StreetFragmentPoseFile(std::string street, int frag_idx)
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/pose/" << street << "/";
+    ss << std::setw(3) << std::setfill('0') << frag_idx << "_optimized_with_gps.json";
+    return ss.str();
+}
+
+std::string Config::StreetFragmentPointCloudFile(std::string street, int frag_idx)
+{
+    
+    std::stringstream ss;
+    ss << session_path <<  "/fragment/" << street << "_";
+    ss << std::setw(3) << std::setfill('0') << frag_idx << ".pcd";
+    return ss.str();
 }
 
 

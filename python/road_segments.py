@@ -57,10 +57,42 @@ def align_pg(pg, trans):
         t[:3,3] = trans.apply(t[:3,3])
         pg.nodes[nidx].pose = t
 
+def chunk_pg_to_road_segments(pg, start, stop):
+
+    #for every 3 gps readings, make a new pg
+    nodes = []
+    edges = []
+    seg_new2old = {}
+
+    original = np.copy(pg.nodes[start].pose)
+
+    for idx in range(stop - start):
+        n_idx = start + idx
+
+        pg.nodes[n_idx].pose = np.dot(np.linalg.inv(original), pg.nodes[n_idx].pose)
+
+        nodes.append(pg.nodes[n_idx])
+
+        seg_new2old[idx] = n_idx
+        
+    for e in pg.edges:
+        if e.source_node_id >= start and  e.target_node_id < stop:
+            e.source_node_id -= start
+            e.target_node_id -= start
+            edges.append(e)
+
+    npg = o3d.registration.PoseGraph()
+    npg.nodes = o3d.registration.PoseGraphNodeVector(nodes)
+    npg.edges = o3d.registration.PoseGraphEdgeVector(edges)
+
+    return (npg, seg_new2old)
+
+
 def chunk_pg(pg, g2n, start, stop):
     pgs = []
     g2pg = []
     new2old = []
+
     #for every 3 gps readings, make a new pg
     for gidx in range(int((len(g2n))/3) - 1 ):
 
@@ -146,8 +178,9 @@ def inject_gps_edges(pg, gps, node_start, trans):
             continue
 
         info = np.identity(6) 
+
+        #Constrain transformation only
         info[:3,:] *= strengths[gps_to_node[gidx][0][3]]
-        #info *= strengths[gps_to_node[gidx][0][3]]
 
         start = np.array([gps_to_node[gidx][0][4],gps_to_node[gidx][0][5],1])
         stop = np.array([gps_to_node[gidx+1][0][4],gps_to_node[gidx+1][0][5],1])
