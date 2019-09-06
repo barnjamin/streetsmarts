@@ -157,7 +157,7 @@ bool GPS::init_ntrip() {
   char request_data[1024] = {0};
   
   //TODO: set from conf
-  char userinfo[] = "YmFybmphbWluOkNvYXN0ZXJvbmllMQ==";
+  char userinfo[] = "";
   char server_ip[] = "161.11.223.1";
   //char mountpoint[] = ntrip_mount.c_str();
   char mountpoint[] = "near_msm";
